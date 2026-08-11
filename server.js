@@ -1,180 +1,68 @@
+require("dotenv").config();
+
 const express = require("express");
-const dotenv = require("dotenv");
-const cors = require("cors");
-const helmet = require("helmet");
-const mongoose = require("mongoose");
-
+const rateLimit = require("express-rate-limit");
 const connectDB = require("./config/db");
-
-const {
-  notFound,
-  errorHandler,
-} = require("./middleware/errorMiddleware");
-
-const logger = require("./middleware/logger");
-
-dotenv.config();
-
-// ==========================================
-// Environment Variables
-// ==========================================
-
-if (!process.env.MONGO_URI) {
-  console.error("❌ MONGO_URI is missing from .env");
-  process.exit(1);
-}
-
-const PORT = process.env.PORT || 5000;
-
-// ==========================================
-// Express App
-// ==========================================
+const todoRoutes = require("./routes/todoRoutes");
 
 const app = express();
 
-// ==========================================
-// Security Middleware
-// ==========================================
-
-app.use(helmet());
-
-app.use(
-  cors({
-    origin: "*",
-    methods: ["GET", "POST", "PUT", "PATCH", "DELETE"],
-  })
-);
-
-// ==========================================
-// Logging
-// ==========================================
-
-app.use(logger);
-
-// ==========================================
-// Body Parser
-// ==========================================
-
-app.use(
-  express.json({
-    limit: "10kb",
-  })
-);
-
-app.use(
-  express.urlencoded({
-    extended: true,
-    limit: "10kb",
-  })
-);
-
-// ==========================================
-// Database
-// ==========================================
-
+// Connect MongoDB
 connectDB();
 
-// ==========================================
-// Routes
-// ==========================================
+// JSON middleware
+app.use(express.json());
 
-const todoRoutes = require("./routes/todoRoutes");
+// Rate limiter
+// Maximum 20 requests per IP in 1 minute
+const limiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 20,
 
-app.use("/api/todos", todoRoutes);
+  message: {
+    success: false,
+    message: "Too many requests. Please try again later."
+  },
 
-// ==========================================
-// Health Check
-// ==========================================
-
-app.get("/health", async (req, res) => {
-  const databaseConnected =
-    mongoose.connection.readyState === 1;
-
-  res.status(databaseConnected ? 200 : 503).json({
-    success: databaseConnected,
-    server: "running",
-    database: databaseConnected
-      ? "connected"
-      : "disconnected",
-    timestamp: new Date().toISOString(),
-  });
+  standardHeaders: true,
+  legacyHeaders: false
 });
 
-// ==========================================
-// API Information
-// ==========================================
+// Apply rate limit to API
+app.use("/api", limiter);
 
+// Health check
 app.get("/", (req, res) => {
   res.status(200).json({
     success: true,
-    message: "Todo API is Running 🚀",
-    version: "1.0.0",
-    endpoints: {
-      todos: "/api/todos",
-      health: "/health",
-    },
+    message: "Todo API is Running 🚀"
   });
 });
 
-// ==========================================
-// 404 Handler
-// ==========================================
+// Todo routes
+app.use("/api/todos", todoRoutes);
 
-app.use(notFound);
-
-// ==========================================
-// Global Error Handler
-// ==========================================
-
-app.use(errorHandler);
-
-// ==========================================
-// Start Server
-// ==========================================
-
-let server;
-
-if (require.main === module) {
-  server = app.listen(PORT, () => {
-    console.log(
-      `🚀 Server running on http://localhost:${PORT}`
-    );
+// 404 handler
+app.use((req, res) => {
+  res.status(404).json({
+    success: false,
+    message: "Route not found"
   });
+});
 
-  // ==========================================
-  // Graceful Shutdown
-  // ==========================================
+// Global error handler
+app.use((err, req, res, next) => {
+  console.error(err.stack);
 
-  const shutdown = async (signal) => {
-    console.log(
-      `\n${signal} received. Shutting down...`
-    );
+  res.status(err.status || 500).json({
+    success: false,
+    message: err.message || "Internal Server Error"
+  });
+});
 
-    if (server) {
-      server.close(async () => {
-        try {
-          await mongoose.connection.close();
+// Server
+const PORT = process.env.PORT || 5000;
 
-          console.log("✅ MongoDB connection closed");
-          console.log("✅ Server closed");
-
-          process.exit(0);
-        } catch (error) {
-          console.error(
-            "❌ Shutdown error:",
-            error.message
-          );
-
-          process.exit(1);
-        }
-      });
-    }
-  };
-
-  process.on("SIGINT", () => shutdown("SIGINT"));
-
-  process.on("SIGTERM", () => shutdown("SIGTERM"));
-}
-
-// Export app for Jest/Supertest
-module.exports = app;
+app.listen(PORT, () => {
+  console.log(`🚀 Server running on http://localhost:${PORT}`);
+});

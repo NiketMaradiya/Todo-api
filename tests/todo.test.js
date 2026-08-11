@@ -28,7 +28,7 @@ describe("Todo API", () => {
   });
 
   // ==========================================
-  // 1. Health Check
+  // 1. API Status
   // ==========================================
 
   test("GET / should return API status", async () => {
@@ -47,7 +47,7 @@ describe("Todo API", () => {
   // 2. Create Todo
   // ==========================================
 
-  test("POST /api/todos should create a Todo", async () => {
+  test("POST /api/todos should create Todo", async () => {
     const response = await request(app)
       .post("/api/todos")
       .send({
@@ -66,7 +66,7 @@ describe("Todo API", () => {
       "Learn Jest"
     );
 
-    expect(response.body.data.completed).toBe(false);
+    expect(response.body.data.status).toBe("todo");
 
     expect(response.body.data._id).toBeDefined();
 
@@ -74,15 +74,15 @@ describe("Todo API", () => {
   });
 
   // ==========================================
-  // 3. Create Completed Todo
+  // 3. Create In Progress Todo
   // ==========================================
 
-  test("POST /api/todos should create completed Todo", async () => {
+  test("POST /api/todos should create inprogress Todo", async () => {
     const response = await request(app)
       .post("/api/todos")
       .send({
         title: "Learn Supertest",
-        completed: true,
+        status: "inprogress",
       });
 
     expect(response.statusCode).toBe(201);
@@ -93,11 +93,34 @@ describe("Todo API", () => {
       "Learn Supertest"
     );
 
-    expect(response.body.data.completed).toBe(true);
+    expect(response.body.data.status).toBe(
+      "inprogress"
+    );
   });
 
   // ==========================================
-  // 4. Create Todo - Missing Title
+  // 4. Create Complate Todo
+  // ==========================================
+
+  test("POST /api/todos should create complate Todo", async () => {
+    const response = await request(app)
+      .post("/api/todos")
+      .send({
+        title: "Learn MongoDB",
+        status: "complate",
+      });
+
+    expect(response.statusCode).toBe(201);
+
+    expect(response.body.success).toBe(true);
+
+    expect(response.body.data.status).toBe(
+      "complate"
+    );
+  });
+
+  // ==========================================
+  // 5. Missing Title
   // ==========================================
 
   test("POST /api/todos should reject missing title", async () => {
@@ -115,7 +138,7 @@ describe("Todo API", () => {
   });
 
   // ==========================================
-  // 5. Create Todo - Empty Title
+  // 6. Empty Title
   // ==========================================
 
   test("POST /api/todos should reject empty title", async () => {
@@ -135,7 +158,7 @@ describe("Todo API", () => {
   });
 
   // ==========================================
-  // 6. Create Todo - Invalid Title Type
+  // 7. Invalid Title Type
   // ==========================================
 
   test("POST /api/todos should reject non-string title", async () => {
@@ -155,15 +178,15 @@ describe("Todo API", () => {
   });
 
   // ==========================================
-  // 7. Create Todo - Invalid Completed Type
+  // 8. Invalid Status
   // ==========================================
 
-  test("POST /api/todos should reject invalid completed value", async () => {
+  test("POST /api/todos should reject invalid status", async () => {
     const response = await request(app)
       .post("/api/todos")
       .send({
         title: "Invalid Todo",
-        completed: "true",
+        status: "pending",
       });
 
     expect(response.statusCode).toBe(400);
@@ -171,12 +194,12 @@ describe("Todo API", () => {
     expect(response.body.success).toBe(false);
 
     expect(response.body.message).toBe(
-      "Completed must be true or false"
+      "Status must be todo, inprogress or complate"
     );
   });
 
   // ==========================================
-  // 8. Get All Todos
+  // 9. Get All Todos
   // ==========================================
 
   test("GET /api/todos should return Todos", async () => {
@@ -191,13 +214,15 @@ describe("Todo API", () => {
       "Todos fetched successfully"
     );
 
-    expect(Array.isArray(response.body.data)).toBe(true);
+    expect(Array.isArray(response.body.data)).toBe(
+      true
+    );
 
     expect(response.body.pagination).toBeDefined();
   });
 
   // ==========================================
-  // 9. Get Todo By ID
+  // 10. Get Todo By ID
   // ==========================================
 
   test("GET /api/todos/:id should return Todo", async () => {
@@ -217,10 +242,12 @@ describe("Todo API", () => {
     expect(response.body.data.title).toBe(
       "Learn Jest"
     );
+
+    expect(response.body.data.status).toBe("todo");
   });
 
   // ==========================================
-  // 10. Invalid Todo ID
+  // 11. Invalid Todo ID
   // ==========================================
 
   test("GET /api/todos/:id should reject invalid ID", async () => {
@@ -237,14 +264,13 @@ describe("Todo API", () => {
   });
 
   // ==========================================
-  // 11. Non-existing Todo
+  // 12. Non-existing Todo
   // ==========================================
 
   test("GET /api/todos/:id should return 404 for non-existing Todo", async () => {
-    const response = await request(app)
-      .get(
-        "/api/todos/507f1f77bcf86cd799439011"
-      );
+    const response = await request(app).get(
+      "/api/todos/507f1f77bcf86cd799439011"
+    );
 
     expect(response.statusCode).toBe(404);
 
@@ -256,7 +282,7 @@ describe("Todo API", () => {
   });
 
   // ==========================================
-  // 12. Update Todo Title
+  // 13. Update Todo Title
   // ==========================================
 
   test("PUT /api/todos/:id should update Todo title", async () => {
@@ -280,25 +306,27 @@ describe("Todo API", () => {
   });
 
   // ==========================================
-  // 13. Update Todo Completed
+  // 14. Update Todo Status
   // ==========================================
 
-  test("PUT /api/todos/:id should update completed status", async () => {
+  test("PUT /api/todos/:id should update status", async () => {
     const response = await request(app)
       .put(`/api/todos/${todoId}`)
       .send({
-        completed: true,
+        status: "inprogress",
       });
 
     expect(response.statusCode).toBe(200);
 
     expect(response.body.success).toBe(true);
 
-    expect(response.body.data.completed).toBe(true);
+    expect(response.body.data.status).toBe(
+      "inprogress"
+    );
   });
 
   // ==========================================
-  // 14. Update Todo - Empty Body
+  // 15. Empty Update
   // ==========================================
 
   test("PUT /api/todos/:id should reject empty update", async () => {
@@ -311,31 +339,94 @@ describe("Todo API", () => {
     expect(response.body.success).toBe(false);
 
     expect(response.body.message).toBe(
-      "Please provide title or completed"
+      "Please provide title or status"
     );
   });
 
   // ==========================================
-  // 15. Toggle Todo
+  // 16. Invalid Status Update
   // ==========================================
 
-  test("PATCH /api/todos/:id/toggle should toggle Todo", async () => {
+  test("PUT /api/todos/:id should reject invalid status", async () => {
     const response = await request(app)
-      .patch(`/api/todos/${todoId}/toggle`);
+      .put(`/api/todos/${todoId}`)
+      .send({
+        status: "pending",
+      });
+
+    expect(response.statusCode).toBe(400);
+
+    expect(response.body.success).toBe(false);
+
+    expect(response.body.message).toBe(
+      "Status must be todo, inprogress or complate"
+    );
+  });
+
+  // ==========================================
+  // 17. Dedicated Status API
+  // ==========================================
+
+  test("PATCH /api/todos/:id/status should update status", async () => {
+    const response = await request(app)
+      .patch(`/api/todos/${todoId}/status`)
+      .send({
+        status: "complate",
+      });
 
     expect(response.statusCode).toBe(200);
 
     expect(response.body.success).toBe(true);
 
-    expect(response.body.data._id).toBe(todoId);
+    expect(response.body.message).toBe(
+      "Todo status updated successfully"
+    );
 
-    expect(
-      typeof response.body.data.completed
-    ).toBe("boolean");
+    expect(response.body.data.status).toBe(
+      "complate"
+    );
   });
 
   // ==========================================
-  // 16. Search Todos
+  // 18. Status Required
+  // ==========================================
+
+  test("PATCH /api/todos/:id/status should require status", async () => {
+    const response = await request(app)
+      .patch(`/api/todos/${todoId}/status`)
+      .send({});
+
+    expect(response.statusCode).toBe(400);
+
+    expect(response.body.success).toBe(false);
+
+    expect(response.body.message).toBe(
+      "Status is required"
+    );
+  });
+
+  // ==========================================
+  // 19. Invalid Status
+  // ==========================================
+
+  test("PATCH /api/todos/:id/status should reject invalid status", async () => {
+    const response = await request(app)
+      .patch(`/api/todos/${todoId}/status`)
+      .send({
+        status: "pending",
+      });
+
+    expect(response.statusCode).toBe(400);
+
+    expect(response.body.success).toBe(false);
+
+    expect(response.body.message).toBe(
+      "Status must be todo, inprogress or complate"
+    );
+  });
+
+  // ==========================================
+  // 20. Search Todos
   // ==========================================
 
   test("GET /api/todos?search=Jest should search Todos", async () => {
@@ -346,72 +437,99 @@ describe("Todo API", () => {
 
     expect(response.body.success).toBe(true);
 
-    expect(Array.isArray(response.body.data)).toBe(true);
+    expect(Array.isArray(response.body.data)).toBe(
+      true
+    );
 
     response.body.data.forEach((todo) => {
-      expect(
-        todo.title.toLowerCase()
-      ).toContain("jest");
+      expect(todo.title.toLowerCase()).toContain(
+        "jest"
+      );
     });
   });
 
   // ==========================================
-  // 17. Completed Filter
+  // 21. Todo Status Filter
   // ==========================================
 
-  test("GET /api/todos?completed=true should return completed Todos", async () => {
+  test("GET /api/todos?status=todo should return todo status", async () => {
     const response = await request(app)
-      .get("/api/todos?completed=true");
+      .get("/api/todos?status=todo");
 
     expect(response.statusCode).toBe(200);
 
     expect(response.body.success).toBe(true);
 
-    expect(Array.isArray(response.body.data)).toBe(true);
+    expect(Array.isArray(response.body.data)).toBe(
+      true
+    );
 
     response.body.data.forEach((todo) => {
-      expect(todo.completed).toBe(true);
+      expect(todo.status).toBe("todo");
     });
   });
 
   // ==========================================
-  // 18. Pending Filter
+  // 22. Inprogress Status Filter
   // ==========================================
 
-  test("GET /api/todos?completed=false should return pending Todos", async () => {
+  test("GET /api/todos?status=inprogress should return inprogress Todos", async () => {
     const response = await request(app)
-      .get("/api/todos?completed=false");
+      .get("/api/todos?status=inprogress");
 
     expect(response.statusCode).toBe(200);
 
     expect(response.body.success).toBe(true);
 
-    expect(Array.isArray(response.body.data)).toBe(true);
+    expect(Array.isArray(response.body.data)).toBe(
+      true
+    );
 
     response.body.data.forEach((todo) => {
-      expect(todo.completed).toBe(false);
+      expect(todo.status).toBe("inprogress");
     });
   });
 
   // ==========================================
-  // 19. Invalid Completed Filter
+  // 23. Complate Status Filter
   // ==========================================
 
-  test("GET /api/todos should reject invalid completed filter", async () => {
+  test("GET /api/todos?status=complate should return complate Todos", async () => {
     const response = await request(app)
-      .get("/api/todos?completed=yes");
+      .get("/api/todos?status=complate");
+
+    expect(response.statusCode).toBe(200);
+
+    expect(response.body.success).toBe(true);
+
+    expect(Array.isArray(response.body.data)).toBe(
+      true
+    );
+
+    response.body.data.forEach((todo) => {
+      expect(todo.status).toBe("complate");
+    });
+  });
+
+  // ==========================================
+  // 24. Invalid Status Filter
+  // ==========================================
+
+  test("GET /api/todos should reject invalid status filter", async () => {
+    const response = await request(app)
+      .get("/api/todos?status=pending");
 
     expect(response.statusCode).toBe(400);
 
     expect(response.body.success).toBe(false);
 
     expect(response.body.message).toBe(
-      "Completed must be true or false"
+      "Status must be todo, inprogress or complate"
     );
   });
 
   // ==========================================
-  // 20. Pagination
+  // 25. Pagination
   // ==========================================
 
   test("GET /api/todos?page=1&limit=2 should paginate Todos", async () => {
@@ -426,17 +544,15 @@ describe("Todo API", () => {
       response.body.pagination.currentPage
     ).toBe(1);
 
-    expect(
-      response.body.pagination.limit
-    ).toBe(2);
+    expect(response.body.pagination.limit).toBe(2);
 
-    expect(
-      response.body.data.length
-    ).toBeLessThanOrEqual(2);
+    expect(response.body.data.length).toBeLessThanOrEqual(
+      2
+    );
   });
 
   // ==========================================
-  // 21. Invalid Pagination
+  // 26. Invalid Pagination Page
   // ==========================================
 
   test("GET /api/todos should reject invalid page", async () => {
@@ -453,7 +569,7 @@ describe("Todo API", () => {
   });
 
   // ==========================================
-  // 22. Invalid Limit
+  // 27. Invalid Pagination Limit
   // ==========================================
 
   test("GET /api/todos should reject invalid limit", async () => {
@@ -470,7 +586,7 @@ describe("Todo API", () => {
   });
 
   // ==========================================
-  // 23. Sort Newest
+  // 28. Sort Newest
   // ==========================================
 
   test("GET /api/todos?sort=newest should sort newest first", async () => {
@@ -481,11 +597,13 @@ describe("Todo API", () => {
 
     expect(response.body.success).toBe(true);
 
-    expect(Array.isArray(response.body.data)).toBe(true);
+    expect(Array.isArray(response.body.data)).toBe(
+      true
+    );
   });
 
   // ==========================================
-  // 24. Sort Oldest
+  // 29. Sort Oldest
   // ==========================================
 
   test("GET /api/todos?sort=oldest should sort oldest first", async () => {
@@ -496,11 +614,13 @@ describe("Todo API", () => {
 
     expect(response.body.success).toBe(true);
 
-    expect(Array.isArray(response.body.data)).toBe(true);
+    expect(Array.isArray(response.body.data)).toBe(
+      true
+    );
   });
 
   // ==========================================
-  // 25. Invalid Sort
+  // 30. Invalid Sort
   // ==========================================
 
   test("GET /api/todos should reject invalid sort", async () => {
@@ -517,32 +637,35 @@ describe("Todo API", () => {
   });
 
   // ==========================================
-  // 26. Combined Search + Filter + Pagination
+  // 31. Combined Query
   // ==========================================
 
   test("GET /api/todos should support combined query parameters", async () => {
-    const response = await request(app)
-      .get(
-        "/api/todos?search=Jest&completed=false&page=1&limit=5&sort=newest"
-      );
+    const response = await request(app).get(
+      "/api/todos?search=Jest&status=complate&page=1&limit=5&sort=newest"
+    );
 
     expect(response.statusCode).toBe(200);
 
     expect(response.body.success).toBe(true);
 
-    expect(Array.isArray(response.body.data)).toBe(true);
+    expect(Array.isArray(response.body.data)).toBe(
+      true
+    );
 
     expect(
       response.body.pagination.currentPage
     ).toBe(1);
 
-    expect(
-      response.body.pagination.limit
-    ).toBe(5);
+    expect(response.body.pagination.limit).toBe(5);
+
+    response.body.data.forEach((todo) => {
+      expect(todo.status).toBe("complate");
+    });
   });
 
   // ==========================================
-  // 27. Todo Statistics
+  // 32. Todo Statistics
   // ==========================================
 
   test("GET /api/todos/stats should return Todo statistics", async () => {
@@ -557,17 +680,21 @@ describe("Todo API", () => {
       "Todo statistics fetched successfully"
     );
 
-    expect(
-      typeof response.body.data.total
-    ).toBe("number");
+    expect(typeof response.body.data.total).toBe(
+      "number"
+    );
+
+    expect(typeof response.body.data.todo).toBe(
+      "number"
+    );
 
     expect(
-      typeof response.body.data.completed
+      typeof response.body.data.inprogress
     ).toBe("number");
 
-    expect(
-      typeof response.body.data.pending
-    ).toBe("number");
+    expect(typeof response.body.data.complate).toBe(
+      "number"
+    );
 
     expect(
       typeof response.body.data.completionPercentage
@@ -575,12 +702,13 @@ describe("Todo API", () => {
   });
 
   // ==========================================
-  // 28. Delete Todo
+  // 33. Delete Todo
   // ==========================================
 
   test("DELETE /api/todos/:id should delete Todo", async () => {
-    const response = await request(app)
-      .delete(`/api/todos/${todoId}`);
+    const response = await request(app).delete(
+      `/api/todos/${todoId}`
+    );
 
     expect(response.statusCode).toBe(200);
 
@@ -594,12 +722,13 @@ describe("Todo API", () => {
   });
 
   // ==========================================
-  // 29. Deleted Todo Should Not Exist
+  // 34. Deleted Todo Should Not Exist
   // ==========================================
 
   test("GET deleted Todo should return 404", async () => {
-    const response = await request(app)
-      .get(`/api/todos/${todoId}`);
+    const response = await request(app).get(
+      `/api/todos/${todoId}`
+    );
 
     expect(response.statusCode).toBe(404);
 
@@ -611,14 +740,13 @@ describe("Todo API", () => {
   });
 
   // ==========================================
-  // 30. Delete Non-existing Todo
+  // 35. Delete Non-existing Todo
   // ==========================================
 
   test("DELETE /api/todos/:id should return 404 for non-existing Todo", async () => {
-    const response = await request(app)
-      .delete(
-        "/api/todos/507f1f77bcf86cd799439011"
-      );
+    const response = await request(app).delete(
+      "/api/todos/507f1f77bcf86cd799439011"
+    );
 
     expect(response.statusCode).toBe(404);
 
@@ -630,12 +758,13 @@ describe("Todo API", () => {
   });
 
   // ==========================================
-  // 31. Delete Invalid ID
+  // 36. Delete Invalid ID
   // ==========================================
 
   test("DELETE /api/todos/:id should reject invalid ID", async () => {
-    const response = await request(app)
-      .delete("/api/todos/123");
+    const response = await request(app).delete(
+      "/api/todos/123"
+    );
 
     expect(response.statusCode).toBe(400);
 
@@ -647,19 +776,20 @@ describe("Todo API", () => {
   });
 
   // ==========================================
-  // 32. Unknown Route
+  // 37. Unknown Route
   // ==========================================
 
   test("Unknown route should return 404", async () => {
-    const response = await request(app)
-      .get("/api/unknown");
+    const response = await request(app).get(
+      "/api/unknown"
+    );
 
     expect(response.statusCode).toBe(404);
 
     expect(response.body.success).toBe(false);
 
-    expect(
-      response.body.message
-    ).toContain("Route not found");
+    expect(response.body.message).toContain(
+      "Route not found"
+    );
   });
 });

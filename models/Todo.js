@@ -10,9 +10,14 @@ const todoSchema = new mongoose.Schema(
       maxlength: [200, "Title cannot exceed 200 characters"],
     },
 
-    completed: {
-      type: Boolean,
-      default: false,
+    status: {
+      type: String,
+      enum: {
+        values: ["todo", "inprogress", "complate"],
+        message:
+          "Status must be todo, inprogress or complate",
+      },
+      default: "todo",
     },
   },
   {

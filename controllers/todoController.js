@@ -1,11 +1,21 @@
 const mongoose = require("mongoose");
 const Todo = require("../models/Todo");
 
+const VALID_STATUSES = [
+  "todo",
+  "inprogress",
+  "complate",
+];
+
+// ==========================================
 // Create Todo
+// ==========================================
+
 const createTodo = async (req, res, next) => {
   try {
-    const { title, completed } = req.body || {};
+    const { title, status } = req.body || {};
 
+    // Validate title exists
     if (title === undefined) {
       return res.status(400).json({
         success: false,
@@ -13,6 +23,7 @@ const createTodo = async (req, res, next) => {
       });
     }
 
+    // Validate title type
     if (typeof title !== "string") {
       return res.status(400).json({
         success: false,
@@ -20,6 +31,7 @@ const createTodo = async (req, res, next) => {
       });
     }
 
+    // Validate empty title
     if (!title.trim()) {
       return res.status(400).json({
         success: false,
@@ -27,6 +39,7 @@ const createTodo = async (req, res, next) => {
       });
     }
 
+    // Validate title length
     if (title.trim().length > 200) {
       return res.status(400).json({
         success: false,
@@ -34,16 +47,21 @@ const createTodo = async (req, res, next) => {
       });
     }
 
-    if (completed !== undefined && typeof completed !== "boolean") {
+    // Validate status
+    if (
+      status !== undefined &&
+      !VALID_STATUSES.includes(status)
+    ) {
       return res.status(400).json({
         success: false,
-        message: "Completed must be true or false",
+        message:
+          "Status must be todo, inprogress or complate",
       });
     }
 
     const todo = await Todo.create({
       title: title.trim(),
-      completed: completed ?? false,
+      status: status ?? "todo",
     });
 
     res.status(201).json({
@@ -56,20 +74,24 @@ const createTodo = async (req, res, next) => {
   }
 };
 
+// ==========================================
 // Get All Todos
+// ==========================================
+
 const getTodos = async (req, res, next) => {
   try {
     let {
       page = 1,
       limit = 10,
       search = "",
-      completed,
+      status,
       sort = "newest",
     } = req.query;
 
     page = Number(page);
     limit = Number(limit);
 
+    // Validate page
     if (!Number.isInteger(page) || page < 1) {
       return res.status(400).json({
         success: false,
@@ -77,24 +99,31 @@ const getTodos = async (req, res, next) => {
       });
     }
 
-    if (!Number.isInteger(limit) || limit < 1 || limit > 100) {
+    // Validate limit
+    if (
+      !Number.isInteger(limit) ||
+      limit < 1 ||
+      limit > 100
+    ) {
       return res.status(400).json({
         success: false,
         message: "Limit must be between 1 and 100",
       });
     }
 
+    // Validate status filter
     if (
-      completed !== undefined &&
-      completed !== "true" &&
-      completed !== "false"
+      status !== undefined &&
+      !VALID_STATUSES.includes(status)
     ) {
       return res.status(400).json({
         success: false,
-        message: "Completed must be true or false",
+        message:
+          "Status must be todo, inprogress or complate",
       });
     }
 
+    // Validate sort
     if (sort !== "newest" && sort !== "oldest") {
       return res.status(400).json({
         success: false,
@@ -104,6 +133,7 @@ const getTodos = async (req, res, next) => {
 
     const query = {};
 
+    // Search
     if (search.trim()) {
       query.title = {
         $regex: search.trim(),
@@ -111,15 +141,18 @@ const getTodos = async (req, res, next) => {
       };
     }
 
-    if (completed !== undefined) {
-      query.completed = completed === "true";
+    // Status filter
+    if (status !== undefined) {
+      query.status = status;
     }
 
+    // Sort
     const sortOption =
       sort === "oldest"
         ? { createdAt: 1 }
         : { createdAt: -1 };
 
+    // Pagination
     const skip = (page - 1) * limit;
 
     const totalTodos = await Todo.countDocuments(query);
@@ -129,7 +162,9 @@ const getTodos = async (req, res, next) => {
       .skip(skip)
       .limit(limit);
 
-    const totalPages = Math.ceil(totalTodos / limit);
+    const totalPages = Math.ceil(
+      totalTodos / limit
+    );
 
     res.status(200).json({
       success: true,
@@ -146,10 +181,7 @@ const getTodos = async (req, res, next) => {
 
       filters: {
         search: search.trim(),
-        completed:
-          completed !== undefined
-            ? completed === "true"
-            : null,
+        status: status ?? null,
         sort,
       },
 
@@ -161,7 +193,10 @@ const getTodos = async (req, res, next) => {
   }
 };
 
+// ==========================================
 // Get Todo By ID
+// ==========================================
+
 const getTodoById = async (req, res, next) => {
   try {
     const { id } = req.params;
@@ -192,12 +227,16 @@ const getTodoById = async (req, res, next) => {
   }
 };
 
+// ==========================================
 // Update Todo
+// ==========================================
+
 const updateTodo = async (req, res, next) => {
   try {
     const { id } = req.params;
-    const { title, completed } = req.body || {};
+    const { title, status } = req.body || {};
 
+    // Validate ID
     if (!mongoose.Types.ObjectId.isValid(id)) {
       return res.status(400).json({
         success: false,
@@ -205,13 +244,18 @@ const updateTodo = async (req, res, next) => {
       });
     }
 
-    if (title === undefined && completed === undefined) {
+    // Empty update
+    if (
+      title === undefined &&
+      status === undefined
+    ) {
       return res.status(400).json({
         success: false,
-        message: "Please provide title or completed",
+        message: "Please provide title or status",
       });
     }
 
+    // Validate title
     if (title !== undefined) {
       if (typeof title !== "string") {
         return res.status(400).json({
@@ -230,15 +274,21 @@ const updateTodo = async (req, res, next) => {
       if (title.trim().length > 200) {
         return res.status(400).json({
           success: false,
-          message: "Title cannot exceed 200 characters",
+          message:
+            "Title cannot exceed 200 characters",
         });
       }
     }
 
-    if (completed !== undefined && typeof completed !== "boolean") {
+    // Validate status
+    if (
+      status !== undefined &&
+      !VALID_STATUSES.includes(status)
+    ) {
       return res.status(400).json({
         success: false,
-        message: "Completed must be true or false",
+        message:
+          "Status must be todo, inprogress or complate",
       });
     }
 
@@ -248,8 +298,8 @@ const updateTodo = async (req, res, next) => {
       updateData.title = title.trim();
     }
 
-    if (completed !== undefined) {
-      updateData.completed = completed;
+    if (status !== undefined) {
+      updateData.status = status;
     }
 
     const todo = await Todo.findByIdAndUpdate(
@@ -278,11 +328,20 @@ const updateTodo = async (req, res, next) => {
   }
 };
 
-// Toggle Todo
-const toggleTodo = async (req, res, next) => {
+// ==========================================
+// Change Todo Status
+// ==========================================
+
+const updateTodoStatus = async (
+  req,
+  res,
+  next
+) => {
   try {
     const { id } = req.params;
+    const { status } = req.body || {};
 
+    // Validate ID
     if (!mongoose.Types.ObjectId.isValid(id)) {
       return res.status(400).json({
         success: false,
@@ -290,7 +349,31 @@ const toggleTodo = async (req, res, next) => {
       });
     }
 
-    const todo = await Todo.findById(id);
+    // Validate status exists
+    if (status === undefined) {
+      return res.status(400).json({
+        success: false,
+        message: "Status is required",
+      });
+    }
+
+    // Validate status
+    if (!VALID_STATUSES.includes(status)) {
+      return res.status(400).json({
+        success: false,
+        message:
+          "Status must be todo, inprogress or complate",
+      });
+    }
+
+    const todo = await Todo.findByIdAndUpdate(
+      id,
+      { status },
+      {
+        new: true,
+        runValidators: true,
+      }
+    );
 
     if (!todo) {
       return res.status(404).json({
@@ -299,15 +382,9 @@ const toggleTodo = async (req, res, next) => {
       });
     }
 
-    todo.completed = !todo.completed;
-
-    await todo.save();
-
     res.status(200).json({
       success: true,
-      message: todo.completed
-        ? "Todo marked as completed"
-        : "Todo marked as incomplete",
+      message: "Todo status updated successfully",
       data: todo,
     });
   } catch (error) {
@@ -315,31 +392,39 @@ const toggleTodo = async (req, res, next) => {
   }
 };
 
+// ==========================================
 // Get Todo Statistics
+// ==========================================
+
 const getTodoStats = async (req, res, next) => {
   try {
     const total = await Todo.countDocuments();
 
-    const completed = await Todo.countDocuments({
-      completed: true,
+    const todo = await Todo.countDocuments({
+      status: "todo",
     });
 
-    const pending = await Todo.countDocuments({
-      completed: false,
+    const inprogress = await Todo.countDocuments({
+      status: "inprogress",
+    });
+
+    const complate = await Todo.countDocuments({
+      status: "complate",
     });
 
     const completionPercentage =
       total === 0
         ? 0
-        : Math.round((completed / total) * 100);
+        : Math.round((complate / total) * 100);
 
     res.status(200).json({
       success: true,
       message: "Todo statistics fetched successfully",
       data: {
         total,
-        completed,
-        pending,
+        todo,
+        inprogress,
+        complate,
         completionPercentage,
       },
     });
@@ -348,7 +433,10 @@ const getTodoStats = async (req, res, next) => {
   }
 };
 
+// ==========================================
 // Delete Todo
+// ==========================================
+
 const deleteTodo = async (req, res, next) => {
   try {
     const { id } = req.params;
@@ -384,7 +472,7 @@ module.exports = {
   getTodos,
   getTodoById,
   updateTodo,
-  toggleTodo,
+  updateTodoStatus,
   getTodoStats,
   deleteTodo,
 };

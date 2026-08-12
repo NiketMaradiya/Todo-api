@@ -1,57 +1,67 @@
-# Todo API with JWT Authentication
+# Todo API with JWT Authentication & Admin Role
 
-A secure RESTful Todo API built with Node.js, Express.js, MongoDB, Mongoose, JWT, and bcryptjs.
+A secure REST API built with **Node.js, Express, MongoDB, Mongoose, and JWT**.
 
-The API provides user authentication and authorization using JWT. Each authenticated user can create, read, update, and delete only their own todos.
+This project started as a Todo API and was extended with an authentication system and **Role-Based Access Control (RBAC)**.
+
+The same authentication system is used for both normal users and admins.
+
+```text
+User
+├── user
+└── admin
+```
+
+There is **no separate admin login system**.
 
 ---
 
-## Features
+# Features
 
-### Authentication
+## Authentication
 
 - User registration
 - User login
-- JWT access token
-- Password hashing with bcryptjs
-- Protected profile route
-- Logout endpoint
-- Invalid token handling
-- Missing token handling
+- JWT authentication
+- Protected routes
+- User profile
+- Logout
+- Password hashing
+- JWT token contains user role
 
-### Todo Management
+## User Roles
 
-- Create todo
-- Get all user todos
-- Get todo by ID
-- Update todo
-- Update todo status
-- Delete todo
-- Search todos
-- Filter todos by status
-- Sort todos
-- Pagination
-- Todo statistics
+The system supports two roles:
 
-### Security
+```text
+user
+admin
+```
 
-- Passwords are never stored as plain text
-- Passwords are hashed using bcryptjs
-- JWT authentication for protected routes
-- User-specific todo ownership
-- Rate limiting
-- Helmet security middleware
-- CORS support
-- Global error handling
+New users are created with:
 
-### Testing
+```text
+role = user
+```
 
-- Authentication tests
-- JWT tests
-- Protected route tests
-- Todo API tests
-- Jest
-- Supertest
+For security, users cannot make themselves admins during public registration.
+
+---
+
+# Admin Features
+
+Admins can:
+
+- See all users
+- Make a user an admin
+- Remove admin privileges
+- Change a user's role
+- Change a user's password
+- Disable a user
+- Enable a user
+- Delete a user
+
+Normal users cannot access admin APIs.
 
 ---
 
@@ -61,34 +71,32 @@ The API provides user authentication and authorization using JWT. Each authentic
 - Express.js
 - MongoDB
 - Mongoose
-- JSON Web Token
+- JWT
 - bcryptjs
+- dotenv
+- cors
 - Jest
 - Supertest
 - Nodemon
-- Helmet
-- CORS
-- Morgan
-- express-rate-limit
 
 ---
 
 # Project Structure
 
-~~~text
-todo-api/
+```text
+Todo-api/
 │
 ├── config/
 │   └── db.js
 │
 ├── controllers/
 │   ├── authController.js
-│   └── todoController.js
+│   ├── todoController.js
+│   └── adminController.js
 │
 ├── middleware/
 │   ├── authMiddleware.js
-│   ├── errorMiddleware.js
-│   └── logger.js
+│   └── roleMiddleware.js
 │
 ├── models/
 │   ├── User.js
@@ -96,940 +104,1012 @@ todo-api/
 │
 ├── routes/
 │   ├── authRoutes.js
-│   └── todoRoutes.js
+│   ├── todoRoutes.js
+│   └── adminRoutes.js
+│
+├── scripts/
+│   └── createAdmin.js
 │
 ├── tests/
 │   ├── auth.test.js
-│   └── todo.test.js
+│   ├── todo.test.js
+│   └── admin.test.js
 │
 ├── .env
 ├── .gitignore
 ├── package.json
 ├── server.js
 └── README.md
-~~~
+```
 
 ---
 
 # Installation
 
-## 1. Clone the Repository
+Clone or download the project.
 
-~~~bash
-git clone YOUR_REPOSITORY_URL
-~~~
+Open the project folder:
 
-## 2. Open the Project Folder
+```bash
+cd Todo-api
+```
 
-~~~bash
-cd todo-api
-~~~
+Install dependencies:
 
-## 3. Install Dependencies
-
-~~~bash
+```bash
 npm install
-~~~
+```
 
 ---
 
 # Environment Variables
 
-Create a `.env` file in the root folder.
+Create a `.env` file in the project root.
 
-~~~env
+```env
 PORT=5000
 
-MONGO_URI=mongodb://127.0.0.1:27017/todoDB
+MONGO_URI=mongodb://127.0.0.1:27017/todo-api
 
-NODE_ENV=development
+JWT_SECRET=mySuperSecretKey123456789
 
-JWT_SECRET=your_super_secret_jwt_key
+JWT_EXPIRE=7d
+```
 
-JWT_EXPIRES_IN=7d
-~~~
+For MongoDB Atlas:
 
-## Environment Variables
+```env
+MONGO_URI=mongodb+srv://USERNAME:PASSWORD@cluster.mongodb.net/todo-api
+```
 
-| Variable | Description |
-|---|---|
-| `PORT` | Server port |
-| `MONGO_URI` | MongoDB connection URL |
-| `NODE_ENV` | Application environment |
-| `JWT_SECRET` | Secret key used to generate JWT tokens |
-| `JWT_EXPIRES_IN` | JWT token expiration time |
+Important:
 
-> Do not upload your `.env` file to GitHub.
+Your MongoDB URI must start with:
+
+```text
+mongodb://
+```
+
+or:
+
+```text
+mongodb+srv://
+```
 
 ---
 
-# Run the Application
+# Run the Server
 
-## Development Mode
+Development mode:
 
-~~~bash
+```bash
 npm run dev
-~~~
+```
 
-The server will run on:
+Expected output:
 
-~~~text
-http://localhost:5000
-~~~
+```text
+Server running on port 5000
+MongoDB Connected
+```
 
-## Production Mode
+Production mode:
 
-~~~bash
+```bash
 npm start
-~~~
-
----
-
-# Run Tests
-
-~~~bash
-npm test
-~~~
-
-Example result:
-
-~~~text
-PASS tests/auth.test.js
-PASS tests/todo.test.js
-
-Test Suites: 2 passed, 2 total
-Tests: All tests passed
-~~~
-
----
-
-# API Base URL
-
-~~~text
-http://localhost:5000/api
-~~~
+```
 
 ---
 
 # Authentication Flow
 
-~~~text
+```text
 Register
-   │
-   ▼
-Password Hashing
-   │
-   ▼
-User Saved in MongoDB
-   │
-   ▼
+   ↓
+User created
+   ↓
+Default role = user
+   ↓
 Login
-   │
-   ▼
-Password Verification
-   │
-   ▼
-JWT Token Generated
-   │
-   ▼
-Protected Routes
-~~~
+   ↓
+JWT generated
+   ↓
+JWT contains:
+- User ID
+- User Role
+```
+
+Example JWT payload:
+
+```json
+{
+  "id": "USER_ID",
+  "role": "user"
+}
+```
+
+For an admin:
+
+```json
+{
+  "id": "ADMIN_ID",
+  "role": "admin"
+}
+```
 
 ---
 
-# API Endpoints
-
-## Authentication
-
-| Method | Endpoint | Description | Protected |
-|---|---|---|---|
-| POST | `/api/auth/register` | Register a new user | No |
-| POST | `/api/auth/login` | Login and receive JWT token | No |
-| POST | `/api/auth/logout` | Logout user | No |
-| GET | `/api/profile` | Get authenticated user profile | Yes |
-
-## Todos
-
-| Method | Endpoint | Description | Protected |
-|---|---|---|---|
-| POST | `/api/todos` | Create a todo | Yes |
-| GET | `/api/todos` | Get all user todos | Yes |
-| GET | `/api/todos/stats` | Get todo statistics | Yes |
-| GET | `/api/todos/:id` | Get todo by ID | Yes |
-| PUT | `/api/todos/:id` | Update todo | Yes |
-| PATCH | `/api/todos/:id/status` | Update todo status | Yes |
-| DELETE | `/api/todos/:id` | Delete todo | Yes |
-
----
-
-# Authentication
+# User Registration
 
 ## Register User
 
 ### Endpoint
 
-~~~http
+```http
 POST /api/auth/register
-~~~
+```
 
 ### Request Body
 
-~~~json
+```json
 {
-  "name": "Test User",
-  "email": "test@example.com",
+  "name": "John",
+  "email": "john@test.com",
   "password": "password123"
 }
-~~~
+```
 
-### Success Response
+### Response
 
-**Status: `201 Created`**
-
-~~~json
+```json
 {
   "success": true,
   "message": "User registered successfully",
+  "token": "JWT_TOKEN",
   "data": {
     "_id": "USER_ID",
-    "name": "Test User",
-    "email": "test@example.com"
+    "name": "John",
+    "email": "john@test.com",
+    "role": "user",
+    "isActive": true
   }
 }
-~~~
-
-### Validation
-
-- Name is required
-- Email is required
-- Email must be unique
-- Password is required
-- Password must contain at least 6 characters
+```
 
 ---
+
+# Important Security Rule
+
+Even if someone sends:
+
+```json
+{
+  "name": "Hacker",
+  "email": "hacker@test.com",
+  "password": "password123",
+  "role": "admin"
+}
+```
+
+The system should still create:
+
+```json
+{
+  "role": "user"
+}
+```
+
+Public registration should not allow users to create themselves as admins.
+
+---
+
+# Login
 
 ## Login User
 
 ### Endpoint
 
-~~~http
+```http
 POST /api/auth/login
-~~~
+```
 
 ### Request Body
 
-~~~json
+```json
 {
-  "email": "test@example.com",
+  "email": "john@test.com",
   "password": "password123"
 }
-~~~
-
-### Success Response
-
-**Status: `200 OK`**
-
-~~~json
-{
-  "success": true,
-  "message": "Login successful",
-  "token": "YOUR_JWT_TOKEN",
-  "data": {
-    "_id": "USER_ID",
-    "name": "Test User",
-    "email": "test@example.com"
-  }
-}
-~~~
-
-Copy the JWT token and use it in protected routes.
-
----
-
-## JWT Authorization
-
-Send the token in the request header:
-
-~~~text
-Authorization: Bearer YOUR_JWT_TOKEN
-~~~
-
-Example:
-
-~~~text
-Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
-~~~
-
----
-
-## Get User Profile
-
-### Endpoint
-
-~~~http
-GET /api/profile
-~~~
-
-### Required Header
-
-~~~text
-Authorization: Bearer YOUR_JWT_TOKEN
-~~~
-
-### Success Response
-
-**Status: `200 OK`**
-
-~~~json
-{
-  "success": true,
-  "message": "Profile fetched successfully",
-  "data": {
-    "_id": "USER_ID",
-    "name": "Test User",
-    "email": "test@example.com"
-  }
-}
-~~~
-
----
-
-## Logout
-
-### Endpoint
-
-~~~http
-POST /api/auth/logout
-~~~
+```
 
 ### Response
 
-~~~json
+```json
 {
   "success": true,
-  "message": "Logout successful. Please remove the token from the client."
+  "message": "Login successful",
+  "token": "JWT_TOKEN",
+  "data": {
+    "_id": "USER_ID",
+    "name": "John",
+    "email": "john@test.com",
+    "role": "user"
+  }
 }
-~~~
-
-> JWT is stateless. Logout removes the token from the client side.
+```
 
 ---
 
-# Authentication Errors
+# Protected Routes
 
-## No Token
+Protected routes require a JWT token.
 
-**Status: `401 Unauthorized`**
+Send the token in the request header:
 
-~~~json
-{
-  "success": false,
-  "message": "Not authorized. Token is required"
-}
-~~~
-
-## Invalid Token
-
-**Status: `401 Unauthorized`**
-
-~~~json
-{
-  "success": false,
-  "message": "Invalid or expired token"
-}
-~~~
-
----
-
-# Todo API
-
-All Todo API routes require JWT authentication.
-
-Required header:
-
-~~~text
+```http
 Authorization: Bearer YOUR_JWT_TOKEN
-~~~
+```
+
+Authentication flow:
+
+```text
+Request
+   ↓
+Authorization Header
+   ↓
+Bearer Token
+   ↓
+JWT Verification
+   ↓
+User Authentication
+   ↓
+Allow / Reject Request
+```
 
 ---
 
-## Create Todo
+# Role-Based Access Control
+
+The application uses the existing authentication middleware.
+
+```text
+JWT
+ ↓
+protect middleware
+ ↓
+User authenticated
+ ↓
+role middleware
+ ↓
+Check user role
+ ↓
+Allow / Deny access
+```
+
+Example:
+
+```text
+Normal User
+   ↓
+Admin API
+   ↓
+403 Forbidden
+```
+
+```text
+Admin
+   ↓
+Admin API
+   ↓
+200 OK
+```
+
+---
+
+# Admin APIs
+
+All admin APIs require:
+
+```text
+Authorization: Bearer ADMIN_JWT_TOKEN
+```
+
+---
+
+# Get All Users
+
+Only admins can access this API.
 
 ### Endpoint
 
-~~~http
-POST /api/todos
-~~~
+```http
+GET /api/admin/users
+```
 
-### Request Body
+### Authorization
 
-~~~json
-{
-  "title": "Learn JWT Authentication",
-  "status": "todo"
-}
-~~~
+```text
+Bearer ADMIN_JWT_TOKEN
+```
 
 ### Success Response
 
-**Status: `201 Created`**
+```text
+200 OK
+```
 
-~~~json
+Example:
+
+```json
 {
   "success": true,
-  "message": "Todo created successfully",
-  "data": {
-    "_id": "TODO_ID",
-    "title": "Learn JWT Authentication",
-    "status": "todo",
-    "user": "USER_ID"
-  }
-}
-~~~
-
-The user ID is automatically taken from the JWT token.
-
----
-
-## Todo Status
-
-The API supports these status values:
-
-~~~text
-todo
-inprogress
-complate
-~~~
-
-> Note: The current project uses `complate` as the completed status value.
-
----
-
-## Get All Todos
-
-### Endpoint
-
-~~~http
-GET /api/todos
-~~~
-
-The API returns only todos belonging to the authenticated user.
-
-### Example Response
-
-~~~json
-{
-  "success": true,
-  "message": "Todos fetched successfully",
-  "pagination": {
-    "currentPage": 1,
-    "limit": 10,
-    "totalTodos": 2,
-    "totalPages": 1,
-    "hasNextPage": false,
-    "hasPreviousPage": false
-  },
-  "filters": {
-    "search": "",
-    "status": null,
-    "sort": "newest"
-  },
   "count": 2,
-  "data": []
+  "data": [
+    {
+      "_id": "USER_ID",
+      "name": "John",
+      "email": "john@test.com",
+      "role": "user",
+      "isActive": true
+    },
+    {
+      "_id": "ADMIN_ID",
+      "name": "Admin",
+      "email": "admin@test.com",
+      "role": "admin",
+      "isActive": true
+    }
+  ]
 }
-~~~
+```
 
 ---
 
-## Search Todos
+# Make User Admin
 
-~~~http
-GET /api/todos?search=JWT
-~~~
-
-The search is case-insensitive.
-
----
-
-## Filter Todos
-
-~~~http
-GET /api/todos?status=todo
-~~~
-
-Available values:
-
-~~~text
-todo
-inprogress
-complate
-~~~
-
----
-
-## Pagination
-
-~~~http
-GET /api/todos?page=1&limit=10
-~~~
-
-| Parameter | Description |
-|---|---|
-| `page` | Current page number |
-| `limit` | Number of todos per page |
-
----
-
-## Sorting
-
-### Newest First
-
-~~~http
-GET /api/todos?sort=newest
-~~~
-
-### Oldest First
-
-~~~http
-GET /api/todos?sort=oldest
-~~~
-
----
-
-## Combined Query Example
-
-~~~http
-GET /api/todos?search=Node&status=inprogress&page=1&limit=10&sort=newest
-~~~
-
----
-
-## Get Todo by ID
+Only an admin can promote a user.
 
 ### Endpoint
 
-~~~http
-GET /api/todos/:id
-~~~
+```http
+POST /api/admin/users/:id/make-admin
+```
 
-Users can access only their own todos.
+Example:
 
----
+```http
+POST /api/admin/users/USER_ID/make-admin
+```
 
-## Update Todo
+### Authorization
 
-### Endpoint
-
-~~~http
-PUT /api/todos/:id
-~~~
-
-### Request Body
-
-~~~json
-{
-  "title": "Build Secure Todo API",
-  "status": "inprogress"
-}
-~~~
-
----
-
-## Update Todo Status
-
-### Endpoint
-
-~~~http
-PATCH /api/todos/:id/status
-~~~
-
-### Request Body
-
-~~~json
-{
-  "status": "complate"
-}
-~~~
-
----
-
-## Todo Statistics
-
-### Endpoint
-
-~~~http
-GET /api/todos/stats
-~~~
-
-### Example Response
-
-~~~json
-{
-  "success": true,
-  "message": "Todo statistics fetched successfully",
-  "data": {
-    "total": 10,
-    "todo": 3,
-    "inprogress": 4,
-    "complate": 3,
-    "completionPercentage": 30
-  }
-}
-~~~
-
----
-
-## Delete Todo
-
-### Endpoint
-
-~~~http
-DELETE /api/todos/:id
-~~~
+```text
+Bearer ADMIN_JWT_TOKEN
+```
 
 ### Success Response
 
-~~~json
+```text
+200 OK
+```
+
+```json
 {
   "success": true,
-  "message": "Todo deleted successfully"
+  "message": "User promoted to admin successfully"
 }
-~~~
+```
+
+The user's role changes:
+
+```text
+user
+ ↓
+admin
+```
 
 ---
 
-# Todo Ownership
+# Remove Admin Role
 
-Every todo belongs to the authenticated user.
+Only an admin can remove admin privileges.
 
-~~~text
-JWT Token
-    │
-    ▼
-Authentication Middleware
-    │
-    ▼
-req.user
-    │
-    ▼
-req.user._id
-    │
-    ▼
-Todo User ID
-~~~
+### Endpoint
 
-This ensures that users can only:
+```http
+POST /api/admin/users/:id/remove-admin
+```
 
-- Create their own todos
-- Read their own todos
-- Update their own todos
-- Delete their own todos
-- View statistics for their own todos
+Example:
 
----
+```http
+POST /api/admin/users/USER_ID/remove-admin
+```
 
-# Password Security
+### Authorization
 
-Passwords are never stored as plain text.
+```text
+Bearer ADMIN_JWT_TOKEN
+```
 
-~~~text
-User Password
-      │
-      ▼
-bcrypt Hashing
-      │
-      ▼
-Hashed Password
-      │
-      ▼
-MongoDB
-~~~
+### Success Response
 
-During login:
+```text
+200 OK
+```
 
-~~~text
-Entered Password
-      │
-      ▼
-bcrypt.compare()
-      │
-      ▼
-Compare with Stored Hash
-      │
-      ▼
-Login Success or Failure
-~~~
+The user's role changes:
+
+```text
+admin
+ ↓
+user
+```
 
 ---
 
-# JWT Protection
+# Change User Role
 
-The authentication middleware:
+An admin can directly change a user's role.
 
-1. Reads the `Authorization` header
-2. Extracts the Bearer token
-3. Verifies the JWT token
-4. Finds the authenticated user
-5. Adds the user to `req.user`
-6. Allows access to the protected route
+### Endpoint
 
-Protected routes:
+```http
+PATCH /api/admin/users/:id/role
+```
 
-~~~text
-GET    /api/profile
+### Request Body
 
-POST   /api/todos
-GET    /api/todos
-GET    /api/todos/stats
-GET    /api/todos/:id
-PUT    /api/todos/:id
-PATCH  /api/todos/:id/status
-DELETE /api/todos/:id
-~~~
+Make user an admin:
 
----
-
-# Rate Limiting
-
-The API allows:
-
-~~~text
-20 requests per IP
-within 1 minute
-~~~
-
-If the limit is exceeded:
-
-~~~json
+```json
 {
-  "success": false,
-  "message": "Too many requests. Please try again later."
+  "role": "admin"
 }
-~~~
+```
+
+Make user a normal user:
+
+```json
+{
+  "role": "user"
+}
+```
+
+Allowed roles:
+
+```text
+user
+admin
+```
 
 ---
 
-# Testing
+# Change User Password
+
+Only an admin can change another user's password.
+
+### Endpoint
+
+```http
+PATCH /api/admin/users/:id/password
+```
+
+### Request Body
+
+```json
+{
+  "password": "newpassword123"
+}
+```
+
+### Success Response
+
+```text
+200 OK
+```
+
+---
+
+# Disable User
+
+An admin can disable a user account.
+
+### Endpoint
+
+```http
+PATCH /api/admin/users/:id/status
+```
+
+### Request Body
+
+Disable:
+
+```json
+{
+  "isActive": false
+}
+```
+
+Enable:
+
+```json
+{
+  "isActive": true
+}
+```
+
+When disabled:
+
+```text
+User
+ ↓
+Cannot login
+```
+
+---
+
+# Delete User
+
+Only an admin can delete a user.
+
+### Endpoint
+
+```http
+DELETE /api/admin/users/:id
+```
+
+### Authorization
+
+```text
+Bearer ADMIN_JWT_TOKEN
+```
+
+---
+
+# Creating the First Admin
+
+Public registration always creates:
+
+```text
+role = user
+```
+
+Therefore, the project includes:
+
+```text
+scripts/createAdmin.js
+```
+
+This script creates or updates the first admin.
+
+Run:
+
+```bash
+node scripts/createAdmin.js
+```
+
+Expected output:
+
+```text
+MongoDB Connected
+Admin created successfully
+Done
+```
+
+If the user already exists:
+
+```text
+MongoDB Connected
+Existing user updated to admin
+Done
+```
+
+The admin can then login using the same login API:
+
+```http
+POST /api/auth/login
+```
+
+Example:
+
+```json
+{
+  "email": "admin@test.com",
+  "password": "password123"
+}
+```
+
+There is no separate admin login system.
+
+---
+
+# How Admin Promotion Works
+
+```text
+First Admin
+     ↓
+Login
+     ↓
+Admin JWT Token
+     ↓
+POST /api/admin/users/:id/make-admin
+     ↓
+Normal User
+     ↓
+role = admin
+```
+
+---
+
+# Todo APIs
+
+Your existing Todo APIs remain protected by the same authentication system.
+
+Typical Todo endpoints:
+
+```http
+GET /api/todos
+POST /api/todos
+PATCH /api/todos/:id
+DELETE /api/todos/:id
+```
+
+Use:
+
+```http
+Authorization: Bearer USER_JWT_TOKEN
+```
+
+---
+
+# Security Testing
+
+The following security tests are important.
+
+## 1. No Token
+
+Request:
+
+```http
+GET /api/admin/users
+```
+
+Without:
+
+```text
+Authorization header
+```
+
+Expected:
+
+```text
+401 Unauthorized
+```
+
+---
+
+## 2. Invalid Token
+
+Send:
+
+```http
+Authorization: Bearer invalid-token
+```
+
+Expected:
+
+```text
+401 Unauthorized
+```
+
+---
+
+## 3. Valid Normal User Token
+
+Login as a normal user.
+
+Use:
+
+```http
+Authorization: Bearer USER_JWT_TOKEN
+```
+
+Request:
+
+```http
+GET /api/admin/users
+```
+
+Expected:
+
+```text
+403 Forbidden
+```
+
+---
+
+## 4. Valid Admin Token
+
+Login as an admin.
+
+Use:
+
+```http
+Authorization: Bearer ADMIN_JWT_TOKEN
+```
+
+Request:
+
+```http
+GET /api/admin/users
+```
+
+Expected:
+
+```text
+200 OK
+```
+
+---
+
+# Security Test Summary
+
+| Token | Role | Expected Result |
+|---|---|---|
+| No Token | None | 401 Unauthorized |
+| Invalid Token | None | 401 Unauthorized |
+| Valid User Token | user | 403 Forbidden |
+| Valid Admin Token | admin | 200 OK |
+
+---
+
+# Automated Testing
 
 Run all tests:
 
-~~~bash
+```bash
 npm test
-~~~
+```
 
-## Authentication Test Cases
+Expected:
 
-The authentication tests verify:
+```text
+PASS tests/auth.test.js
+PASS tests/todo.test.js
+PASS tests/admin.test.js
 
-- User registration returns `201`
-- Login returns a JWT token
-- Profile without token returns `401`
-- Profile with invalid token returns `401`
-- Profile with valid token returns `200`
-
-## Complete API Test Flow
-
-~~~text
-Register User
-      │
-      ▼
-Login User
-      │
-      ▼
-Receive JWT Token
-      │
-      ▼
-Create Todo
-      │
-      ▼
-Get Todos
-      │
-      ▼
-Get Todo by ID
-      │
-      ▼
-Update Todo
-      │
-      ▼
-Update Todo Status
-      │
-      ▼
-Get Todo Statistics
-      │
-      ▼
-Delete Todo
-~~~
+Test Suites: 3 passed
+Tests: All passed
+```
 
 ---
 
-# Common Errors
+# Manual Testing with Postman
 
-## MongoDB Connection Error
+## Step 1: Register User
 
-Check your MongoDB connection string:
+```http
+POST http://localhost:5000/api/auth/register
+```
 
-~~~env
-MONGO_URI=mongodb://127.0.0.1:27017/todoDB
-~~~
-
-Make sure MongoDB is running.
-
----
-
-## Missing Token
-
-~~~json
+```json
 {
-  "success": false,
-  "message": "Not authorized. Token is required"
+  "name": "Test User",
+  "email": "user@test.com",
+  "password": "password123"
 }
-~~~
+```
 
-Solution:
+Role should be:
 
-~~~text
-Authorization: Bearer YOUR_JWT_TOKEN
-~~~
+```text
+user
+```
 
 ---
 
-## Invalid or Expired Token
+## Step 2: Test User Access to Admin API
 
-~~~json
+```http
+GET http://localhost:5000/api/admin/users
+```
+
+Use the normal user token.
+
+Expected:
+
+```text
+403 Forbidden
+```
+
+---
+
+## Step 3: Create First Admin
+
+Run:
+
+```bash
+node scripts/createAdmin.js
+```
+
+---
+
+## Step 4: Login as Admin
+
+```http
+POST http://localhost:5000/api/auth/login
+```
+
+```json
 {
-  "success": false,
-  "message": "Invalid or expired token"
+  "email": "admin@test.com",
+  "password": "password123"
 }
-~~~
+```
 
-Solution: Login again and use a new JWT token.
-
----
-
-## Invalid Todo ID
-
-~~~json
-{
-  "success": false,
-  "message": "Invalid Todo ID"
-}
-~~~
-
-Make sure the ID is a valid MongoDB ObjectId.
+Copy the admin token.
 
 ---
 
-## Todo Not Found
+## Step 5: Access Admin API
 
-~~~json
-{
-  "success": false,
-  "message": "Todo not found"
-}
-~~~
+```http
+GET http://localhost:5000/api/admin/users
+```
 
-Possible reasons:
+Use:
 
-- The Todo does not exist
-- The Todo belongs to another user
+```text
+Authorization: Bearer ADMIN_JWT_TOKEN
+```
 
----
+Expected:
 
-## User Already Exists
-
-~~~json
-{
-  "success": false,
-  "message": "User already exists with this email"
-}
-~~~
-
-Use a different email address.
+```text
+200 OK
+```
 
 ---
 
-# Complete API Flow
+## Step 6: Make Another User Admin
 
-~~~text
-1. Register User
-   POST /api/auth/register
+```http
+POST http://localhost:5000/api/admin/users/USER_ID/make-admin
+```
 
-          │
-          ▼
+Use the admin token.
 
-2. Login User
-   POST /api/auth/login
+Expected:
 
-          │
-          ▼
-
-3. Receive JWT Token
-
-          │
-          ▼
-
-4. Add Authorization Header
-   Authorization: Bearer YOUR_JWT_TOKEN
-
-          │
-          ▼
-
-5. Get Profile
-   GET /api/profile
-
-          │
-          ▼
-
-6. Create Todo
-   POST /api/todos
-
-          │
-          ▼
-
-7. Get Todos
-   GET /api/todos
-
-          │
-          ▼
-
-8. Update Todo
-   PUT /api/todos/:id
-
-          │
-          ▼
-
-9. Update Todo Status
-   PATCH /api/todos/:id/status
-
-          │
-          ▼
-
-10. Get Statistics
-    GET /api/todos/stats
-
-          │
-          ▼
-
-11. Delete Todo
-    DELETE /api/todos/:id
-
-          │
-          ▼
-
-12. Logout
-    POST /api/auth/logout
-~~~
+```text
+200 OK
+```
 
 ---
 
-# License
+# API Summary
 
-This project is licensed under the ISC License.
+## Authentication
+
+| Method | Endpoint | Access |
+|---|---|---|
+| POST | `/api/auth/register` | Public |
+| POST | `/api/auth/login` | Public |
+| POST | `/api/auth/logout` | Authenticated |
+| GET | `/api/auth/profile` | Authenticated |
+
+## Todo
+
+| Method | Endpoint | Access |
+|---|---|---|
+| GET | `/api/todos` | Authenticated |
+| POST | `/api/todos` | Authenticated |
+| PATCH | `/api/todos/:id` | Authenticated |
+| DELETE | `/api/todos/:id` | Authenticated |
+
+## Admin
+
+| Method | Endpoint | Access |
+|---|---|---|
+| GET | `/api/admin/users` | Admin |
+| POST | `/api/admin/users/:id/make-admin` | Admin |
+| POST | `/api/admin/users/:id/remove-admin` | Admin |
+| PATCH | `/api/admin/users/:id/role` | Admin |
+| PATCH | `/api/admin/users/:id/password` | Admin |
+| PATCH | `/api/admin/users/:id/status` | Admin |
+| DELETE | `/api/admin/users/:id` | Admin |
+
+---
+
+# Complete Role System
+
+```text
+                    ┌─────────────┐
+                    │   Register  │
+                    └──────┬──────┘
+                           ↓
+                    role = user
+                           ↓
+                    ┌─────────────┐
+                    │    Login    │
+                    └──────┬──────┘
+                           ↓
+                     JWT Token
+                           │
+                 ┌─────────┴─────────┐
+                 ↓                   ↓
+              user                admin
+                 │                   │
+                 │                   ├── See all users
+                 │                   ├── Make admin
+                 │                   ├── Remove admin
+                 │                   ├── Change role
+                 │                   ├── Change password
+                 │                   ├── Disable user
+                 │                   └── Delete user
+                 │
+                 └── Cannot access
+                     Admin APIs
+```
+
+---
+
+# Main Security Principle
+
+The project uses one authentication system:
+
+```text
+User
+ ├── user
+ └── admin
+```
+
+Both roles use:
+
+```text
+POST /api/auth/login
+```
+
+Both roles receive JWT tokens.
+
+The difference is the role stored in the database and JWT:
+
+```text
+Normal User JWT
+role = user
+```
+
+```text
+Admin JWT
+role = admin
+```
+
+Admin access is controlled using:
+
+```text
+Authentication Middleware
+        +
+Role-Based Middleware
+```
+
+This extends the existing authentication system instead of creating a separate admin authentication system.
 
 ---
 
 # Author
 
-Built with:
+Todo API Project
 
-**Node.js · Express.js · MongoDB · Mongoose · JWT · bcryptjs · Jest · Supertest**
+Built for learning:
+
+- REST APIs
+- Node.js
+- Express.js
+- MongoDB
+- JWT Authentication
+- Authorization
+- Role-Based Access Control
+- Middleware
+- Admin Management
+- Automated Testing

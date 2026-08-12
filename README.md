@@ -1,62 +1,81 @@
-Todo API with JWT Authentication
+# Todo API with JWT Authentication
 
-A secure RESTful Todo API built with Node.js, Express.js, MongoDB, Mongoose, JWT Authentication, and bcrypt password hashing.
+A secure RESTful Todo API built with Node.js, Express.js, MongoDB, Mongoose, JWT, and bcryptjs.
 
-This project allows users to register, log in, receive a JWT token, access protected routes, and manage only their own todos.
+The API provides user authentication and authorization using JWT. Each authenticated user can create, read, update, and delete only their own todos.
 
-🚀 Features
-Authentication
-User Registration
-User Login
-JWT Access Token
-Password Hashing using bcrypt
-Protected Profile Route
-Logout API
-Invalid Token Handling
-Missing Token Handling
-Todo Management
-Create Todo
-Get All User Todos
-Get Todo by ID
-Update Todo
-Update Todo Status
-Delete Todo
-Search Todos
-Filter Todos by Status
-Sort Todos
-Pagination
-Todo Statistics
-Security
-Passwords are hashed using bcryptjs
-Plain-text passwords are never stored
-JWT protects private routes
-Users can access only their own todos
-Helmet security middleware
-CORS enabled
-Rate limiting
-Global error handling
-Testing
-Authentication tests
-JWT token tests
-Protected route tests
-Todo CRUD tests
-Jest
-Supertest
-🛠 Tech Stack
-Node.js
-Express.js
-MongoDB
-Mongoose
-JSON Web Token (JWT)
-bcryptjs
-Jest
-Supertest
-Nodemon
-Helmet
-CORS
-Morgan
-express-rate-limit
-📁 Project Structure
+---
+
+## Features
+
+### Authentication
+
+- User registration
+- User login
+- JWT access token
+- Password hashing with bcryptjs
+- Protected profile route
+- Logout endpoint
+- Invalid token handling
+- Missing token handling
+
+### Todo Management
+
+- Create todo
+- Get all user todos
+- Get todo by ID
+- Update todo
+- Update todo status
+- Delete todo
+- Search todos
+- Filter todos by status
+- Sort todos
+- Pagination
+- Todo statistics
+
+### Security
+
+- Passwords are never stored as plain text
+- Passwords are hashed using bcryptjs
+- JWT authentication for protected routes
+- User-specific todo ownership
+- Rate limiting
+- Helmet security middleware
+- CORS support
+- Global error handling
+
+### Testing
+
+- Authentication tests
+- JWT tests
+- Protected route tests
+- Todo API tests
+- Jest
+- Supertest
+
+---
+
+# Tech Stack
+
+- Node.js
+- Express.js
+- MongoDB
+- Mongoose
+- JSON Web Token
+- bcryptjs
+- Jest
+- Supertest
+- Nodemon
+- Helmet
+- CORS
+- Morgan
+- express-rate-limit
+
+---
+
+# Project Structure
+
+~~~text
 todo-api/
 │
 ├── config/
@@ -88,150 +107,229 @@ todo-api/
 ├── package.json
 ├── server.js
 └── README.md
-⚙️ Installation
-1. Clone the Repository
+~~~
+
+---
+
+# Installation
+
+## 1. Clone the Repository
+
+~~~bash
 git clone YOUR_REPOSITORY_URL
+~~~
 
-Move into the project folder:
+## 2. Open the Project Folder
 
+~~~bash
 cd todo-api
-2. Install Dependencies
+~~~
+
+## 3. Install Dependencies
+
+~~~bash
 npm install
+~~~
 
-The main authentication packages are:
+---
 
-npm install bcryptjs jsonwebtoken
-🔐 Environment Variables
+# Environment Variables
 
-Create a .env file in the root directory.
+Create a `.env` file in the root folder.
 
+~~~env
 PORT=5000
 
 MONGO_URI=mongodb://127.0.0.1:27017/todoDB
 
 NODE_ENV=development
 
-JWT_SECRET=your_super_secret_jwt_key_change_this
+JWT_SECRET=your_super_secret_jwt_key
 
 JWT_EXPIRES_IN=7d
-Environment Variables Explanation
-Variable	Description
-PORT	Port where the server runs
-MONGO_URI	MongoDB connection URL
-NODE_ENV	Application environment
-JWT_SECRET	Secret key used to generate JWT tokens
-JWT_EXPIRES_IN	JWT token expiration time
+~~~
 
-⚠️ Never upload your real .env file to GitHub.
+## Environment Variables
 
-▶️ Run the Application
-Development Mode
+| Variable | Description |
+|---|---|
+| `PORT` | Server port |
+| `MONGO_URI` | MongoDB connection URL |
+| `NODE_ENV` | Application environment |
+| `JWT_SECRET` | Secret key used to generate JWT tokens |
+| `JWT_EXPIRES_IN` | JWT token expiration time |
+
+> Do not upload your `.env` file to GitHub.
+
+---
+
+# Run the Application
+
+## Development Mode
+
+~~~bash
 npm run dev
+~~~
 
-The server will start at:
+The server will run on:
 
+~~~text
 http://localhost:5000
-Production Mode
+~~~
+
+## Production Mode
+
+~~~bash
 npm start
-🧪 Run Tests
+~~~
+
+---
+
+# Run Tests
+
+~~~bash
 npm test
+~~~
 
-Expected result:
+Example result:
 
+~~~text
 PASS tests/auth.test.js
 PASS tests/todo.test.js
 
 Test Suites: 2 passed, 2 total
-🌐 API Base URL
+Tests: All tests passed
+~~~
+
+---
+
+# API Base URL
+
+~~~text
 http://localhost:5000/api
-🔄 Authentication Flow
-Register User
-      ↓
-Password Hashing with bcrypt
-      ↓
-User Stored in MongoDB
-      ↓
-Login User
-      ↓
+~~~
+
+---
+
+# Authentication Flow
+
+~~~text
+Register
+   │
+   ▼
+Password Hashing
+   │
+   ▼
+User Saved in MongoDB
+   │
+   ▼
+Login
+   │
+   ▼
 Password Verification
-      ↓
+   │
+   ▼
 JWT Token Generated
-      ↓
-Client Receives Token
-      ↓
-Send Token in Authorization Header
-      ↓
-Access Protected Routes
-🔑 JWT Authorization
+   │
+   ▼
+Protected Routes
+~~~
 
-After logging in, the API returns a JWT token.
+---
 
-Use the token in protected routes:
+# API Endpoints
 
-Authorization: Bearer YOUR_JWT_TOKEN
+## Authentication
 
-Example:
+| Method | Endpoint | Description | Protected |
+|---|---|---|---|
+| POST | `/api/auth/register` | Register a new user | No |
+| POST | `/api/auth/login` | Login and receive JWT token | No |
+| POST | `/api/auth/logout` | Logout user | No |
+| GET | `/api/profile` | Get authenticated user profile | Yes |
 
-Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
-📡 API Endpoints
-Authentication
-Method	Endpoint	Description	Protected
-POST	/api/auth/register	Register a new user	❌
-POST	/api/auth/login	Login and get JWT token	❌
-POST	/api/auth/logout	Logout user	❌
-GET	/api/profile	Get logged-in user profile	✅
-Todos
-Method	Endpoint	Description	Protected
-POST	/api/todos	Create Todo	✅
-GET	/api/todos	Get all user Todos	✅
-GET	/api/todos/stats	Get Todo statistics	✅
-GET	/api/todos/:id	Get Todo by ID	✅
-PUT	/api/todos/:id	Update Todo	✅
-PATCH	/api/todos/:id/status	Update Todo status	✅
-DELETE	/api/todos/:id	Delete Todo	✅
-👤 Register User
-Endpoint
+## Todos
+
+| Method | Endpoint | Description | Protected |
+|---|---|---|---|
+| POST | `/api/todos` | Create a todo | Yes |
+| GET | `/api/todos` | Get all user todos | Yes |
+| GET | `/api/todos/stats` | Get todo statistics | Yes |
+| GET | `/api/todos/:id` | Get todo by ID | Yes |
+| PUT | `/api/todos/:id` | Update todo | Yes |
+| PATCH | `/api/todos/:id/status` | Update todo status | Yes |
+| DELETE | `/api/todos/:id` | Delete todo | Yes |
+
+---
+
+# Authentication
+
+## Register User
+
+### Endpoint
+
+~~~http
 POST /api/auth/register
-Request Body
+~~~
+
+### Request Body
+
+~~~json
 {
   "name": "Test User",
   "email": "test@example.com",
   "password": "password123"
 }
-Success Response
+~~~
 
-Status: 201 Created
+### Success Response
 
+**Status: `201 Created`**
+
+~~~json
 {
   "success": true,
   "message": "User registered successfully",
   "data": {
     "_id": "USER_ID",
     "name": "Test User",
-    "email": "test@example.com",
-    "createdAt": "2026-08-12T00:00:00.000Z"
+    "email": "test@example.com"
   }
 }
-Validation
-Name is required
-Name must be at least 2 characters
-Email is required
-Email must be valid
-Email must be unique
-Password is required
-Password must be at least 6 characters
-🔓 Login User
-Endpoint
+~~~
+
+### Validation
+
+- Name is required
+- Email is required
+- Email must be unique
+- Password is required
+- Password must contain at least 6 characters
+
+---
+
+## Login User
+
+### Endpoint
+
+~~~http
 POST /api/auth/login
-Request Body
+~~~
+
+### Request Body
+
+~~~json
 {
   "email": "test@example.com",
   "password": "password123"
 }
-Success Response
+~~~
 
-Status: 200 OK
+### Success Response
 
+**Status: `200 OK`**
+
+~~~json
 {
   "success": true,
   "message": "Login successful",
@@ -242,29 +340,47 @@ Status: 200 OK
     "email": "test@example.com"
   }
 }
+~~~
 
-Copy the token and use it for protected routes.
+Copy the JWT token and use it in protected routes.
 
-👋 Logout User
-Endpoint
-POST /api/auth/logout
-Response
-{
-  "success": true,
-  "message": "Logout successful. Please remove the token from the client."
-}
+---
 
-JWT is stateless. The client should remove the token from localStorage, sessionStorage, cookies, or application state.
+## JWT Authorization
 
-👤 Get User Profile
-Endpoint
-GET /api/profile
-Authorization Header
+Send the token in the request header:
+
+~~~text
 Authorization: Bearer YOUR_JWT_TOKEN
-Success Response
+~~~
 
-Status: 200 OK
+Example:
 
+~~~text
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+~~~
+
+---
+
+## Get User Profile
+
+### Endpoint
+
+~~~http
+GET /api/profile
+~~~
+
+### Required Header
+
+~~~text
+Authorization: Bearer YOUR_JWT_TOKEN
+~~~
+
+### Success Response
+
+**Status: `200 OK`**
+
+~~~json
 {
   "success": true,
   "message": "Profile fetched successfully",
@@ -274,43 +390,91 @@ Status: 200 OK
     "email": "test@example.com"
   }
 }
-❌ Authentication Errors
-No Token
+~~~
 
-Request without an Authorization header.
+---
 
-Response
+## Logout
 
-Status: 401 Unauthorized
+### Endpoint
 
+~~~http
+POST /api/auth/logout
+~~~
+
+### Response
+
+~~~json
+{
+  "success": true,
+  "message": "Logout successful. Please remove the token from the client."
+}
+~~~
+
+> JWT is stateless. Logout removes the token from the client side.
+
+---
+
+# Authentication Errors
+
+## No Token
+
+**Status: `401 Unauthorized`**
+
+~~~json
 {
   "success": false,
   "message": "Not authorized. Token is required"
 }
-Invalid Token
-Authorization: Bearer invalid-token
-Response
+~~~
 
-Status: 401 Unauthorized
+## Invalid Token
 
+**Status: `401 Unauthorized`**
+
+~~~json
 {
   "success": false,
   "message": "Invalid or expired token"
 }
-📝 Create Todo
-Endpoint
-POST /api/todos
-Authorization
+~~~
+
+---
+
+# Todo API
+
+All Todo API routes require JWT authentication.
+
+Required header:
+
+~~~text
 Authorization: Bearer YOUR_JWT_TOKEN
-Request Body
+~~~
+
+---
+
+## Create Todo
+
+### Endpoint
+
+~~~http
+POST /api/todos
+~~~
+
+### Request Body
+
+~~~json
 {
   "title": "Learn JWT Authentication",
   "status": "todo"
 }
-Success Response
+~~~
 
-Status: 201 Created
+### Success Response
 
+**Status: `201 Created`**
+
+~~~json
 {
   "success": true,
   "message": "Todo created successfully",
@@ -321,40 +485,39 @@ Status: 201 Created
     "user": "USER_ID"
   }
 }
+~~~
 
-The user field is automatically assigned from the authenticated JWT token.
+The user ID is automatically taken from the JWT token.
 
-📋 Todo Status Values
+---
 
-The project supports the following status values:
+## Todo Status
 
+The API supports these status values:
+
+~~~text
 todo
 inprogress
 complate
+~~~
 
-Examples:
+> Note: The current project uses `complate` as the completed status value.
 
-{
-  "status": "todo"
-}
-{
-  "status": "inprogress"
-}
-{
-  "status": "complate"
-}
+---
 
-Note: The project currently uses complate as the completed status value.
+## Get All Todos
 
-📚 Get All Todos
-Endpoint
+### Endpoint
+
+~~~http
 GET /api/todos
-Authorization
-Authorization: Bearer YOUR_JWT_TOKEN
+~~~
 
-The API returns only the todos belonging to the logged-in user.
+The API returns only todos belonging to the authenticated user.
 
-Example Response
+### Example Response
+
+~~~json
 {
   "success": true,
   "message": "Todos fetched successfully",
@@ -374,130 +537,133 @@ Example Response
   "count": 2,
   "data": []
 }
-🔍 Search Todos
+~~~
 
-Search by Todo title:
+---
 
+## Search Todos
+
+~~~http
 GET /api/todos?search=JWT
-
-Example:
-
-GET /api/todos?search=Node
+~~~
 
 The search is case-insensitive.
 
-🎯 Filter Todos
+---
 
-Filter by status:
+## Filter Todos
 
+~~~http
 GET /api/todos?status=todo
+~~~
 
-Other examples:
+Available values:
 
-GET /api/todos?status=inprogress
-GET /api/todos?status=complate
-📄 Pagination
-Example
+~~~text
+todo
+inprogress
+complate
+~~~
+
+---
+
+## Pagination
+
+~~~http
 GET /api/todos?page=1&limit=10
-Parameters
-Parameter	Description
-page	Current page number
-limit	Number of Todos per page
+~~~
 
-Rules:
+| Parameter | Description |
+|---|---|
+| `page` | Current page number |
+| `limit` | Number of todos per page |
 
-page must be greater than or equal to 1
-limit must be between 1 and 100
+---
 
-Example:
+## Sorting
 
-GET /api/todos?page=2&limit=5
-↕️ Sorting
-Newest First
+### Newest First
+
+~~~http
 GET /api/todos?sort=newest
+~~~
 
-This is the default.
+### Oldest First
 
-Oldest First
+~~~http
 GET /api/todos?sort=oldest
-🔎 Combined Query Example
+~~~
 
-You can combine search, filtering, pagination, and sorting:
+---
 
+## Combined Query Example
+
+~~~http
 GET /api/todos?search=Node&status=inprogress&page=1&limit=10&sort=newest
-📌 Get Todo by ID
-Endpoint
+~~~
+
+---
+
+## Get Todo by ID
+
+### Endpoint
+
+~~~http
 GET /api/todos/:id
+~~~
 
-Example:
+Users can access only their own todos.
 
-GET /api/todos/68a123456789abcdef123456
-Authorization
-Authorization: Bearer YOUR_JWT_TOKEN
+---
 
-Users can only access their own todos.
+## Update Todo
 
-If the Todo belongs to another user:
+### Endpoint
 
-{
-  "success": false,
-  "message": "Todo not found"
-}
-✏️ Update Todo
-Endpoint
+~~~http
 PUT /api/todos/:id
-Authorization
-Authorization: Bearer YOUR_JWT_TOKEN
-Update Title
-{
-  "title": "Learn JWT Authentication"
-}
-Update Status
-{
-  "status": "inprogress"
-}
-Update Both
+~~~
+
+### Request Body
+
+~~~json
 {
   "title": "Build Secure Todo API",
-  "status": "complate"
+  "status": "inprogress"
 }
-Success Response
-{
-  "success": true,
-  "message": "Todo updated successfully",
-  "data": {
-    "_id": "TODO_ID",
-    "title": "Build Secure Todo API",
-    "status": "complate",
-    "user": "USER_ID"
-  }
-}
-🔄 Update Todo Status
-Endpoint
+~~~
+
+---
+
+## Update Todo Status
+
+### Endpoint
+
+~~~http
 PATCH /api/todos/:id/status
-Authorization
-Authorization: Bearer YOUR_JWT_TOKEN
-Request Body
+~~~
+
+### Request Body
+
+~~~json
 {
   "status": "complate"
 }
-Success Response
-{
-  "success": true,
-  "message": "Todo status updated successfully",
-  "data": {
-    "_id": "TODO_ID",
-    "title": "Learn JWT Authentication",
-    "status": "complate",
-    "user": "USER_ID"
-  }
-}
-📊 Todo Statistics
-Endpoint
+~~~
+
+---
+
+## Todo Statistics
+
+### Endpoint
+
+~~~http
 GET /api/todos/stats
-Authorization
-Authorization: Bearer YOUR_JWT_TOKEN
-Success Response
+~~~
+
+### Example Response
+
+~~~json
 {
   "success": true,
   "message": "Todo statistics fetched successfully",
@@ -509,80 +675,107 @@ Success Response
     "completionPercentage": 30
   }
 }
+~~~
 
-Statistics include only the authenticated user's todos.
+---
 
-🗑️ Delete Todo
-Endpoint
+## Delete Todo
+
+### Endpoint
+
+~~~http
 DELETE /api/todos/:id
-Authorization
-Authorization: Bearer YOUR_JWT_TOKEN
-Success Response
+~~~
+
+### Success Response
+
+~~~json
 {
   "success": true,
-  "message": "Todo deleted successfully",
-  "data": {
-    "_id": "TODO_ID",
-    "title": "Learn JWT Authentication",
-    "status": "complate",
-    "user": "USER_ID"
-  }
+  "message": "Todo deleted successfully"
 }
-🔒 Todo Ownership
+~~~
 
-Every Todo belongs to a user.
+---
 
+# Todo Ownership
+
+Every todo belongs to the authenticated user.
+
+~~~text
 JWT Token
-    ↓
+    │
+    ▼
 Authentication Middleware
-    ↓
+    │
+    ▼
 req.user
-    ↓
+    │
+    ▼
 req.user._id
-    ↓
-Todo user field
+    │
+    ▼
+Todo User ID
+~~~
 
-This ensures users can only:
+This ensures that users can only:
 
-Create their own todos
-View their own todos
-Update their own todos
-Delete their own todos
-View their own Todo statistics
-🔐 Password Security
+- Create their own todos
+- Read their own todos
+- Update their own todos
+- Delete their own todos
+- View statistics for their own todos
+
+---
+
+# Password Security
 
 Passwords are never stored as plain text.
 
+~~~text
 User Password
-      ↓
+      │
+      ▼
 bcrypt Hashing
-      ↓
+      │
+      ▼
 Hashed Password
-      ↓
+      │
+      ▼
 MongoDB
+~~~
 
 During login:
 
+~~~text
 Entered Password
-      ↓
+      │
+      ▼
 bcrypt.compare()
-      ↓
+      │
+      ▼
 Compare with Stored Hash
-      ↓
-Valid or Invalid
-🛡️ JWT Protected Routes
+      │
+      ▼
+Login Success or Failure
+~~~
 
-The authentication middleware performs the following steps:
+---
 
-Checks the Authorization header
-Extracts the Bearer token
-Verifies the JWT token
-Finds the user
-Adds the user to req.user
-Allows access to the protected route
+# JWT Protection
 
-Protected routes include:
+The authentication middleware:
 
+1. Reads the `Authorization` header
+2. Extracts the Bearer token
+3. Verifies the JWT token
+4. Finds the authenticated user
+5. Adds the user to `req.user`
+6. Allows access to the protected route
+
+Protected routes:
+
+~~~text
 GET    /api/profile
 
 POST   /api/todos
@@ -592,203 +785,251 @@ GET    /api/todos/:id
 PUT    /api/todos/:id
 PATCH  /api/todos/:id/status
 DELETE /api/todos/:id
-🚦 Rate Limiting
+~~~
+
+---
+
+# Rate Limiting
 
 The API allows:
 
+~~~text
 20 requests per IP
 within 1 minute
+~~~
 
 If the limit is exceeded:
 
+~~~json
 {
   "success": false,
   "message": "Too many requests. Please try again later."
 }
-🧪 Testing
+~~~
 
-The project uses:
+---
 
-Jest
-Supertest
+# Testing
 
 Run all tests:
 
+~~~bash
 npm test
-✅ Authentication Test Cases
+~~~
+
+## Authentication Test Cases
 
 The authentication tests verify:
 
-Register User
-      ↓
-201 Created
-Login User
-      ↓
-JWT Token Returned
-GET /api/profile
-Without Token
-      ↓
-401 Unauthorized
-GET /api/profile
-Invalid Token
-      ↓
-401 Unauthorized
-GET /api/profile
-Valid Token
-      ↓
-200 OK
-🔁 Complete Integration Test Flow
+- User registration returns `201`
+- Login returns a JWT token
+- Profile without token returns `401`
+- Profile with invalid token returns `401`
+- Profile with valid token returns `200`
 
-The Todo API tests follow this flow:
+## Complete API Test Flow
 
+~~~text
 Register User
-      ↓
+      │
+      ▼
 Login User
-      ↓
+      │
+      ▼
 Receive JWT Token
-      ↓
+      │
+      ▼
 Create Todo
-      ↓
+      │
+      ▼
 Get Todos
-      ↓
+      │
+      ▼
 Get Todo by ID
-      ↓
+      │
+      ▼
 Update Todo
-      ↓
+      │
+      ▼
 Update Todo Status
-      ↓
+      │
+      ▼
 Get Todo Statistics
-      ↓
+      │
+      ▼
 Delete Todo
-❗ Common Errors
-MongoDB Connection Failed
+~~~
+
+---
+
+# Common Errors
+
+## MongoDB Connection Error
+
+Check your MongoDB connection string:
+
+~~~env
+MONGO_URI=mongodb://127.0.0.1:27017/todoDB
+~~~
 
 Make sure MongoDB is running.
 
-On Windows:
+---
 
-Get-Service MongoDB
+## Missing Token
 
-Check your .env:
-
-MONGO_URI=mongodb://127.0.0.1:27017/todoDB
-Missing JWT Token
+~~~json
 {
   "success": false,
   "message": "Not authorized. Token is required"
 }
+~~~
 
 Solution:
 
+~~~text
 Authorization: Bearer YOUR_JWT_TOKEN
-Invalid or Expired Token
+~~~
+
+---
+
+## Invalid or Expired Token
+
+~~~json
 {
   "success": false,
   "message": "Invalid or expired token"
 }
+~~~
 
-Solution: Login again and use a new token.
+Solution: Login again and use a new JWT token.
 
-Invalid Todo ID
+---
+
+## Invalid Todo ID
+
+~~~json
 {
   "success": false,
   "message": "Invalid Todo ID"
 }
+~~~
 
 Make sure the ID is a valid MongoDB ObjectId.
 
-Todo Not Found
+---
+
+## Todo Not Found
+
+~~~json
 {
   "success": false,
   "message": "Todo not found"
 }
+~~~
 
 Possible reasons:
 
-Todo does not exist
-Todo belongs to another user
-User Already Exists
+- The Todo does not exist
+- The Todo belongs to another user
+
+---
+
+## User Already Exists
+
+~~~json
 {
   "success": false,
   "message": "User already exists with this email"
 }
+~~~
 
 Use a different email address.
 
-🔄 Complete API Flow
+---
+
+# Complete API Flow
+
+~~~text
 1. Register User
+   POST /api/auth/register
 
-POST /api/auth/register
-
-        ↓
+          │
+          ▼
 
 2. Login User
+   POST /api/auth/login
 
-POST /api/auth/login
-
-        ↓
+          │
+          ▼
 
 3. Receive JWT Token
 
-        ↓
+          │
+          ▼
 
 4. Add Authorization Header
+   Authorization: Bearer YOUR_JWT_TOKEN
 
-Authorization: Bearer YOUR_JWT_TOKEN
+          │
+          ▼
 
-        ↓
+5. Get Profile
+   GET /api/profile
 
-5. Get User Profile
-
-GET /api/profile
-
-        ↓
+          │
+          ▼
 
 6. Create Todo
+   POST /api/todos
 
-POST /api/todos
+          │
+          ▼
 
-        ↓
+7. Get Todos
+   GET /api/todos
 
-7. Get User Todos
-
-GET /api/todos
-
-        ↓
+          │
+          ▼
 
 8. Update Todo
+   PUT /api/todos/:id
 
-PUT /api/todos/:id
-
-        ↓
+          │
+          ▼
 
 9. Update Todo Status
+   PATCH /api/todos/:id/status
 
-PATCH /api/todos/:id/status
+          │
+          ▼
 
-        ↓
+10. Get Statistics
+    GET /api/todos/stats
 
-10. Get Todo Statistics
-
-GET /api/todos/stats
-
-        ↓
+          │
+          ▼
 
 11. Delete Todo
+    DELETE /api/todos/:id
 
-DELETE /api/todos/:id
-
-        ↓
+          │
+          ▼
 
 12. Logout
+    POST /api/auth/logout
+~~~
 
-POST /api/auth/logout
-📄 License
+---
+
+# License
 
 This project is licensed under the ISC License.
 
-👨‍💻 Author
+---
 
-Built as a Node.js REST API project using:
+# Author
 
-Node.js • Express.js • MongoDB • Mongoose • JWT • bcryptjs • Jest • Supertest
+Built with:
+
+**Node.js · Express.js · MongoDB · Mongoose · JWT · bcryptjs · Jest · Supertest**

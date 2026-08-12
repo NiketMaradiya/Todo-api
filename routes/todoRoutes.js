@@ -3,39 +3,57 @@ const express = require("express");
 const {
   createTodo,
   getTodos,
+  getTodoStats,
   getTodoById,
   updateTodo,
   updateTodoStatus,
-  getTodoStats,
   deleteTodo,
 } = require("../controllers/todoController");
 
-const protect = require(
-  "../middleware/authMiddleware"
-);
+const {
+  protect,
+} = require("../middleware/authMiddleware");
 
 const router = express.Router();
 
-// ==========================================
-// All Todo Routes Require JWT
-// ==========================================
-
+// All Todo APIs require login
 router.use(protect);
 
 // Create Todo
-router.post("/", createTodo);
+router.post(
+  "/",
+  createTodo
+);
 
-// Get All User Todos
-router.get("/", getTodos);
+// Get All Todos
+router.get(
+  "/",
+  getTodos
+);
 
-// Get Todo Statistics
-router.get("/stats", getTodoStats);
+// Get Statistics
+router.get(
+  "/stats",
+  getTodoStats
+);
 
-// Get Todo By ID
-router.get("/:id", getTodoById);
+// Get Single Todo
+router.get(
+  "/:id",
+  getTodoById
+);
 
 // Update Todo
-router.put("/:id", updateTodo);
+router.put(
+  "/:id",
+  updateTodo
+);
+
+// Also allow PATCH for update
+router.patch(
+  "/:id",
+  updateTodo
+);
 
 // Update Todo Status
 router.patch(
@@ -44,6 +62,9 @@ router.patch(
 );
 
 // Delete Todo
-router.delete("/:id", deleteTodo);
+router.delete(
+  "/:id",
+  deleteTodo
+);
 
 module.exports = router;

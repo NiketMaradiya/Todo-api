@@ -1,17 +1,20 @@
-const jwt = require("jsonwebtoken");
 const User = require("../models/User");
+const jwt = require("jsonwebtoken");
 
 // ==========================================
 // Generate JWT Token
 // ==========================================
 
-const generateToken = (id) => {
+const generateToken = (user) => {
   return jwt.sign(
-    { id },
+    {
+      id: user._id.toString(),
+      role: user.role,
+    },
     process.env.JWT_SECRET,
     {
       expiresIn:
-        process.env.JWT_EXPIRES_IN || "7d",
+        process.env.JWT_EXPIRE || "7d",
     }
   );
 };
@@ -21,131 +24,81 @@ const generateToken = (id) => {
 // POST /api/auth/register
 // ==========================================
 
-const registerUser = async (req, res, next) => {
+const register = async (req, res) => {
   try {
     const { name, email, password } =
-      req.body || {};
+      req.body;
 
-    // Validate name
-    if (!name) {
-      return res.status(400).json({
-        success: false,
-        message: "Name is required",
-      });
-    }
-
-    if (typeof name !== "string") {
-      return res.status(400).json({
-        success: false,
-        message: "Name must be a string",
-      });
-    }
-
-    if (name.trim().length < 2) {
+    if (!name || !email || !password) {
       return res.status(400).json({
         success: false,
         message:
-          "Name must be at least 2 characters",
+          "Name, email and password are required",
       });
     }
 
-    // Validate email
-    if (!email) {
-      return res.status(400).json({
-        success: false,
-        message: "Email is required",
+    const normalizedEmail =
+      email.toLowerCase().trim();
+
+    const existingUser =
+      await User.findOne({
+        email: normalizedEmail,
       });
-    }
-
-    if (typeof email !== "string") {
-      return res.status(400).json({
-        success: false,
-        message: "Email must be a string",
-      });
-    }
-
-    const normalizedEmail = email
-      .trim()
-      .toLowerCase();
-
-    // Basic email validation
-    const emailRegex =
-      /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-
-    if (!emailRegex.test(normalizedEmail)) {
-      return res.status(400).json({
-        success: false,
-        message: "Please provide a valid email",
-      });
-    }
-
-    // Validate password
-    if (!password) {
-      return res.status(400).json({
-        success: false,
-        message: "Password is required",
-      });
-    }
-
-    if (typeof password !== "string") {
-      return res.status(400).json({
-        success: false,
-        message: "Password must be a string",
-      });
-    }
-
-    if (password.length < 6) {
-      return res.status(400).json({
-        success: false,
-        message:
-          "Password must be at least 6 characters",
-      });
-    }
-
-    // Check existing user
-    const existingUser = await User.findOne({
-      email: normalizedEmail,
-    });
 
     if (existingUser) {
       return res.status(400).json({
         success: false,
         message:
-          "User already exists with this email",
+          "User already exists",
       });
     }
 
-    // Create user
     const user = await User.create({
       name: name.trim(),
       email: normalizedEmail,
       password,
+
+      // Every registered user is normal user
+      role: "user",
     });
+
+    const token = generateToken(user);
 
     res.status(201).json({
       success: true,
-      message: "User registered successfully",
+      message:
+        "User registered successfully",
+      token,
       data: {
-        _id: user._id,
+        _id: user._id.toString(),
         name: user.name,
         email: user.email,
-        createdAt: user.createdAt,
+        role: user.role,
+        isActive: user.isActive,
       },
     });
   } catch (error) {
-    next(error);
+    console.error(
+      "REGISTER ERROR:",
+      error.message
+    );
+
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    });
   }
 };
 
 // ==========================================
-// Login User
+// Login
 // POST /api/auth/login
 // ==========================================
 
-const loginUser = async (req, res, next) => {
+const login = async (req, res) => {
   try {
     const { email, password } =
-      req.body || {};
+      req.body;
 
     if (!email || !password) {
       return res.status(400).json({
@@ -155,97 +108,109 @@ const loginUser = async (req, res, next) => {
       });
     }
 
-    // Find user and explicitly select password
+    const normalizedEmail =
+      email.toLowerCase().trim();
+
     const user = await User.findOne({
-      email: email.trim().toLowerCase(),
+      email: normalizedEmail,
     }).select("+password");
 
     if (!user) {
       return res.status(401).json({
         success: false,
-        message: "Invalid email or password",
+        message:
+          "Invalid email or password",
       });
     }
 
-    // Compare password
+    if (user.isActive === false) {
+      return res.status(403).json({
+        success: false,
+        message:
+          "Your account has been disabled",
+      });
+    }
+
     const isPasswordCorrect =
       await user.comparePassword(password);
 
     if (!isPasswordCorrect) {
       return res.status(401).json({
         success: false,
-        message: "Invalid email or password",
+        message:
+          "Invalid email or password",
       });
     }
 
-    // Generate token
-    const token = generateToken(user._id);
+    const token = generateToken(user);
 
     res.status(200).json({
       success: true,
       message: "Login successful",
       token,
       data: {
-        _id: user._id,
+        _id: user._id.toString(),
         name: user.name,
         email: user.email,
+        role: user.role,
+        isActive: user.isActive,
       },
     });
   } catch (error) {
-    next(error);
+    console.error(
+      "LOGIN ERROR:",
+      error.message
+    );
+
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    });
   }
 };
 
 // ==========================================
-// Logout User
+// Logout
 // POST /api/auth/logout
 // ==========================================
 
-const logoutUser = async (req, res, next) => {
-  try {
-    /*
-      JWT is stateless.
-
-      The client must delete the token
-      from localStorage, cookies, etc.
-    */
-
-    res.status(200).json({
-      success: true,
-      message:
-        "Logout successful. Please remove the token from the client.",
-    });
-  } catch (error) {
-    next(error);
-  }
+const logout = async (req, res) => {
+  res.status(200).json({
+    success: true,
+    message: "Logout successful",
+  });
 };
 
 // ==========================================
 // Get Profile
-// GET /api/profile
+// GET /api/auth/profile
 // ==========================================
 
-const getProfile = async (req, res, next) => {
+const getProfile = async (req, res) => {
   try {
+    const user = req.user;
+
     res.status(200).json({
       success: true,
-      message: "Profile fetched successfully",
       data: {
-        _id: req.user._id,
-        name: req.user.name,
-        email: req.user.email,
-        createdAt: req.user.createdAt,
-        updatedAt: req.user.updatedAt,
+        _id: user._id.toString(),
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        isActive: user.isActive,
       },
     });
   } catch (error) {
-    next(error);
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    });
   }
 };
 
 module.exports = {
-  registerUser,
-  loginUser,
-  logoutUser,
+  register,
+  login,
+  logout,
   getProfile,
 };

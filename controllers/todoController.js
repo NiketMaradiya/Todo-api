@@ -1,205 +1,209 @@
 const mongoose = require("mongoose");
 const Todo = require("../models/Todo");
 
-const VALID_STATUSES = [
-  "todo",
-  "inprogress",
-  "complate",
-];
-
 // ==========================================
 // Create Todo
 // POST /api/todos
 // ==========================================
 
-const createTodo = async (req, res, next) => {
+const createTodo = async (req, res) => {
   try {
-    const { title, status } = req.body || {};
+    const {
+      title,
+      status = "todo",
+    } = req.body;
 
-    if (title === undefined) {
+    if (!title || !title.trim()) {
       return res.status(400).json({
         success: false,
         message: "Title is required",
       });
     }
 
-    if (typeof title !== "string") {
-      return res.status(400).json({
-        success: false,
-        message: "Title must be a string",
-      });
-    }
-
-    if (!title.trim()) {
-      return res.status(400).json({
-        success: false,
-        message: "Title cannot be empty",
-      });
-    }
-
-    if (title.trim().length > 200) {
-      return res.status(400).json({
-        success: false,
-        message:
-          "Title cannot exceed 200 characters",
-      });
-    }
-
-    if (
-      status !== undefined &&
-      !VALID_STATUSES.includes(status)
-    ) {
-      return res.status(400).json({
-        success: false,
-        message:
-          "Status must be todo, inprogress or complate",
-      });
-    }
-
     const todo = await Todo.create({
       title: title.trim(),
-      status: status ?? "todo",
+      status,
       user: req.user._id,
     });
 
     res.status(201).json({
       success: true,
-      message: "Todo created successfully",
+      message:
+        "Todo created successfully",
       data: todo,
     });
   } catch (error) {
-    next(error);
+    res.status(400).json({
+      success: false,
+      message: error.message,
+    });
   }
 };
 
 // ==========================================
-// Get All User Todos
+// Get User Todos
 // GET /api/todos
 // ==========================================
 
-const getTodos = async (req, res, next) => {
+const getTodos = async (req, res) => {
   try {
-    let {
+    const {
+      search,
+      status,
       page = 1,
       limit = 10,
-      search = "",
-      status,
       sort = "newest",
     } = req.query;
 
-    page = Number(page);
-    limit = Number(limit);
-
-    if (
-      !Number.isInteger(page) ||
-      page < 1
-    ) {
-      return res.status(400).json({
-        success: false,
-        message:
-          "Page must be a positive number",
-      });
-    }
-
-    if (
-      !Number.isInteger(limit) ||
-      limit < 1 ||
-      limit > 100
-    ) {
-      return res.status(400).json({
-        success: false,
-        message:
-          "Limit must be between 1 and 100",
-      });
-    }
-
-    if (
-      status !== undefined &&
-      !VALID_STATUSES.includes(status)
-    ) {
-      return res.status(400).json({
-        success: false,
-        message:
-          "Status must be todo, inprogress or complate",
-      });
-    }
-
-    if (
-      sort !== "newest" &&
-      sort !== "oldest"
-    ) {
-      return res.status(400).json({
-        success: false,
-        message:
-          "Sort must be newest or oldest",
-      });
-    }
-
-    // Only logged-in user's todos
-    const query = {
+    const filter = {
       user: req.user._id,
     };
 
-    if (
-      typeof search === "string" &&
-      search.trim()
-    ) {
-      query.title = {
-        $regex: search.trim(),
+    if (status) {
+      filter.status = status;
+    }
+
+    if (search) {
+      filter.title = {
+        $regex: search,
         $options: "i",
       };
     }
 
-    if (status !== undefined) {
-      query.status = status;
-    }
+    const pageNumber =
+      Math.max(Number(page), 1);
+
+    const limitNumber =
+      Math.max(Number(limit), 1);
+
+    const skip =
+      (pageNumber - 1) *
+      limitNumber;
 
     const sortOption =
       sort === "oldest"
         ? { createdAt: 1 }
         : { createdAt: -1 };
 
-    const skip = (page - 1) * limit;
+    const total =
+      await Todo.countDocuments(filter);
 
-    const totalTodos =
-      await Todo.countDocuments(query);
-
-    const todos = await Todo.find(query)
+    const todos = await Todo.find(filter)
       .sort(sortOption)
       .skip(skip)
-      .limit(limit);
-
-    const totalPages = Math.ceil(
-      totalTodos / limit
-    );
+      .limit(limitNumber);
 
     res.status(200).json({
       success: true,
-      message: "Todos fetched successfully",
-
-      pagination: {
-        currentPage: page,
-        limit,
-        totalTodos,
-        totalPages,
-        hasNextPage: page < totalPages,
-        hasPreviousPage: page > 1,
-      },
-
-      filters: {
-        search:
-          typeof search === "string"
-            ? search.trim()
-            : "",
-        status: status ?? null,
-        sort,
-      },
-
       count: todos.length,
+      pagination: {
+        total,
+        page: pageNumber,
+        limit: limitNumber,
+        totalPages: Math.ceil(
+          total / limitNumber
+        ),
+      },
       data: todos,
     });
   } catch (error) {
-    next(error);
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
+
+// ==========================================
+// Get Todo Statistics
+// GET /api/todos/stats
+// ==========================================
+
+const getTodoStats = async (req, res) => {
+  try {
+    const userId =
+      new mongoose.Types.ObjectId(
+        req.user._id
+      );
+
+    const result =
+      await Todo.aggregate([
+        {
+          $match: {
+            user: userId,
+          },
+        },
+        {
+          $group: {
+            _id: null,
+            total: {
+              $sum: 1,
+            },
+            todo: {
+              $sum: {
+                $cond: [
+                  {
+                    $eq: [
+                      "$status",
+                      "todo",
+                    ],
+                  },
+                  1,
+                  0,
+                ],
+              },
+            },
+            inprogress: {
+              $sum: {
+                $cond: [
+                  {
+                    $eq: [
+                      "$status",
+                      "inprogress",
+                    ],
+                  },
+                  1,
+                  0,
+                ],
+              },
+            },
+            complate: {
+              $sum: {
+                $cond: [
+                  {
+                    $eq: [
+                      "$status",
+                      "complate",
+                    ],
+                  },
+                  1,
+                  0,
+                ],
+              },
+            },
+          },
+        },
+      ]);
+
+    const stats =
+      result[0] || {
+        total: 0,
+        todo: 0,
+        inprogress: 0,
+        complate: 0,
+      };
+
+    delete stats._id;
+
+    res.status(200).json({
+      success: true,
+      data: stats,
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    });
   }
 };
 
@@ -210,8 +214,7 @@ const getTodos = async (req, res, next) => {
 
 const getTodoById = async (
   req,
-  res,
-  next
+  res
 ) => {
   try {
     const { id } = req.params;
@@ -225,11 +228,11 @@ const getTodoById = async (
       });
     }
 
-    // Find only if todo belongs to user
-    const todo = await Todo.findOne({
-      _id: id,
-      user: req.user._id,
-    });
+    const todo =
+      await Todo.findOne({
+        _id: id,
+        user: req.user._id,
+      });
 
     if (!todo) {
       return res.status(404).json({
@@ -240,11 +243,13 @@ const getTodoById = async (
 
     res.status(200).json({
       success: true,
-      message: "Todo fetched successfully",
       data: todo,
     });
   } catch (error) {
-    next(error);
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    });
   }
 };
 
@@ -253,15 +258,9 @@ const getTodoById = async (
 // PUT /api/todos/:id
 // ==========================================
 
-const updateTodo = async (
-  req,
-  res,
-  next
-) => {
+const updateTodo = async (req, res) => {
   try {
     const { id } = req.params;
-    const { title, status } =
-      req.body || {};
 
     if (
       !mongoose.Types.ObjectId.isValid(id)
@@ -271,6 +270,11 @@ const updateTodo = async (
         message: "Invalid Todo ID",
       });
     }
+
+    const {
+      title,
+      status,
+    } = req.body;
 
     if (
       title === undefined &&
@@ -283,15 +287,20 @@ const updateTodo = async (
       });
     }
 
-    if (title !== undefined) {
-      if (typeof title !== "string") {
-        return res.status(400).json({
-          success: false,
-          message:
-            "Title must be a string",
-        });
-      }
+    const todo =
+      await Todo.findOne({
+        _id: id,
+        user: req.user._id,
+      });
 
+    if (!todo) {
+      return res.status(404).json({
+        success: false,
+        message: "Todo not found",
+      });
+    }
+
+    if (title !== undefined) {
       if (!title.trim()) {
         return res.status(400).json({
           success: false,
@@ -300,80 +309,41 @@ const updateTodo = async (
         });
       }
 
-      if (title.trim().length > 200) {
-        return res.status(400).json({
-          success: false,
-          message:
-            "Title cannot exceed 200 characters",
-        });
-      }
-    }
-
-    if (
-      status !== undefined &&
-      !VALID_STATUSES.includes(status)
-    ) {
-      return res.status(400).json({
-        success: false,
-        message:
-          "Status must be todo, inprogress or complate",
-      });
-    }
-
-    const updateData = {};
-
-    if (title !== undefined) {
-      updateData.title = title.trim();
+      todo.title = title.trim();
     }
 
     if (status !== undefined) {
-      updateData.status = status;
+      todo.status = status;
     }
 
-    const todo =
-      await Todo.findOneAndUpdate(
-        {
-          _id: id,
-          user: req.user._id,
-        },
-        updateData,
-        {
-          new: true,
-          runValidators: true,
-        }
-      );
-
-    if (!todo) {
-      return res.status(404).json({
-        success: false,
-        message: "Todo not found",
-      });
-    }
+    await todo.save();
 
     res.status(200).json({
       success: true,
-      message: "Todo updated successfully",
+      message:
+        "Todo updated successfully",
       data: todo,
     });
   } catch (error) {
-    next(error);
+    res.status(400).json({
+      success: false,
+      message: error.message,
+    });
   }
 };
 
 // ==========================================
-// Change Todo Status
+// Update Todo Status
 // PATCH /api/todos/:id/status
 // ==========================================
 
 const updateTodoStatus = async (
   req,
-  res,
-  next
+  res
 ) => {
   try {
     const { id } = req.params;
-    const { status } =
-      req.body || {};
+    const { status } = req.body;
 
     if (
       !mongoose.Types.ObjectId.isValid(id)
@@ -384,35 +354,25 @@ const updateTodoStatus = async (
       });
     }
 
-    if (status === undefined) {
-      return res.status(400).json({
-        success: false,
-        message: "Status is required",
-      });
-    }
-
     if (
-      !VALID_STATUSES.includes(status)
+      ![
+        "todo",
+        "inprogress",
+        "complate",
+      ].includes(status)
     ) {
       return res.status(400).json({
         success: false,
         message:
-          "Status must be todo, inprogress or complate",
+          "Invalid status",
       });
     }
 
     const todo =
-      await Todo.findOneAndUpdate(
-        {
-          _id: id,
-          user: req.user._id,
-        },
-        { status },
-        {
-          new: true,
-          runValidators: true,
-        }
-      );
+      await Todo.findOne({
+        _id: id,
+        user: req.user._id,
+      });
 
     if (!todo) {
       return res.status(404).json({
@@ -420,6 +380,10 @@ const updateTodoStatus = async (
         message: "Todo not found",
       });
     }
+
+    todo.status = status;
+
+    await todo.save();
 
     res.status(200).json({
       success: true,
@@ -428,67 +392,10 @@ const updateTodoStatus = async (
       data: todo,
     });
   } catch (error) {
-    next(error);
-  }
-};
-
-// ==========================================
-// Get Todo Statistics
-// GET /api/todos/stats
-// ==========================================
-
-const getTodoStats = async (
-  req,
-  res,
-  next
-) => {
-  try {
-    const userId = req.user._id;
-
-    const total =
-      await Todo.countDocuments({
-        user: userId,
-      });
-
-    const todo =
-      await Todo.countDocuments({
-        user: userId,
-        status: "todo",
-      });
-
-    const inprogress =
-      await Todo.countDocuments({
-        user: userId,
-        status: "inprogress",
-      });
-
-    const complate =
-      await Todo.countDocuments({
-        user: userId,
-        status: "complate",
-      });
-
-    const completionPercentage =
-      total === 0
-        ? 0
-        : Math.round(
-            (complate / total) * 100
-          );
-
-    res.status(200).json({
-      success: true,
-      message:
-        "Todo statistics fetched successfully",
-      data: {
-        total,
-        todo,
-        inprogress,
-        complate,
-        completionPercentage,
-      },
+    res.status(400).json({
+      success: false,
+      message: error.message,
     });
-  } catch (error) {
-    next(error);
   }
 };
 
@@ -497,11 +404,7 @@ const getTodoStats = async (
 // DELETE /api/todos/:id
 // ==========================================
 
-const deleteTodo = async (
-  req,
-  res,
-  next
-) => {
+const deleteTodo = async (req, res) => {
   try {
     const { id } = req.params;
 
@@ -514,7 +417,6 @@ const deleteTodo = async (
       });
     }
 
-    // Delete only user's todo
     const todo =
       await Todo.findOneAndDelete({
         _id: id,
@@ -532,19 +434,21 @@ const deleteTodo = async (
       success: true,
       message:
         "Todo deleted successfully",
-      data: todo,
     });
   } catch (error) {
-    next(error);
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    });
   }
 };
 
 module.exports = {
   createTodo,
   getTodos,
+  getTodoStats,
   getTodoById,
   updateTodo,
   updateTodoStatus,
-  getTodoStats,
   deleteTodo,
 };

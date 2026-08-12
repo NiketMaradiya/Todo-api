@@ -27,7 +27,6 @@ const todoSchema = new mongoose.Schema(
       default: "todo",
     },
 
-    // Todo owner
     user: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
@@ -39,6 +38,7 @@ const todoSchema = new mongoose.Schema(
   }
 );
 
-const Todo = mongoose.model("Todo", todoSchema);
-
-module.exports = Todo;
+module.exports = mongoose.model(
+  "Todo",
+  todoSchema
+);

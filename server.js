@@ -1,146 +1,56 @@
-require("dotenv").config();
-
 const express = require("express");
-const rateLimit = require(
-  "express-rate-limit"
-);
-const helmet = require("helmet");
+const dotenv = require("dotenv");
 const cors = require("cors");
 
-const connectDB = require("./config/db");
+dotenv.config();
 
-const todoRoutes = require(
-  "./routes/todoRoutes"
-);
+const connectDB =
+  require("./config/db");
 
-const authRoutes = require(
-  "./routes/authRoutes"
-);
+const todoRoutes =
+  require("./routes/todoRoutes");
 
-const {
-  getProfile,
-} = require(
-  "./controllers/authController"
-);
+const authRoutes =
+  require("./routes/authRoutes");
 
-const protect = require(
-  "./middleware/authMiddleware"
-);
-
-const logger = require(
-  "./middleware/logger"
-);
-
-const {
-  notFound,
-  errorHandler,
-} = require(
-  "./middleware/errorMiddleware"
-);
+const adminRoutes =
+  require("./routes/adminRoutes");
 
 const app = express();
 
-// ==========================================
-// Connect Database
-// ==========================================
-
+// Database connection
 connectDB();
 
-// ==========================================
 // Middleware
-// ==========================================
-
-app.use(helmet());
-
 app.use(cors());
 
 app.use(express.json());
 
-app.use(logger);
-
-// ==========================================
-// Rate Limiter
-// 20 requests per IP per minute
-// ==========================================
-
-const limiter = rateLimit({
-  windowMs: 60 * 1000,
-
-  max: 20,
-
-  message: {
-    success: false,
-    message:
-      "Too many requests. Please try again later.",
-  },
-
-  standardHeaders: true,
-
-  legacyHeaders: false,
-});
-
-// Apply rate limit
-app.use("/api", limiter);
-
-// ==========================================
-// Health Check
-// ==========================================
-
+// Home
 app.get("/", (req, res) => {
   res.status(200).json({
     success: true,
-    message:
-      "Todo API with JWT Authentication is Running 🚀",
+    message: "API is running",
   });
 });
 
-// ==========================================
-// Authentication Routes
-// ==========================================
-
+// Authentication
 app.use(
   "/api/auth",
   authRoutes
 );
 
-// ==========================================
-// Profile Route
-// Protected
-// ==========================================
-
-app.get(
-  "/api/profile",
-  protect,
-  getProfile
-);
-
-// ==========================================
-// Todo Routes
-// All Protected
-// ==========================================
-
+// Todo
 app.use(
   "/api/todos",
   todoRoutes
 );
 
-// ==========================================
-// 404 Handler
-// ==========================================
-
-app.use(notFound);
-
-// ==========================================
-// Global Error Handler
-// ==========================================
-
-app.use(errorHandler);
-
-module.exports = app;
-
-// ==========================================
-// Start Server
-// ==========================================
+// Admin
+app.use(
+  "/api/admin",
+  adminRoutes
+);
 
 if (require.main === module) {
   const PORT =
@@ -148,7 +58,9 @@ if (require.main === module) {
 
   app.listen(PORT, () => {
     console.log(
-      `🚀 Server running on http://localhost:${PORT}`
+      `Server running on port ${PORT}`
     );
   });
 }
+
+module.exports = app;

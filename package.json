@@ -1,7 +1,7 @@
 {
   "name": "todo-api",
   "version": "1.0.0",
-  "description": "Todo REST API using Node.js, Express and MongoDB",
+  "description": "Todo REST API with JWT Authentication",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
@@ -13,17 +13,21 @@
     "api",
     "nodejs",
     "express",
-    "mongodb"
+    "mongodb",
+    "jwt",
+    "authentication"
   ],
   "author": "",
   "license": "ISC",
   "type": "commonjs",
   "dependencies": {
+    "bcryptjs": "^3.0.3",
     "cors": "^2.8.6",
     "dotenv": "^17.4.2",
     "express": "^5.2.1",
     "express-rate-limit": "^8.6.2",
     "helmet": "^8.1.0",
+    "jsonwebtoken": "^9.0.3",
     "mongoose": "^9.9.1",
     "morgan": "^1.10.1"
   },

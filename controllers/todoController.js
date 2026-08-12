@@ -9,13 +9,13 @@ const VALID_STATUSES = [
 
 // ==========================================
 // Create Todo
+// POST /api/todos
 // ==========================================
 
 const createTodo = async (req, res, next) => {
   try {
     const { title, status } = req.body || {};
 
-    // Validate title exists
     if (title === undefined) {
       return res.status(400).json({
         success: false,
@@ -23,7 +23,6 @@ const createTodo = async (req, res, next) => {
       });
     }
 
-    // Validate title type
     if (typeof title !== "string") {
       return res.status(400).json({
         success: false,
@@ -31,7 +30,6 @@ const createTodo = async (req, res, next) => {
       });
     }
 
-    // Validate empty title
     if (!title.trim()) {
       return res.status(400).json({
         success: false,
@@ -39,15 +37,14 @@ const createTodo = async (req, res, next) => {
       });
     }
 
-    // Validate title length
     if (title.trim().length > 200) {
       return res.status(400).json({
         success: false,
-        message: "Title cannot exceed 200 characters",
+        message:
+          "Title cannot exceed 200 characters",
       });
     }
 
-    // Validate status
     if (
       status !== undefined &&
       !VALID_STATUSES.includes(status)
@@ -62,6 +59,7 @@ const createTodo = async (req, res, next) => {
     const todo = await Todo.create({
       title: title.trim(),
       status: status ?? "todo",
+      user: req.user._id,
     });
 
     res.status(201).json({
@@ -75,7 +73,8 @@ const createTodo = async (req, res, next) => {
 };
 
 // ==========================================
-// Get All Todos
+// Get All User Todos
+// GET /api/todos
 // ==========================================
 
 const getTodos = async (req, res, next) => {
@@ -91,15 +90,17 @@ const getTodos = async (req, res, next) => {
     page = Number(page);
     limit = Number(limit);
 
-    // Validate page
-    if (!Number.isInteger(page) || page < 1) {
+    if (
+      !Number.isInteger(page) ||
+      page < 1
+    ) {
       return res.status(400).json({
         success: false,
-        message: "Page must be a positive number",
+        message:
+          "Page must be a positive number",
       });
     }
 
-    // Validate limit
     if (
       !Number.isInteger(limit) ||
       limit < 1 ||
@@ -107,11 +108,11 @@ const getTodos = async (req, res, next) => {
     ) {
       return res.status(400).json({
         success: false,
-        message: "Limit must be between 1 and 100",
+        message:
+          "Limit must be between 1 and 100",
       });
     }
 
-    // Validate status filter
     if (
       status !== undefined &&
       !VALID_STATUSES.includes(status)
@@ -123,39 +124,45 @@ const getTodos = async (req, res, next) => {
       });
     }
 
-    // Validate sort
-    if (sort !== "newest" && sort !== "oldest") {
+    if (
+      sort !== "newest" &&
+      sort !== "oldest"
+    ) {
       return res.status(400).json({
         success: false,
-        message: "Sort must be newest or oldest",
+        message:
+          "Sort must be newest or oldest",
       });
     }
 
-    const query = {};
+    // Only logged-in user's todos
+    const query = {
+      user: req.user._id,
+    };
 
-    // Search
-    if (search.trim()) {
+    if (
+      typeof search === "string" &&
+      search.trim()
+    ) {
       query.title = {
         $regex: search.trim(),
         $options: "i",
       };
     }
 
-    // Status filter
     if (status !== undefined) {
       query.status = status;
     }
 
-    // Sort
     const sortOption =
       sort === "oldest"
         ? { createdAt: 1 }
         : { createdAt: -1 };
 
-    // Pagination
     const skip = (page - 1) * limit;
 
-    const totalTodos = await Todo.countDocuments(query);
+    const totalTodos =
+      await Todo.countDocuments(query);
 
     const todos = await Todo.find(query)
       .sort(sortOption)
@@ -180,7 +187,10 @@ const getTodos = async (req, res, next) => {
       },
 
       filters: {
-        search: search.trim(),
+        search:
+          typeof search === "string"
+            ? search.trim()
+            : "",
         status: status ?? null,
         sort,
       },
@@ -195,20 +205,31 @@ const getTodos = async (req, res, next) => {
 
 // ==========================================
 // Get Todo By ID
+// GET /api/todos/:id
 // ==========================================
 
-const getTodoById = async (req, res, next) => {
+const getTodoById = async (
+  req,
+  res,
+  next
+) => {
   try {
     const { id } = req.params;
 
-    if (!mongoose.Types.ObjectId.isValid(id)) {
+    if (
+      !mongoose.Types.ObjectId.isValid(id)
+    ) {
       return res.status(400).json({
         success: false,
         message: "Invalid Todo ID",
       });
     }
 
-    const todo = await Todo.findById(id);
+    // Find only if todo belongs to user
+    const todo = await Todo.findOne({
+      _id: id,
+      user: req.user._id,
+    });
 
     if (!todo) {
       return res.status(404).json({
@@ -229,45 +250,53 @@ const getTodoById = async (req, res, next) => {
 
 // ==========================================
 // Update Todo
+// PUT /api/todos/:id
 // ==========================================
 
-const updateTodo = async (req, res, next) => {
+const updateTodo = async (
+  req,
+  res,
+  next
+) => {
   try {
     const { id } = req.params;
-    const { title, status } = req.body || {};
+    const { title, status } =
+      req.body || {};
 
-    // Validate ID
-    if (!mongoose.Types.ObjectId.isValid(id)) {
+    if (
+      !mongoose.Types.ObjectId.isValid(id)
+    ) {
       return res.status(400).json({
         success: false,
         message: "Invalid Todo ID",
       });
     }
 
-    // Empty update
     if (
       title === undefined &&
       status === undefined
     ) {
       return res.status(400).json({
         success: false,
-        message: "Please provide title or status",
+        message:
+          "Please provide title or status",
       });
     }
 
-    // Validate title
     if (title !== undefined) {
       if (typeof title !== "string") {
         return res.status(400).json({
           success: false,
-          message: "Title must be a string",
+          message:
+            "Title must be a string",
         });
       }
 
       if (!title.trim()) {
         return res.status(400).json({
           success: false,
-          message: "Title cannot be empty",
+          message:
+            "Title cannot be empty",
         });
       }
 
@@ -280,7 +309,6 @@ const updateTodo = async (req, res, next) => {
       }
     }
 
-    // Validate status
     if (
       status !== undefined &&
       !VALID_STATUSES.includes(status)
@@ -302,14 +330,18 @@ const updateTodo = async (req, res, next) => {
       updateData.status = status;
     }
 
-    const todo = await Todo.findByIdAndUpdate(
-      id,
-      updateData,
-      {
-        new: true,
-        runValidators: true,
-      }
-    );
+    const todo =
+      await Todo.findOneAndUpdate(
+        {
+          _id: id,
+          user: req.user._id,
+        },
+        updateData,
+        {
+          new: true,
+          runValidators: true,
+        }
+      );
 
     if (!todo) {
       return res.status(404).json({
@@ -330,6 +362,7 @@ const updateTodo = async (req, res, next) => {
 
 // ==========================================
 // Change Todo Status
+// PATCH /api/todos/:id/status
 // ==========================================
 
 const updateTodoStatus = async (
@@ -339,17 +372,18 @@ const updateTodoStatus = async (
 ) => {
   try {
     const { id } = req.params;
-    const { status } = req.body || {};
+    const { status } =
+      req.body || {};
 
-    // Validate ID
-    if (!mongoose.Types.ObjectId.isValid(id)) {
+    if (
+      !mongoose.Types.ObjectId.isValid(id)
+    ) {
       return res.status(400).json({
         success: false,
         message: "Invalid Todo ID",
       });
     }
 
-    // Validate status exists
     if (status === undefined) {
       return res.status(400).json({
         success: false,
@@ -357,8 +391,9 @@ const updateTodoStatus = async (
       });
     }
 
-    // Validate status
-    if (!VALID_STATUSES.includes(status)) {
+    if (
+      !VALID_STATUSES.includes(status)
+    ) {
       return res.status(400).json({
         success: false,
         message:
@@ -366,14 +401,18 @@ const updateTodoStatus = async (
       });
     }
 
-    const todo = await Todo.findByIdAndUpdate(
-      id,
-      { status },
-      {
-        new: true,
-        runValidators: true,
-      }
-    );
+    const todo =
+      await Todo.findOneAndUpdate(
+        {
+          _id: id,
+          user: req.user._id,
+        },
+        { status },
+        {
+          new: true,
+          runValidators: true,
+        }
+      );
 
     if (!todo) {
       return res.status(404).json({
@@ -384,7 +423,8 @@ const updateTodoStatus = async (
 
     res.status(200).json({
       success: true,
-      message: "Todo status updated successfully",
+      message:
+        "Todo status updated successfully",
       data: todo,
     });
   } catch (error) {
@@ -394,32 +434,51 @@ const updateTodoStatus = async (
 
 // ==========================================
 // Get Todo Statistics
+// GET /api/todos/stats
 // ==========================================
 
-const getTodoStats = async (req, res, next) => {
+const getTodoStats = async (
+  req,
+  res,
+  next
+) => {
   try {
-    const total = await Todo.countDocuments();
+    const userId = req.user._id;
 
-    const todo = await Todo.countDocuments({
-      status: "todo",
-    });
+    const total =
+      await Todo.countDocuments({
+        user: userId,
+      });
 
-    const inprogress = await Todo.countDocuments({
-      status: "inprogress",
-    });
+    const todo =
+      await Todo.countDocuments({
+        user: userId,
+        status: "todo",
+      });
 
-    const complate = await Todo.countDocuments({
-      status: "complate",
-    });
+    const inprogress =
+      await Todo.countDocuments({
+        user: userId,
+        status: "inprogress",
+      });
+
+    const complate =
+      await Todo.countDocuments({
+        user: userId,
+        status: "complate",
+      });
 
     const completionPercentage =
       total === 0
         ? 0
-        : Math.round((complate / total) * 100);
+        : Math.round(
+            (complate / total) * 100
+          );
 
     res.status(200).json({
       success: true,
-      message: "Todo statistics fetched successfully",
+      message:
+        "Todo statistics fetched successfully",
       data: {
         total,
         todo,
@@ -435,20 +494,32 @@ const getTodoStats = async (req, res, next) => {
 
 // ==========================================
 // Delete Todo
+// DELETE /api/todos/:id
 // ==========================================
 
-const deleteTodo = async (req, res, next) => {
+const deleteTodo = async (
+  req,
+  res,
+  next
+) => {
   try {
     const { id } = req.params;
 
-    if (!mongoose.Types.ObjectId.isValid(id)) {
+    if (
+      !mongoose.Types.ObjectId.isValid(id)
+    ) {
       return res.status(400).json({
         success: false,
         message: "Invalid Todo ID",
       });
     }
 
-    const todo = await Todo.findByIdAndDelete(id);
+    // Delete only user's todo
+    const todo =
+      await Todo.findOneAndDelete({
+        _id: id,
+        user: req.user._id,
+      });
 
     if (!todo) {
       return res.status(404).json({
@@ -459,7 +530,8 @@ const deleteTodo = async (req, res, next) => {
 
     res.status(200).json({
       success: true,
-      message: "Todo deleted successfully",
+      message:
+        "Todo deleted successfully",
       data: todo,
     });
   } catch (error) {

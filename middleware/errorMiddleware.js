@@ -1,4 +1,3 @@
-// 404 Not Found Middleware
 const notFound = (req, res, next) => {
   res.status(404);
 
@@ -9,21 +8,22 @@ const notFound = (req, res, next) => {
   next(error);
 };
 
-// Global Error Handler
 const errorHandler = (err, req, res, next) => {
-  let statusCode = res.statusCode === 200 ? 500 : res.statusCode;
+  console.error(err);
 
-  // Mongoose Validation Error
+  let statusCode =
+    res.statusCode === 200
+      ? 500
+      : res.statusCode;
+
   if (err.name === "ValidationError") {
     statusCode = 400;
   }
 
-  // Mongoose Cast Error
   if (err.name === "CastError") {
     statusCode = 400;
   }
 
-  // MongoDB duplicate key error
   if (err.code === 11000) {
     statusCode = 400;
   }
@@ -31,9 +31,7 @@ const errorHandler = (err, req, res, next) => {
   res.status(statusCode).json({
     success: false,
     message:
-      statusCode === 500
-        ? "Internal Server Error"
-        : err.message || "Something went wrong",
+      err.message || "Internal Server Error",
   });
 };
 

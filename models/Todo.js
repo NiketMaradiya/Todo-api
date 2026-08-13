@@ -4,33 +4,33 @@ const todoSchema = new mongoose.Schema(
   {
     title: {
       type: String,
-      required: [true, "Title is required"],
+      required: true,
       trim: true,
-      minlength: [1, "Title cannot be empty"],
-      maxlength: [
-        200,
-        "Title cannot exceed 200 characters",
-      ],
+    },
+
+    description: {
+      type: String,
+      default: "",
+      trim: true,
+    },
+
+    createdBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      required: true,
+      immutable: true,
+    },
+
+    assignedTo: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      default: null,
     },
 
     status: {
       type: String,
-      enum: {
-        values: [
-          "todo",
-          "inprogress",
-          "complate",
-        ],
-        message:
-          "Status must be todo, inprogress or complate",
-      },
+      enum: ["todo", "inprogress", "complate"],
       default: "todo",
-    },
-
-    user: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "User",
-      required: true,
     },
   },
   {
@@ -38,7 +38,4 @@ const todoSchema = new mongoose.Schema(
   }
 );
 
-module.exports = mongoose.model(
-  "Todo",
-  todoSchema
-);
+module.exports = mongoose.model("Todo", todoSchema);

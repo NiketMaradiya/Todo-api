@@ -1,5 +1,6 @@
 const mongoose = require("mongoose");
 const Todo = require("../models/Todo");
+const User = require("../models/User");
 
 // ==========================================
 // Create Todo
@@ -10,9 +11,12 @@ const createTodo = async (req, res) => {
   try {
     const {
       title,
+      description = "",
+      assignedTo,
       status = "todo",
     } = req.body;
 
+    // Validate title
     if (!title || !title.trim()) {
       return res.status(400).json({
         success: false,
@@ -20,17 +24,68 @@ const createTodo = async (req, res) => {
       });
     }
 
+    // Validate assignedTo
+    if (!assignedTo) {
+      return res.status(400).json({
+        success: false,
+        message: "assignedTo is required",
+      });
+    }
+
+    // Check valid MongoDB ID
+    if (
+      !mongoose.Types.ObjectId.isValid(
+        assignedTo
+      )
+    ) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid assigned user ID",
+      });
+    }
+
+    // Check assigned user exists
+    const assignedUser =
+      await User.findById(assignedTo);
+
+    if (!assignedUser) {
+      return res.status(404).json({
+        success: false,
+        message: "Assigned user not found",
+      });
+    }
+
+    // Create Todo
+    // createdBy always comes from logged-in user
     const todo = await Todo.create({
       title: title.trim(),
+      description: description.trim(),
       status,
-      user: req.user._id,
+
+      // IMPORTANT:
+      // Never use createdBy from req.body
+      createdBy: req.user._id,
+
+      assignedTo,
     });
+
+    // Populate user information
+    const populatedTodo =
+      await Todo.findById(todo._id)
+        .populate(
+          "createdBy",
+          "name email role"
+        )
+        .populate(
+          "assignedTo",
+          "name email role"
+        );
 
     res.status(201).json({
       success: true,
       message:
         "Todo created successfully",
-      data: todo,
+      data: populatedTodo,
     });
   } catch (error) {
     res.status(400).json({
@@ -43,6 +98,10 @@ const createTodo = async (req, res) => {
 // ==========================================
 // Get User Todos
 // GET /api/todos
+//
+// User can see:
+// 1. Todos created by them
+// 2. Todos assigned to them
 // ==========================================
 
 const getTodos = async (req, res) => {
@@ -55,14 +114,27 @@ const getTodos = async (req, res) => {
       sort = "newest",
     } = req.query;
 
+    // User can see:
+    // createdBy = logged-in user
+    // OR
+    // assignedTo = logged-in user
     const filter = {
-      user: req.user._id,
+      $or: [
+        {
+          createdBy: req.user._id,
+        },
+        {
+          assignedTo: req.user._id,
+        },
+      ],
     };
 
+    // Filter by status
     if (status) {
       filter.status = status;
     }
 
+    // Search by title
     if (search) {
       filter.title = {
         $regex: search,
@@ -88,14 +160,24 @@ const getTodos = async (req, res) => {
     const total =
       await Todo.countDocuments(filter);
 
-    const todos = await Todo.find(filter)
-      .sort(sortOption)
-      .skip(skip)
-      .limit(limitNumber);
+    const todos =
+      await Todo.find(filter)
+        .populate(
+          "createdBy",
+          "name email role"
+        )
+        .populate(
+          "assignedTo",
+          "name email role"
+        )
+        .sort(sortOption)
+        .skip(skip)
+        .limit(limitNumber);
 
     res.status(200).json({
       success: true,
       count: todos.length,
+
       pagination: {
         total,
         page: pageNumber,
@@ -104,6 +186,7 @@ const getTodos = async (req, res) => {
           total / limitNumber
         ),
       },
+
       data: todos,
     });
   } catch (error) {
@@ -117,9 +200,15 @@ const getTodos = async (req, res) => {
 // ==========================================
 // Get Todo Statistics
 // GET /api/todos/stats
+//
+// Statistics for:
+// created by me + assigned to me
 // ==========================================
 
-const getTodoStats = async (req, res) => {
+const getTodoStats = async (
+  req,
+  res
+) => {
   try {
     const userId =
       new mongoose.Types.ObjectId(
@@ -130,15 +219,25 @@ const getTodoStats = async (req, res) => {
       await Todo.aggregate([
         {
           $match: {
-            user: userId,
+            $or: [
+              {
+                createdBy: userId,
+              },
+              {
+                assignedTo: userId,
+              },
+            ],
           },
         },
+
         {
           $group: {
             _id: null,
+
             total: {
               $sum: 1,
             },
+
             todo: {
               $sum: {
                 $cond: [
@@ -153,6 +252,7 @@ const getTodoStats = async (req, res) => {
                 ],
               },
             },
+
             inprogress: {
               $sum: {
                 $cond: [
@@ -167,6 +267,7 @@ const getTodoStats = async (req, res) => {
                 ],
               },
             },
+
             complate: {
               $sum: {
                 $cond: [
@@ -210,6 +311,11 @@ const getTodoStats = async (req, res) => {
 // ==========================================
 // Get Todo By ID
 // GET /api/todos/:id
+//
+// User can access if:
+// createdBy = logged-in user
+// OR
+// assignedTo = logged-in user
 // ==========================================
 
 const getTodoById = async (
@@ -231,13 +337,30 @@ const getTodoById = async (
     const todo =
       await Todo.findOne({
         _id: id,
-        user: req.user._id,
-      });
+
+        $or: [
+          {
+            createdBy: req.user._id,
+          },
+          {
+            assignedTo: req.user._id,
+          },
+        ],
+      })
+        .populate(
+          "createdBy",
+          "name email role"
+        )
+        .populate(
+          "assignedTo",
+          "name email role"
+        );
 
     if (!todo) {
       return res.status(404).json({
         success: false,
-        message: "Todo not found",
+        message:
+          "Todo not found or access denied",
       });
     }
 
@@ -256,6 +379,9 @@ const getTodoById = async (
 // ==========================================
 // Update Todo
 // PUT /api/todos/:id
+// PATCH /api/todos/:id
+//
+// Only creator can update todo details
 // ==========================================
 
 const updateTodo = async (req, res) => {
@@ -273,33 +399,40 @@ const updateTodo = async (req, res) => {
 
     const {
       title,
+      description,
       status,
+      assignedTo,
     } = req.body;
 
     if (
       title === undefined &&
-      status === undefined
+      description === undefined &&
+      status === undefined &&
+      assignedTo === undefined
     ) {
       return res.status(400).json({
         success: false,
         message:
-          "Please provide title or status",
+          "Please provide title, description, status or assignedTo",
       });
     }
 
+    // Only creator can update
     const todo =
       await Todo.findOne({
         _id: id,
-        user: req.user._id,
+        createdBy: req.user._id,
       });
 
     if (!todo) {
       return res.status(404).json({
         success: false,
-        message: "Todo not found",
+        message:
+          "Todo not found or you are not the creator",
       });
     }
 
+    // Update title
     if (title !== undefined) {
       if (!title.trim()) {
         return res.status(400).json({
@@ -312,17 +445,65 @@ const updateTodo = async (req, res) => {
       todo.title = title.trim();
     }
 
+    // Update description
+    if (description !== undefined) {
+      todo.description =
+        description.trim();
+    }
+
+    // Update status
     if (status !== undefined) {
       todo.status = status;
     }
 
+    // Update assigned user
+    if (assignedTo !== undefined) {
+      if (
+        !mongoose.Types.ObjectId.isValid(
+          assignedTo
+        )
+      ) {
+        return res.status(400).json({
+          success: false,
+          message:
+            "Invalid assigned user ID",
+        });
+      }
+
+      const assignedUser =
+        await User.findById(
+          assignedTo
+        );
+
+      if (!assignedUser) {
+        return res.status(404).json({
+          success: false,
+          message:
+            "Assigned user not found",
+        });
+      }
+
+      todo.assignedTo = assignedTo;
+    }
+
     await todo.save();
+
+    const updatedTodo =
+      await Todo.findById(todo._id)
+        .populate(
+          "createdBy",
+          "name email role"
+        )
+        .populate(
+          "assignedTo",
+          "name email role"
+        );
 
     res.status(200).json({
       success: true,
       message:
         "Todo updated successfully",
-      data: todo,
+      data: updatedTodo,
     });
   } catch (error) {
     res.status(400).json({
@@ -335,6 +516,8 @@ const updateTodo = async (req, res) => {
 // ==========================================
 // Update Todo Status
 // PATCH /api/todos/:id/status
+//
+// Creator OR assigned user can update status
 // ==========================================
 
 const updateTodoStatus = async (
@@ -343,6 +526,7 @@ const updateTodoStatus = async (
 ) => {
   try {
     const { id } = req.params;
+
     const { status } = req.body;
 
     if (
@@ -363,21 +547,30 @@ const updateTodoStatus = async (
     ) {
       return res.status(400).json({
         success: false,
-        message:
-          "Invalid status",
+        message: "Invalid status",
       });
     }
 
+    // Creator OR assigned user
     const todo =
       await Todo.findOne({
         _id: id,
-        user: req.user._id,
+
+        $or: [
+          {
+            createdBy: req.user._id,
+          },
+          {
+            assignedTo: req.user._id,
+          },
+        ],
       });
 
     if (!todo) {
       return res.status(404).json({
         success: false,
-        message: "Todo not found",
+        message:
+          "Todo not found or access denied",
       });
     }
 
@@ -402,6 +595,9 @@ const updateTodoStatus = async (
 // ==========================================
 // Delete Todo
 // DELETE /api/todos/:id
+//
+// Normal user can delete only
+// todos created by themselves
 // ==========================================
 
 const deleteTodo = async (req, res) => {
@@ -420,13 +616,14 @@ const deleteTodo = async (req, res) => {
     const todo =
       await Todo.findOneAndDelete({
         _id: id,
-        user: req.user._id,
+        createdBy: req.user._id,
       });
 
     if (!todo) {
       return res.status(404).json({
         success: false,
-        message: "Todo not found",
+        message:
+          "Todo not found or you are not the creator",
       });
     }
 
@@ -442,6 +639,10 @@ const deleteTodo = async (req, res) => {
     });
   }
 };
+
+// ==========================================
+// Export All Functions
+// ==========================================
 
 module.exports = {
   createTodo,

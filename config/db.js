@@ -2,20 +2,23 @@ const mongoose = require("mongoose");
 
 const connectDB = async () => {
   try {
-    const mongoURI = process.env.MONGO_URI;
-
-    if (!mongoURI) {
+    if (!process.env.MONGO_URI) {
       throw new Error("MONGO_URI is not defined in .env");
     }
 
-    await mongoose.connect(mongoURI);
+    await mongoose.connect(process.env.MONGO_URI, {
+      serverSelectionTimeoutMS: 5000,
+    });
 
     console.log("✅ MongoDB Connected Successfully");
   } catch (error) {
     console.error("❌ MongoDB Connection Failed");
     console.error(error.message);
 
-    process.exit(1);
+    // Important:
+    // Do NOT call process.exit() here.
+    // Jest needs to receive the connection error.
+    throw error;
   }
 };
 

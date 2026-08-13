@@ -5,13 +5,13 @@ const userSchema = new mongoose.Schema(
   {
     name: {
       type: String,
-      required: [true, "Name is required"],
+      required: true,
       trim: true,
     },
 
     email: {
       type: String,
-      required: [true, "Email is required"],
+      required: true,
       unique: true,
       lowercase: true,
       trim: true,
@@ -19,9 +19,8 @@ const userSchema = new mongoose.Schema(
 
     password: {
       type: String,
-      required: [true, "Password is required"],
-      minlength: [6, "Password must be at least 6 characters"],
-      select: false,
+      required: true,
+      minlength: 6,
     },
 
     role: {
@@ -29,37 +28,34 @@ const userSchema = new mongoose.Schema(
       enum: ["user", "admin"],
       default: "user",
     },
-
-    isActive: {
-      type: Boolean,
-      default: true,
-    },
   },
   {
     timestamps: true,
   }
 );
 
+/*
+ * Hash password before saving.
+ *
+ * IMPORTANT:
+ * We are using async middleware without next().
+ * This avoids:
+ *
+ * "next is not a function"
+ */
 userSchema.pre("save", async function () {
   if (!this.isModified("password")) {
     return;
   }
 
-  const salt = await bcrypt.genSalt(10);
-
-  this.password = await bcrypt.hash(this.password, salt);
+  this.password = await bcrypt.hash(this.password, 10);
 });
 
-userSchema.methods.comparePassword = async function (
-  enteredPassword
-) {
-  return bcrypt.compare(
-    enteredPassword,
-    this.password
-  );
+/*
+ * Compare plain password with hashed password.
+ */
+userSchema.methods.comparePassword = async function (password) {
+  return bcrypt.compare(password, this.password);
 };
 
-module.exports = mongoose.model(
-  "User",
-  userSchema
-);
+module.exports = mongoose.model("User", userSchema);

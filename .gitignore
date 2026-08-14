@@ -4,3 +4,7 @@ node_modules/
 !.env.example
 npm-debug.log*
 .DS_Store
+
+# Uploaded local document files
+public/uploads/*
+!public/uploads/.gitkeep

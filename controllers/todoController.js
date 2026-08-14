@@ -1,6 +1,7 @@
 const mongoose = require("mongoose");
 const Todo = require("../models/Todo");
 const User = require("../models/User");
+const { uploadAttachmentFile } = require("../utils/attachmentService");
 
 // ==========================================
 // Allowed Status Values
@@ -88,6 +89,10 @@ const createTodo = async (req, res) => {
       });
     }
 
+    // Upload attachment after all Todo input validation succeeds.
+    const attachmentUrl =
+      await uploadAttachmentFile(req.file);
+
     // Create Todo
     const todo = await Todo.create({
       title: title.trim(),
@@ -95,6 +100,7 @@ const createTodo = async (req, res) => {
       status,
       createdBy: req.user._id,
       assignedTo,
+      attachmentUrl,
     });
 
     // Populate user information
@@ -605,12 +611,13 @@ const updateTodo = async (req, res) => {
       title === undefined &&
       description === undefined &&
       status === undefined &&
-      assignedTo === undefined
+      assignedTo === undefined &&
+      !req.file
     ) {
       return res.status(400).json({
         success: false,
         message:
-          "Please provide title, description, status or assignedTo",
+          "Please provide title, description, status, assignedTo or attachment",
       });
     }
 
@@ -717,6 +724,12 @@ const updateTodo = async (req, res) => {
 
         todo.assignedTo = assignedTo;
       }
+    }
+
+    // Replace the attachment only when a new file is provided.
+    if (req.file) {
+      todo.attachmentUrl =
+        await uploadAttachmentFile(req.file);
     }
 
     await todo.save();

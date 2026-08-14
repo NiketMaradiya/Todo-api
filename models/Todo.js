@@ -27,6 +27,12 @@ const todoSchema = new mongoose.Schema(
       default: null,
     },
 
+    attachmentUrl: {
+      type: String,
+      default: null,
+      trim: true,
+    },
+
     status: {
       type: String,
       enum: [

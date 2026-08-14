@@ -14,11 +14,21 @@ const {
   protect,
 } = require("../middleware/authMiddleware");
 
+const {
+  uploadAttachment,
+} = require("../middleware/uploadMiddleware");
+
 const router = express.Router();
 
 router.use(protect);
 
-router.post("/", createTodo);
+// Create Todo with optional attachment.
+// File field name: attachment
+router.post(
+  "/",
+  uploadAttachment.single("attachment"),
+  createTodo
+);
 
 router.get("/", getTodos);
 
@@ -26,11 +36,24 @@ router.get("/stats", getTodoStats);
 
 router.get("/:id", getTodoById);
 
-router.put("/:id", updateTodo);
+// Update Todo with optional attachment.
+// PUT and PATCH both support multipart/form-data.
+router.put(
+  "/:id",
+  uploadAttachment.single("attachment"),
+  updateTodo
+);
 
-router.patch("/:id", updateTodo);
+router.patch(
+  "/:id",
+  uploadAttachment.single("attachment"),
+  updateTodo
+);
 
-router.patch("/:id/status",updateTodoStatus);
+router.patch(
+  "/:id/status",
+  updateTodoStatus
+);
 
 router.delete("/:id", deleteTodo);
 

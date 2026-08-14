@@ -16,90 +16,25 @@ const {
 
 const router = express.Router();
 
-// ==========================================
-// All Todo APIs require authentication
-// ==========================================
-
 router.use(protect);
 
-// ==========================================
-// Create Todo
-// POST /api/todos
-// ==========================================
+router.post("/", createTodo);
 
-router.post(
-  "/",
-  createTodo
-);
+router.get("/", getTodos);
 
-// ==========================================
-// Get My Todos
-// GET /api/todos
-//
-// Shows:
-// - Created by me
-// - Assigned to me
-// ==========================================
+router.get("/stats", getTodoStats);
 
-router.get(
-  "/",
-  getTodos
-);
+router.get("/:id", getTodoById);
 
-// ==========================================
-// Get Todo Statistics
-// GET /api/todos/stats
-// ==========================================
+router.put("/:id", updateTodo);
 
-router.get(
-  "/stats",
-  getTodoStats
-);
-
-// ==========================================
-// Get Single Todo
-// GET /api/todos/:id
-// ==========================================
-
-router.get(
-  "/:id",
-  getTodoById
-);
-
-// ==========================================
-// Update Todo
-// PUT /api/todos/:id
-// PATCH /api/todos/:id
-// ==========================================
-
-router.put(
-  "/:id",
-  updateTodo
-);
-
-router.patch(
-  "/:id",
-  updateTodo
-);
-
-// ==========================================
-// Update Todo Status
-// PATCH /api/todos/:id/status
-// ==========================================
+router.patch("/:id", updateTodo);
 
 router.patch(
   "/:id/status",
   updateTodoStatus
 );
 
-// ==========================================
-// Delete Todo
-// DELETE /api/todos/:id
-// ==========================================
-
-router.delete(
-  "/:id",
-  deleteTodo
-);
+router.delete("/:id", deleteTodo);
 
 module.exports = router;

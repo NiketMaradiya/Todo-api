@@ -29,8 +29,12 @@ const todoSchema = new mongoose.Schema(
 
     status: {
       type: String,
-      enum: ["todo", "inprogress", "complate"],
-      default: "todo",
+      enum: [
+        "pending",
+        "in-progress",
+        "completed",
+      ],
+      default: "pending",
     },
   },
   {
@@ -38,4 +42,7 @@ const todoSchema = new mongoose.Schema(
   }
 );
 
-module.exports = mongoose.model("Todo", todoSchema);
+module.exports = mongoose.model(
+  "Todo",
+  todoSchema
+);

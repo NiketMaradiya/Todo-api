@@ -3,6 +3,16 @@ const Todo = require("../models/Todo");
 const User = require("../models/User");
 
 // ==========================================
+// Allowed Status Values
+// ==========================================
+
+const allowedStatuses = [
+  "pending",
+  "in-progress",
+  "completed",
+];
+
+// ==========================================
 // Create Todo
 // POST /api/todos
 // ==========================================
@@ -13,14 +23,36 @@ const createTodo = async (req, res) => {
       title,
       description = "",
       assignedTo,
-      status = "todo",
+      status = "pending",
     } = req.body;
 
     // Validate title
-    if (!title || !title.trim()) {
+    if (
+      !title ||
+      typeof title !== "string" ||
+      !title.trim()
+    ) {
       return res.status(400).json({
         success: false,
         message: "Title is required",
+      });
+    }
+
+    // Validate description
+    if (typeof description !== "string") {
+      return res.status(400).json({
+        success: false,
+        message:
+          "Description must be a string",
+      });
+    }
+
+    // Validate status
+    if (!allowedStatuses.includes(status)) {
+      return res.status(400).json({
+        success: false,
+        message:
+          "Status must be pending, in-progress or completed",
       });
     }
 
@@ -51,21 +83,17 @@ const createTodo = async (req, res) => {
     if (!assignedUser) {
       return res.status(404).json({
         success: false,
-        message: "Assigned user not found",
+        message:
+          "Assigned user not found",
       });
     }
 
     // Create Todo
-    // createdBy always comes from logged-in user
     const todo = await Todo.create({
       title: title.trim(),
       description: description.trim(),
       status,
-
-      // IMPORTANT:
-      // Never use createdBy from req.body
       createdBy: req.user._id,
-
       assignedTo,
     });
 
@@ -96,12 +124,23 @@ const createTodo = async (req, res) => {
 };
 
 // ==========================================
-// Get User Todos
+// Get Todos
 // GET /api/todos
 //
-// User can see:
-// 1. Todos created by them
-// 2. Todos assigned to them
+// Supports:
+// Search
+// Status Filter
+// Pagination
+// Sorting
+// Combined Filters
+//
+// Normal User:
+// Own created todos
+// +
+// Todos assigned to them
+//
+// Admin:
+// All todos
 // ==========================================
 
 const getTodos = async (req, res) => {
@@ -114,48 +153,174 @@ const getTodos = async (req, res) => {
       sort = "newest",
     } = req.query;
 
-    // User can see:
-    // createdBy = logged-in user
-    // OR
-    // assignedTo = logged-in user
-    const filter = {
-      $or: [
-        {
-          createdBy: req.user._id,
-        },
-        {
-          assignedTo: req.user._id,
-        },
-      ],
-    };
+    // ==========================================
+    // Validate Page
+    // ==========================================
 
-    // Filter by status
-    if (status) {
-      filter.status = status;
+    const pageNumber = Number(page);
+
+    if (
+      !Number.isInteger(pageNumber) ||
+      pageNumber < 1
+    ) {
+      return res.status(400).json({
+        success: false,
+        message:
+          "Page must be a positive integer",
+      });
     }
 
-    // Search by title
-    if (search) {
-      filter.title = {
-        $regex: search,
-        $options: "i",
+    // ==========================================
+    // Validate Limit
+    // ==========================================
+
+    const limitNumber = Number(limit);
+
+    if (
+      !Number.isInteger(limitNumber) ||
+      limitNumber < 1
+    ) {
+      return res.status(400).json({
+        success: false,
+        message:
+          "Limit must be a positive integer",
+      });
+    }
+
+    if (limitNumber > 100) {
+      return res.status(400).json({
+        success: false,
+        message:
+          "Limit cannot be greater than 100",
+      });
+    }
+
+    // ==========================================
+    // Validate Status
+    // ==========================================
+
+    if (
+      status &&
+      !allowedStatuses.includes(status)
+    ) {
+      return res.status(400).json({
+        success: false,
+        message:
+          "Status must be pending, in-progress or completed",
+      });
+    }
+
+    // ==========================================
+    // Validate Sorting
+    // ==========================================
+
+    if (
+      sort !== "newest" &&
+      sort !== "oldest"
+    ) {
+      return res.status(400).json({
+        success: false,
+        message:
+          "Sort must be newest or oldest",
+      });
+    }
+
+    // ==========================================
+    // Authorization / User Scope
+    // ==========================================
+
+    let filter = {};
+
+    // Admin can see all todos
+    if (req.user.role !== "admin") {
+      filter = {
+        $or: [
+          {
+            createdBy: req.user._id,
+          },
+          {
+            assignedTo: req.user._id,
+          },
+        ],
       };
     }
 
-    const pageNumber =
-      Math.max(Number(page), 1);
+    // ==========================================
+    // Search
+    // Search by title OR description
+    // ==========================================
 
-    const limitNumber =
-      Math.max(Number(limit), 1);
+    if (
+      search &&
+      typeof search === "string" &&
+      search.trim()
+    ) {
+      const searchFilter = {
+        $or: [
+          {
+            title: {
+              $regex: search.trim(),
+              $options: "i",
+            },
+          },
+          {
+            description: {
+              $regex: search.trim(),
+              $options: "i",
+            },
+          },
+        ],
+      };
 
-    const skip =
-      (pageNumber - 1) *
-      limitNumber;
+      // Add search after authorization scope
+      if (filter.$or) {
+        filter = {
+          $and: [
+            {
+              $or: filter.$or,
+            },
+            searchFilter,
+          ],
+        };
+      } else {
+        filter = searchFilter;
+      }
+    }
+
+    // ==========================================
+    // Status Filter
+    // ==========================================
+
+    if (status) {
+      if (filter.$and) {
+        filter.$and.push({
+          status,
+        });
+      } else {
+        filter.status = status;
+      }
+    }
+
+    // ==========================================
+    // Sorting
+    // ==========================================
 
     const sortOption =
       sort === "oldest"
         ? { createdAt: 1 }
         : { createdAt: -1 };
+
+    // ==========================================
+    // Pagination
+    // ==========================================
+
+    const skip =
+      (pageNumber - 1) *
+      limitNumber;
+
+    // ==========================================
+    // MongoDB
+    // ==========================================
 
     const total =
       await Todo.countDocuments(filter);
@@ -174,20 +339,22 @@ const getTodos = async (req, res) => {
         .skip(skip)
         .limit(limitNumber);
 
+    // ==========================================
+    // Response
+    // ==========================================
+
     res.status(200).json({
       success: true,
-      count: todos.length,
+      data: todos,
 
       pagination: {
-        total,
         page: pageNumber,
         limit: limitNumber,
+        total,
         totalPages: Math.ceil(
           total / limitNumber
         ),
       },
-
-      data: todos,
     });
   } catch (error) {
     res.status(500).json({
@@ -201,8 +368,13 @@ const getTodos = async (req, res) => {
 // Get Todo Statistics
 // GET /api/todos/stats
 //
-// Statistics for:
-// created by me + assigned to me
+// Normal User:
+// Own created todos
+// +
+// Assigned todos
+//
+// Admin:
+// All todos
 // ==========================================
 
 const getTodoStats = async (
@@ -210,26 +382,32 @@ const getTodoStats = async (
   res
 ) => {
   try {
-    const userId =
-      new mongoose.Types.ObjectId(
-        req.user._id
-      );
+    let matchFilter = {};
+
+    // Normal user scope
+    if (req.user.role !== "admin") {
+      const userId =
+        new mongoose.Types.ObjectId(
+          req.user._id
+        );
+
+      matchFilter = {
+        $or: [
+          {
+            createdBy: userId,
+          },
+          {
+            assignedTo: userId,
+          },
+        ],
+      };
+    }
 
     const result =
       await Todo.aggregate([
         {
-          $match: {
-            $or: [
-              {
-                createdBy: userId,
-              },
-              {
-                assignedTo: userId,
-              },
-            ],
-          },
+          $match: matchFilter,
         },
-
         {
           $group: {
             _id: null,
@@ -238,13 +416,13 @@ const getTodoStats = async (
               $sum: 1,
             },
 
-            todo: {
+            pending: {
               $sum: {
                 $cond: [
                   {
                     $eq: [
                       "$status",
-                      "todo",
+                      "pending",
                     ],
                   },
                   1,
@@ -253,13 +431,13 @@ const getTodoStats = async (
               },
             },
 
-            inprogress: {
+            inProgress: {
               $sum: {
                 $cond: [
                   {
                     $eq: [
                       "$status",
-                      "inprogress",
+                      "in-progress",
                     ],
                   },
                   1,
@@ -268,13 +446,13 @@ const getTodoStats = async (
               },
             },
 
-            complate: {
+            completed: {
               $sum: {
                 $cond: [
                   {
                     $eq: [
                       "$status",
-                      "complate",
+                      "completed",
                     ],
                   },
                   1,
@@ -289,9 +467,9 @@ const getTodoStats = async (
     const stats =
       result[0] || {
         total: 0,
-        todo: 0,
-        inprogress: 0,
-        complate: 0,
+        pending: 0,
+        inProgress: 0,
+        completed: 0,
       };
 
     delete stats._id;
@@ -312,10 +490,12 @@ const getTodoStats = async (
 // Get Todo By ID
 // GET /api/todos/:id
 //
-// User can access if:
-// createdBy = logged-in user
-// OR
-// assignedTo = logged-in user
+// Normal User:
+// Own created todo
+// OR assigned todo
+//
+// Admin:
+// Any todo
 // ==========================================
 
 const getTodoById = async (
@@ -334,19 +514,23 @@ const getTodoById = async (
       });
     }
 
-    const todo =
-      await Todo.findOne({
-        _id: id,
+    let filter = {
+      _id: id,
+    };
 
-        $or: [
-          {
-            createdBy: req.user._id,
-          },
-          {
-            assignedTo: req.user._id,
-          },
-        ],
-      })
+    if (req.user.role !== "admin") {
+      filter.$or = [
+        {
+          createdBy: req.user._id,
+        },
+        {
+          assignedTo: req.user._id,
+        },
+      ];
+    }
+
+    const todo =
+      await Todo.findOne(filter)
         .populate(
           "createdBy",
           "name email role"
@@ -381,7 +565,11 @@ const getTodoById = async (
 // PUT /api/todos/:id
 // PATCH /api/todos/:id
 //
-// Only creator can update todo details
+// Normal User:
+// Only creator can update
+//
+// Admin:
+// Can update any todo
 // ==========================================
 
 const updateTodo = async (req, res) => {
@@ -417,12 +605,18 @@ const updateTodo = async (req, res) => {
       });
     }
 
-    // Only creator can update
+    let filter = {
+      _id: id,
+    };
+
+    // Normal user can update only own created todo
+    if (req.user.role !== "admin") {
+      filter.createdBy =
+        req.user._id;
+    }
+
     const todo =
-      await Todo.findOne({
-        _id: id,
-        createdBy: req.user._id,
-      });
+      await Todo.findOne(filter);
 
     if (!todo) {
       return res.status(404).json({
@@ -434,7 +628,10 @@ const updateTodo = async (req, res) => {
 
     // Update title
     if (title !== undefined) {
-      if (!title.trim()) {
+      if (
+        typeof title !== "string" ||
+        !title.trim()
+      ) {
         return res.status(400).json({
           success: false,
           message:
@@ -447,43 +644,69 @@ const updateTodo = async (req, res) => {
 
     // Update description
     if (description !== undefined) {
+      if (
+        typeof description !== "string"
+      ) {
+        return res.status(400).json({
+          success: false,
+          message:
+            "Description must be a string",
+        });
+      }
+
       todo.description =
         description.trim();
     }
 
     // Update status
     if (status !== undefined) {
+      if (
+        !allowedStatuses.includes(status)
+      ) {
+        return res.status(400).json({
+          success: false,
+          message:
+            "Status must be pending, in-progress or completed",
+        });
+      }
+
       todo.status = status;
     }
 
     // Update assigned user
     if (assignedTo !== undefined) {
       if (
-        !mongoose.Types.ObjectId.isValid(
-          assignedTo
-        )
+        assignedTo === null
       ) {
-        return res.status(400).json({
-          success: false,
-          message:
-            "Invalid assigned user ID",
-        });
+        todo.assignedTo = null;
+      } else {
+        if (
+          !mongoose.Types.ObjectId.isValid(
+            assignedTo
+          )
+        ) {
+          return res.status(400).json({
+            success: false,
+            message:
+              "Invalid assigned user ID",
+          });
+        }
+
+        const assignedUser =
+          await User.findById(
+            assignedTo
+          );
+
+        if (!assignedUser) {
+          return res.status(404).json({
+            success: false,
+            message:
+              "Assigned user not found",
+          });
+        }
+
+        todo.assignedTo = assignedTo;
       }
-
-      const assignedUser =
-        await User.findById(
-          assignedTo
-        );
-
-      if (!assignedUser) {
-        return res.status(404).json({
-          success: false,
-          message:
-            "Assigned user not found",
-        });
-      }
-
-      todo.assignedTo = assignedTo;
     }
 
     await todo.save();
@@ -517,7 +740,11 @@ const updateTodo = async (req, res) => {
 // Update Todo Status
 // PATCH /api/todos/:id/status
 //
-// Creator OR assigned user can update status
+// Normal User:
+// Creator OR assigned user
+//
+// Admin:
+// Can update any todo
 // ==========================================
 
 const updateTodoStatus = async (
@@ -539,32 +766,32 @@ const updateTodoStatus = async (
     }
 
     if (
-      ![
-        "todo",
-        "inprogress",
-        "complate",
-      ].includes(status)
+      !allowedStatuses.includes(status)
     ) {
       return res.status(400).json({
         success: false,
-        message: "Invalid status",
+        message:
+          "Status must be pending, in-progress or completed",
       });
     }
 
-    // Creator OR assigned user
-    const todo =
-      await Todo.findOne({
-        _id: id,
+    let filter = {
+      _id: id,
+    };
 
-        $or: [
-          {
-            createdBy: req.user._id,
-          },
-          {
-            assignedTo: req.user._id,
-          },
-        ],
-      });
+    if (req.user.role !== "admin") {
+      filter.$or = [
+        {
+          createdBy: req.user._id,
+        },
+        {
+          assignedTo: req.user._id,
+        },
+      ];
+    }
+
+    const todo =
+      await Todo.findOne(filter);
 
     if (!todo) {
       return res.status(404).json({
@@ -596,8 +823,11 @@ const updateTodoStatus = async (
 // Delete Todo
 // DELETE /api/todos/:id
 //
-// Normal user can delete only
-// todos created by themselves
+// Normal User:
+// Only own created todos
+//
+// Admin:
+// Can delete any todo
 // ==========================================
 
 const deleteTodo = async (req, res) => {
@@ -613,11 +843,19 @@ const deleteTodo = async (req, res) => {
       });
     }
 
+    let filter = {
+      _id: id,
+    };
+
+    if (req.user.role !== "admin") {
+      filter.createdBy =
+        req.user._id;
+    }
+
     const todo =
-      await Todo.findOneAndDelete({
-        _id: id,
-        createdBy: req.user._id,
-      });
+      await Todo.findOneAndDelete(
+        filter
+      );
 
     if (!todo) {
       return res.status(404).json({

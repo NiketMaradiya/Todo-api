@@ -1,840 +1,809 @@
 # Todo API
 
-A RESTful Todo API built with **Node.js, Express, MongoDB, Mongoose, and
-JWT Authentication**.
+A RESTful Todo Management API built with **Node.js, Express.js, MongoDB, Mongoose, and JWT Authentication**.
 
 ## Features
 
--   User registration and login
--   JWT authentication
--   Logout and protected profile
--   User and Admin roles
--   Role-based authorization
--   Todo CRUD operations
--   Todo ownership using `createdBy`
--   Todo assignment/tagging using `assignedTo`
--   User-based Todo visibility
--   Admin access to all users and all Todos
--   Todo authorization
--   Request rate limiting
--   Validation and error handling
--   Jest + Supertest API tests
+- User registration and login
+- JWT authentication
+- User roles: `user` and `admin`
+- Protected Todo APIs
+- Todo CRUD operations
+- Todo ownership
+- Todo assignment
+- Role-based admin access
+- Todo statistics
+- Search by title and description
+- Status filtering
+- Pagination
+- Sorting
+- Combined filters
+- Permission-based Todo visibility
+- Input validation and error handling
+
+---
 
 ## Tech Stack
 
--   Node.js
--   Express.js
--   MongoDB
--   Mongoose
--   JSON Web Token (JWT)
--   bcryptjs
--   dotenv
--   cors
--   express-rate-limit
--   Jest
--   Supertest
--   Nodemon
+- Node.js
+- Express.js
+- MongoDB
+- Mongoose
+- JSON Web Token (JWT)
+- bcrypt
+- dotenv
+- CORS
+- Nodemon
+- Jest
+- Supertest
+
+---
 
 ## Project Structure
 
-``` text
+```text
 Todo-api/
+│
 ├── config/
 │   └── db.js
+│
 ├── controllers/
+│   ├── adminController.js
 │   ├── authController.js
-│   ├── todoController.js
-│   └── adminController.js
+│   └── todoController.js
+│
 ├── middleware/
-│   ├── authMiddleware.js
 │   ├── adminMiddleware.js
-│   ├── rateLimitMiddleware.js
-│   └── errorMiddleware.js
+│   └── authMiddleware.js
+│
 ├── models/
-│   ├── User.js
-│   └── Todo.js
+│   ├── Todo.js
+│   └── User.js
+│
 ├── routes/
+│   ├── adminRoutes.js
 │   ├── authRoutes.js
-│   ├── todoRoutes.js
-│   └── adminRoutes.js
+│   └── todoRoutes.js
+│
 ├── tests/
-│   ├── auth.test.js
-│   ├── todo.test.js
-│   └── admin.test.js
+│
 ├── .env
-├── .gitignore
 ├── package.json
-└── server.js
+├── server.js
+└── README.md
 ```
 
-## Installation
+---
 
-``` bash
+# Installation
+
+## 1. Clone or Download the Project
+
+```bash
+git clone <your-repository-url>
 cd Todo-api
+```
+
+## 2. Install Dependencies
+
+```bash
 npm install
 ```
 
-## Environment Variables
+## 3. Create `.env` File
 
-Create `.env`:
-
-``` env
+```env
 PORT=5000
 MONGO_URI=mongodb://127.0.0.1:27017/todo-api
-JWT_SECRET=your_super_secret_jwt_key
-JWT_EXPIRES_IN=1d
+JWT_SECRET=your_secret_key
 ```
 
-Never commit `.env`.
+## 4. Start MongoDB
 
-Recommended `.gitignore`:
+Make sure MongoDB is running.
 
-``` gitignore
-node_modules/
-.env
-coverage/
-```
+## 5. Start the Server
 
-## Start MongoDB
+Development mode:
 
-Windows:
-
-``` powershell
-Get-Service MongoDB
-Start-Service MongoDB
-Test-NetConnection 127.0.0.1 -Port 27017
-```
-
-Expected:
-
-``` text
-TcpTestSucceeded : True
-```
-
-## Run the API
-
-Development:
-
-``` bash
+```bash
 npm run dev
 ```
 
-Normal:
+Production mode:
 
-``` bash
+```bash
 npm start
 ```
 
-Base URL:
+The server runs at:
 
-``` text
+```text
 http://localhost:5000
 ```
 
-Expected:
+---
 
-``` text
-Server running on port 5000
-MongoDB Connected Successfully
-```
+# Authentication APIs
 
-# Authentication
+## Register User
 
-## Register
-
-``` http
+```http
 POST /api/auth/register
 ```
 
-Body:
+### Request Body
 
-``` json
+```json
 {
-  "name": "User A",
-  "email": "usera@gmail.com",
-  "password": "Password123"
+  "name": "User One",
+  "email": "user1@test.com",
+  "password": "123456"
 }
 ```
 
-## Login
+---
 
-``` http
+## Login User
+
+```http
 POST /api/auth/login
 ```
 
-Body:
+### Request Body
 
-``` json
+```json
 {
-  "email": "usera@gmail.com",
-  "password": "Password123"
+  "email": "user1@test.com",
+  "password": "123456"
 }
 ```
 
-The response contains a JWT:
+The login response returns a JWT token.
 
-``` json
-{
-  "success": true,
-  "message": "Login successful",
-  "token": "eyJhbGciOiJIUzI1NiIs..."
-}
+Use the token for protected APIs:
+
+```http
+Authorization: Bearer YOUR_JWT_TOKEN
 ```
 
-## Postman Authorization
+---
 
-For protected requests:
+## Get User Profile
 
-1.  Open the request.
-2.  Click **Authorization**.
-3.  Select **Bearer Token**.
-4.  Paste the JWT token.
-5.  Click **Send**.
-
-Correct:
-
-``` text
-Method: GET
-URL: http://localhost:5000/api/todos
+```http
+GET /api/profile
 ```
 
-Do not put `GET` inside the URL.
+---
 
-## Logout
+# Todo APIs
 
-``` http
-POST /api/auth/logout
-```
-
-Authorization:
-
-``` text
-Bearer <JWT_TOKEN>
-```
-
-## Profile
-
-``` http
-GET /api/auth/profile
-```
-
-Authorization:
-
-``` text
-Bearer <JWT_TOKEN>
-```
-
-# Roles
-
-The system supports:
-
-``` text
-user
-admin
-```
-
-New users default to:
-
-``` text
-role = user
-```
-
-Admin authorization requires a valid JWT and an admin role.
-
-# Todo Assignment
-
-Every Todo contains:
-
-``` text
-Todo
-├── title
-├── description
-├── createdBy
-├── assignedTo
-├── status
-├── createdAt
-└── updatedAt
-```
-
-### createdBy
-
-`createdBy` is always taken from the authenticated user's ID.
-
-The client must not be able to choose another creator.
-
-### assignedTo
-
-`assignedTo` stores the ID of the assigned registered user.
-
-The backend validates that the assigned user exists.
+All Todo APIs require JWT authentication.
 
 ## Create Todo
 
-``` http
+```http
 POST /api/todos
 ```
 
-Authorization:
+### Request Body
 
-``` text
-Bearer <USER_A_TOKEN>
-```
-
-Body:
-
-``` json
+```json
 {
-  "title": "Todo 1",
-  "description": "Complete the API task",
-  "assignedTo": "<USER_B_ID>"
+  "title": "Team Meeting",
+  "description": "Discuss the new project",
+  "status": "pending",
+  "assignedTo": "USER_ID"
 }
 ```
 
-Do not send `createdBy`.
+### Supported Status Values
 
-The backend automatically stores:
-
-``` text
-createdBy = logged-in user's ID
+```text
+pending
+in-progress
+completed
 ```
 
-Example:
-
-``` text
-User A
-  ↓
-Create Todo
-  ↓
-createdBy = User A
-assignedTo = User B
-```
-
-# Todo Visibility
-
-A normal user can see:
-
-``` text
-Todos created by me
-+
-Todos assigned to me
-```
-
-A normal user cannot see unrelated users' Todos.
-
-Example:
-
-``` text
-Todo 1
-createdBy = A
-assignedTo = B
-```
-
-Visibility:
-
-``` text
-User A → visible
-User B → visible
-User C → hidden
-Admin  → visible
-```
-
-## Get Todos
-
-``` http
-GET /api/todos
-```
-
-Authorization:
-
-``` text
-Bearer <USER_TOKEN>
-```
-
-The backend automatically filters Todos according to the authenticated
-user.
-
-## Get Todo by ID
-
-``` http
-GET /api/todos/:id
-```
-
-A normal user can access a Todo when they are the creator or assigned
-user.
-
-## Update Todo
-
-``` http
-PUT /api/todos/:id
-```
-
-Example body:
-
-``` json
-{
-  "title": "Updated Todo",
-  "description": "Updated description",
-  "status": "inprogress"
-}
-```
-
-Reassign:
-
-``` json
-{
-  "assignedTo": "<USER_C_ID>"
-}
-```
-
-The assigned user must exist.
-
-## Delete Todo
-
-``` http
-DELETE /api/todos/:id
-```
-
-Normal users cannot delete another user's Todo. Admins can delete any
-user's Todo.
-
-# Todo Status
-
-Existing project statuses:
-
-``` text
-todo
-inprogress
-complate
-```
-
-Example:
-
-``` json
-{
-  "status": "inprogress"
-}
-```
-
-> `complate` is retained as the existing project spelling.
-
-# Admin API
-
-Admin endpoints require:
-
-``` text
-Valid JWT
-+
-role = admin
-```
-
-Normal users should receive:
-
-``` text
-403 Forbidden
-```
-
-## Get All Users
-
-``` http
-GET /api/admin/users
-```
-
-Authorization:
-
-``` text
-Bearer <ADMIN_TOKEN>
-```
+---
 
 ## Get All Todos
 
-``` http
-GET /api/admin/todos
+```http
+GET /api/todos
+```
+
+### Permission Rules
+
+### Normal User
+
+A normal user can see:
+
+- Todos created by them
+- Todos assigned to them
+
+### Admin
+
+An admin can see:
+
+- All users' Todos
+
+Authorization scope is applied before search and filtering, preventing users from accessing other users' private Todos.
+
+---
+
+# Search
+
+Search works with both:
+
+- `title`
+- `description`
+
+Example:
+
+```http
+GET /api/todos?search=meeting
+```
+
+More examples:
+
+```http
+GET /api/todos?search=node
+```
+
+```http
+GET /api/todos?search=project
+```
+
+Search is case-insensitive.
+
+---
+
+# Status Filter
+
+## Pending
+
+```http
+GET /api/todos?status=pending
+```
+
+## In Progress
+
+```http
+GET /api/todos?status=in-progress
+```
+
+## Completed
+
+```http
+GET /api/todos?status=completed
+```
+
+---
+
+# Pagination
+
+Use:
+
+- `page`
+- `limit`
+
+Example:
+
+```http
+GET /api/todos?page=1&limit=10
+```
+
+### Example Response
+
+```json
+{
+  "success": true,
+  "data": [],
+  "pagination": {
+    "page": 1,
+    "limit": 10,
+    "total": 50,
+    "totalPages": 5
+  }
+}
+```
+
+### More Examples
+
+```http
+GET /api/todos?page=1&limit=2
+```
+
+```http
+GET /api/todos?page=2&limit=2
+```
+
+---
+
+# Sorting
+
+## Newest First
+
+```http
+GET /api/todos?sort=newest
+```
+
+## Oldest First
+
+```http
+GET /api/todos?sort=oldest
+```
+
+---
+
+# Combined Filters
+
+All query parameters can be combined.
+
+Example:
+
+```http
+GET /api/todos?search=meeting&status=pending&page=1&limit=10&sort=newest
+```
+
+## Request Flow
+
+```text
+Request
+   ↓
+req.query
+   ↓
+Authorization / User Scope
+   ↓
+Search
+   ↓
+Status Filter
+   ↓
+Sorting
+   ↓
+Pagination
+   ↓
+MongoDB
+   ↓
+Response
+```
+
+---
+
+# Other Todo APIs
+
+## Get Todo by ID
+
+```http
+GET /api/todos/:id
+```
+
+---
+
+## Update Todo
+
+```http
+PUT /api/todos/:id
+```
+
+or:
+
+```http
+PATCH /api/todos/:id
+```
+
+---
+
+## Update Todo Status
+
+```http
+PATCH /api/todos/:id/status
+```
+
+### Request Body
+
+```json
+{
+  "status": "completed"
+}
+```
+
+---
+
+## Delete Todo
+
+```http
+DELETE /api/todos/:id
+```
+
+---
+
+## Todo Statistics
+
+```http
+GET /api/todos/stats
+```
+
+Normal users receive statistics based on:
+
+- Their created Todos
+- Todos assigned to them
+
+Admins can access statistics for all Todos according to the authorization rules.
+
+---
+
+# Admin APIs
+
+Admin routes require:
+
+- A valid JWT token
+- User role set to `admin`
+
+Example:
+
+```http
+GET /api/admin/users
+```
+
+---
+
+# Validation and Error Handling
+
+The API validates:
+
+- Required title
+- Valid Todo ID
+- Valid assigned user ID
+- Assigned user exists
+- Valid Todo status
+- Valid page number
+- Valid limit
+- Maximum limit of 100
+- Valid sorting value
+- JWT authentication
+- Todo ownership
+- Todo assignment access
+- Admin permissions
+
+## Invalid Query Examples
+
+### Invalid Page
+
+```http
+GET /api/todos?page=0
+```
+
+```http
+GET /api/todos?page=-1
+```
+
+```http
+GET /api/todos?page=abc
+```
+
+### Invalid Limit
+
+```http
+GET /api/todos?limit=0
+```
+
+```http
+GET /api/todos?limit=101
+```
+
+```http
+GET /api/todos?limit=abc
+```
+
+### Invalid Status
+
+```http
+GET /api/todos?status=invalid
+```
+
+### Invalid Sort
+
+```http
+GET /api/todos?sort=random
+```
+
+Invalid requests should return an appropriate validation error.
+
+---
+
+# Postman Testing Guide
+
+## Step 1: Create User One
+
+```http
+POST /api/auth/register
+```
+
+```json
+{
+  "name": "User One",
+  "email": "user1@test.com",
+  "password": "123456"
+}
+```
+
+---
+
+## Step 2: Create User Two
+
+```http
+POST /api/auth/register
+```
+
+```json
+{
+  "name": "User Two",
+  "email": "user2@test.com",
+  "password": "123456"
+}
+```
+
+---
+
+## Step 3: Login User One
+
+```http
+POST /api/auth/login
+```
+
+```json
+{
+  "email": "user1@test.com",
+  "password": "123456"
+}
+```
+
+Copy the returned JWT token.
+
+Save it as:
+
+```text
+user1Token
+```
+
+---
+
+## Step 4: Login User Two
+
+```http
+POST /api/auth/login
+```
+
+```json
+{
+  "email": "user2@test.com",
+  "password": "123456"
+}
+```
+
+Save the returned token as:
+
+```text
+user2Token
+```
+
+---
+
+## Step 5: Get User Two ID
+
+Use:
+
+```http
+GET /api/profile
 ```
 
 Authorization:
 
-``` text
-Bearer <ADMIN_TOKEN>
+```text
+Bearer Token
+{{user2Token}}
 ```
 
-Admin can see all users' Todos, including:
+Copy the returned `_id`.
 
-``` text
-title
-description
-createdBy
-assignedTo
-status
-createdAt
-updatedAt
+---
+
+## Step 6: Create Test Todos
+
+Login as User One and use:
+
+```text
+Authorization
+↓
+Bearer Token
+↓
+{{user1Token}}
 ```
 
-# Authorization Rules
+Create multiple Todos with different:
 
-  Action                        User   Admin
-  ---------------------------- ------ -------
-  Create Todo                    ✅     ✅
-  Assign Todo                    ✅     ✅
-  See own created Todos          ✅     ✅
-  See assigned Todos             ✅     ✅
-  See unrelated Todos            ❌     ✅
-  See all Todos                  ❌     ✅
-  Update authorized Todo         ✅     ✅
-  Delete own/authorized Todo     ✅     ✅
-  Delete any user's Todo         ❌     ✅
-  Access `/api/admin/users`      ❌     ✅
-  Access `/api/admin/todos`      ❌     ✅
+- Titles
+- Descriptions
+- Statuses
 
-# Main Assignment Test
+Example:
 
-Create:
-
-``` text
-User A
-User B
-User C
-Admin
-```
-
-User A creates:
-
-``` text
-Todo 1
-createdBy = A
-assignedTo = B
-```
-
-Expected:
-
-``` text
-User A → Todo 1 ✅
-User B → Todo 1 ✅
-User C → Todo 1 ❌
-Admin  → Todo 1 ✅
-```
-
-## Self Assignment
-
-User A creates:
-
-``` text
-Todo 2
-createdBy = A
-assignedTo = A
-```
-
-Expected:
-
-``` text
-User A → Todo 2 ✅
-User B → Todo 2 ❌
-User C → Todo 2 ❌
-Admin  → Todo 2 ✅
-```
-
-## Reassignment
-
-Initially:
-
-``` text
-Todo 1
-createdBy = A
-assignedTo = B
-```
-
-Change:
-
-``` text
-assignedTo = C
-```
-
-Expected:
-
-``` text
-User A → Todo 1 ✅
-User B → Todo 1 ❌
-User C → Todo 1 ✅
-Admin  → Todo 1 ✅
-```
-
-# Security Tests
-
-## Invalid Assigned User
-
-Try:
-
-``` json
+```json
 {
-  "title": "Invalid Assignment",
-  "description": "Testing invalid user",
-  "assignedTo": "000000000000000000000000"
+  "title": "Team Meeting",
+  "description": "Discuss the new project",
+  "status": "pending",
+  "assignedTo": "USER_TWO_ID"
 }
 ```
 
-Expected:
+Create enough Todos to test pagination.
 
-``` text
-400 Bad Request
-```
+---
 
-The Todo must not be created.
-
-## createdBy Protection
-
-Even if User A sends:
-
-``` json
-{
-  "title": "Security Test",
-  "createdBy": "<USER_B_ID>"
-}
-```
-
-while authenticated as User A, the backend must store:
-
-``` text
-createdBy = USER_A_ID
-```
-
-The client cannot choose the creator.
-
-# Postman Testing Order
-
-``` text
-1. Register User A
-2. Register User B
-3. Register User C
-4. Login User A
-5. Login User B
-6. Login User C
-7. Login Admin
-8. Create Todo 1 as A → assign B
-9. GET todos as A
-10. GET todos as B
-11. GET todos as C
-12. Create Todo 2 as A → assign A
-13. GET todos as A
-14. GET todos as B
-15. GET todos as C
-16. GET Todo 1 by ID
-17. Update Todo 1
-18. Reassign Todo 1 from B → C
-19. GET todos as B
-20. GET todos as C
-21. Test invalid assigned user
-22. Test createdBy protection
-23. GET /api/admin/users as Admin
-24. GET /api/admin/todos as Admin
-25. GET /api/admin/todos as normal User
-26. Test delete authorization
-27. Test Admin delete
-```
-
-# Rate Limiting
-
-The existing project uses:
-
-``` text
-20 requests
-per 1 minute
-per IP
-```
-
-When exceeded:
-
-``` json
-{
-  "success": false,
-  "message": "Too many requests. Please try again later."
-}
-```
-
-# Error Handling
-
-Common errors:
-
-``` text
-401 Unauthorized
-403 Forbidden
-400 Bad Request
-404 Not Found
-```
-
-Examples include:
-
--   Missing authentication
--   Invalid JWT
--   Insufficient permissions
--   Invalid Todo ID
--   Todo not found
--   Invalid assigned user
-
-# Automated Tests
-
-Run:
-
-``` bash
-npm test
-```
-
-Or:
-
-``` bash
-npx jest --runInBand
-```
-
-Test files:
-
-``` text
-tests/
-├── auth.test.js
-├── todo.test.js
-└── admin.test.js
-```
-
-Tests cover authentication, Todo assignment, ownership, visibility,
-reassignment, admin authorization, role management, and deletion.
-
-## MongoDB Before Jest
-
-Make sure MongoDB is running before:
-
-``` bash
-npm test
-```
-
-If you see:
-
-``` text
-connect ECONNREFUSED 127.0.0.1:27017
-```
-
-start MongoDB:
-
-``` powershell
-Start-Service MongoDB
-```
-
-Then verify:
-
-``` powershell
-Test-NetConnection 127.0.0.1 -Port 27017
-```
-
-# API Summary
+# Testing Checklist
 
 ## Authentication
 
-``` text
-POST /api/auth/register
-POST /api/auth/login
-POST /api/auth/logout
-GET  /api/auth/profile
+- [ ] Register User One
+- [ ] Register User Two
+- [ ] Login User One
+- [ ] Login User Two
+- [ ] Get User Two ID
+
+## Todo Creation
+
+- [ ] Create pending Todo
+- [ ] Create in-progress Todo
+- [ ] Create completed Todo
+- [ ] Assign Todo to another user
+- [ ] Create Todo with searchable text in description
+
+## Search
+
+```http
+GET /api/todos?search=meeting
 ```
 
-## Todo
+- [ ] Search by title
+- [ ] Search by description
 
-``` text
-POST   /api/todos
-GET    /api/todos
-GET    /api/todos/:id
-PUT    /api/todos/:id
-DELETE /api/todos/:id
+## Status Filter
+
+```http
+GET /api/todos?status=pending
 ```
 
-## Admin
+- [ ] Pending
+- [ ] In Progress
+- [ ] Completed
 
-``` text
-GET /api/admin/users
-GET /api/admin/todos
+## Pagination
+
+```http
+GET /api/todos?page=1&limit=2
 ```
 
-# GitHub
+- [ ] Test page 1
+- [ ] Test page 2
+- [ ] Test different limit values
 
-Do not commit:
+## Sorting
 
-``` text
-.env
-node_modules/
-coverage/
+```http
+GET /api/todos?sort=newest
 ```
 
-Then:
+- [ ] Newest
+- [ ] Oldest
 
-``` bash
-git add .
-git commit -m "Add JWT auth, admin roles and todo assignment"
-git push
+## Combined Filters
+
+### Search + Status
+
+```http
+GET /api/todos?search=meeting&status=pending
 ```
 
-# Final Feature Checklist
+### Search + Pagination
 
-``` text
-[✓] MongoDB connection
-[✓] Express API
-[✓] User registration
-[✓] User login
-[✓] JWT authentication
-[✓] Logout
-[✓] Protected profile
-[✓] User role
-[✓] Admin role
-[✓] Admin authorization
-[✓] Todo CRUD
-[✓] Todo createdBy
-[✓] Todo assignedTo
-[✓] Assigned-user validation
-[✓] Creator-based visibility
-[✓] Assigned-user visibility
-[✓] Unrelated Todo protection
-[✓] Admin sees all Todos
-[✓] Todo reassignment
-[✓] Todo status
-[✓] Rate limiting
-[✓] Error handling
-[✓] Jest tests
-[✓] Supertest API testing
-[✓] Postman testing
+```http
+GET /api/todos?search=meeting&page=1&limit=1
 ```
 
-# Quick Start
+### All Filters
 
-``` bash
-npm install
-npm run dev
+```http
+GET /api/todos?search=meeting&status=pending&page=1&limit=10&sort=newest
 ```
 
-Then use Postman:
+- [ ] Search + Status
+- [ ] Search + Pagination
+- [ ] All filters together
 
-``` text
-POST http://localhost:5000/api/auth/register
-POST http://localhost:5000/api/auth/login
+## Validation
 
-POST http://localhost:5000/api/todos
-GET  http://localhost:5000/api/todos
-GET  http://localhost:5000/api/todos/:id
-PUT  http://localhost:5000/api/todos/:id
-DELETE http://localhost:5000/api/todos/:id
+- [ ] Invalid status
+- [ ] Invalid page = 0
+- [ ] Invalid page = -1
+- [ ] Invalid page = abc
+- [ ] Invalid limit = 0
+- [ ] Invalid limit = abc
+- [ ] Limit greater than 100
+- [ ] Invalid sort
 
-GET http://localhost:5000/api/admin/users
-GET http://localhost:5000/api/admin/todos
-```
+## Permissions
 
-For protected endpoints:
+- [ ] User can see Todos created by them
+- [ ] User can see Todos assigned to them
+- [ ] User cannot see unrelated users' Todos
+- [ ] Admin can access all Todos
 
-``` text
-Authorization → Bearer Token → JWT
-```
+---
 
-Run tests:
+# Running Tests
 
-``` bash
+If tests are configured:
+
+```bash
 npm test
 ```
 
-## Project Status
+---
 
-The Todo API supports JWT authentication, role-based admin
-authorization, Todo ownership, user assignment/tagging, user-based Todo
-visibility, admin Todo visibility, CRUD operations, validation, rate
-limiting, and automated API testing.
+# API Summary
+
+| Method | Endpoint | Description |
+|---|---|---|
+| POST | `/api/auth/register` | Register user |
+| POST | `/api/auth/login` | Login user |
+| GET | `/api/profile` | Get logged-in user profile |
+| POST | `/api/todos` | Create Todo |
+| GET | `/api/todos` | Get Todos with search, filter, pagination and sorting |
+| GET | `/api/todos/stats` | Get Todo statistics |
+| GET | `/api/todos/:id` | Get Todo by ID |
+| PUT | `/api/todos/:id` | Update Todo |
+| PATCH | `/api/todos/:id` | Update Todo |
+| PATCH | `/api/todos/:id/status` | Update Todo status |
+| DELETE | `/api/todos/:id` | Delete Todo |
+| GET | `/api/admin/users` | Get users for admin access |
+
+---
+
+# Query Parameters
+
+| Parameter | Example | Description |
+|---|---|---|
+| `search` | `?search=meeting` | Search title and description |
+| `status` | `?status=pending` | Filter by status |
+| `page` | `?page=1` | Current page |
+| `limit` | `?limit=10` | Results per page |
+| `sort` | `?sort=newest` | Sort newest or oldest |
+
+All parameters can be combined:
+
+```http
+GET /api/todos?search=meeting&status=pending&page=1&limit=10&sort=newest
+```
+
+---
+
+# Author
+
+Todo Management REST API project built with:
+
+- Node.js
+- Express.js
+- MongoDB
+- Mongoose
+- JWT Authentication
+- Role-Based Authorization
+- Todo Ownership
+- Todo Assignment
+- Search
+- Filtering
+- Pagination
+- Sorting

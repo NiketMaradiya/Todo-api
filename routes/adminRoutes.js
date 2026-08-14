@@ -8,6 +8,8 @@ const {
   getAdminTodoById,
   updateAdminTodo,
   deleteAdminTodo,
+  getTrashTodos,
+  restoreTodo,
 
   // Admin User APIs
   makeAdmin,
@@ -40,38 +42,53 @@ router.use(authorize("admin"));
 // ==========================================
 
 // GET /api/admin/todos
-// Admin can see ALL users' todos
+// Admin can see ALL active users' todos
 router.get(
   "/todos",
   getAllTodos
 );
 
+// GET /api/admin/todos/trash
+// Admin can see all soft-deleted todos
+// IMPORTANT: This route must be before /todos/:id
+router.get(
+  "/todos/trash",
+  getTrashTodos
+);
+
 // GET /api/admin/todos/:id
-// Admin can see ANY todo
+// Admin can see ANY active todo
 router.get(
   "/todos/:id",
   getAdminTodoById
 );
 
 // PUT /api/admin/todos/:id
-// Admin can update ANY todo
+// Admin can update ANY active todo
 router.put(
   "/todos/:id",
   updateAdminTodo
 );
 
 // PATCH /api/admin/todos/:id
-// Admin can update ANY todo
+// Admin can update ANY active todo
 router.patch(
   "/todos/:id",
   updateAdminTodo
 );
 
 // DELETE /api/admin/todos/:id
-// Admin can delete ANY todo
+// Admin can soft-delete ANY active todo
 router.delete(
   "/todos/:id",
   deleteAdminTodo
+);
+
+// PATCH /api/admin/todos/:id/restore
+// Admin can restore a soft-deleted todo
+router.patch(
+  "/todos/:id/restore",
+  restoreTodo
 );
 
 // ==========================================

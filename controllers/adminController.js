@@ -65,7 +65,10 @@ const getAllTodos = async (req, res) => {
       sort = "newest",
     } = req.query;
 
-    const filter = {};
+    // Normal admin Todo list excludes soft-deleted todos.
+    const filter = {
+      isDeleted: false,
+    };
 
     // Search by title
     if (search) {
@@ -78,11 +81,11 @@ const getAllTodos = async (req, res) => {
     // Filter by status
     if (status) {
       if (
-        ![
+        [
           "pending",
           "in-progress",
           "completed",
-        ].includes(status)
+        ].includes(status) === false
       ) {
         return res.status(400).json({
           success: false,
@@ -194,7 +197,10 @@ const getAdminTodoById = async (
       });
     }
 
-    const todo = await Todo.findById(id)
+    const todo = await Todo.findOne({
+      _id: id,
+      isDeleted: false,
+    })
       .populate(
         "createdBy",
         "name email role"
@@ -270,7 +276,10 @@ const updateAdminTodo = async (
       });
     }
 
-    const todo = await Todo.findById(id);
+    const todo = await Todo.findOne({
+      _id: id,
+      isDeleted: false,
+    });
 
     if (!todo) {
       return res.status(404).json({
@@ -314,11 +323,11 @@ const updateAdminTodo = async (
     // Update status
     if (status !== undefined) {
       if (
-        ![
+        [
           "pending",
           "in-progress",
           "completed",
-        ].includes(status)
+        ].includes(status) === false
       ) {
         return res.status(400).json({
           success: false,
@@ -405,7 +414,10 @@ const deleteAdminTodo = async (
     }
 
     const todo =
-      await Todo.findByIdAndDelete(id);
+      await Todo.findOne({
+        _id: id,
+        isDeleted: false,
+      });
 
     if (!todo) {
       return res.status(404).json({
@@ -414,10 +426,241 @@ const deleteAdminTodo = async (
       });
     }
 
+    // Soft Delete
+    todo.isDeleted = true;
+    todo.deletedAt = new Date();
+
+    await todo.save();
+
     res.status(200).json({
       success: true,
       message:
-        "Todo deleted successfully by admin",
+        "Todo moved to trash successfully by admin",
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
+
+// ==========================================
+// GET /api/admin/todos/trash
+// Get all soft-deleted todos
+// ==========================================
+
+const getTrashTodos = async (req, res) => {
+  try {
+    const {
+      search,
+      status,
+      createdBy,
+      assignedTo,
+      page = 1,
+      limit = 10,
+      sort = "newest",
+    } = req.query;
+
+    const pageNumber = Number(page);
+    const limitNumber = Number(limit);
+
+    if (
+      !Number.isInteger(pageNumber) ||
+      pageNumber < 1
+    ) {
+      return res.status(400).json({
+        success: false,
+        message:
+          "Page must be a positive integer",
+      });
+    }
+
+    if (
+      !Number.isInteger(limitNumber) ||
+      limitNumber < 1
+    ) {
+      return res.status(400).json({
+        success: false,
+        message:
+          "Limit must be a positive integer",
+      });
+    }
+
+    if (limitNumber > 100) {
+      return res.status(400).json({
+        success: false,
+        message:
+          "Limit cannot be greater than 100",
+      });
+    }
+
+    if (
+      status &&
+      ![
+        "pending",
+        "in-progress",
+        "completed",
+      ].includes(status)
+    ) {
+      return res.status(400).json({
+        success: false,
+        message:
+          "Status must be pending, in-progress or completed",
+      });
+    }
+
+    if (
+      sort !== "newest" &&
+      sort !== "oldest"
+    ) {
+      return res.status(400).json({
+        success: false,
+        message:
+          "Sort must be newest or oldest",
+      });
+    }
+
+    const filter = {
+      isDeleted: true,
+    };
+
+    if (
+      search &&
+      typeof search === "string" &&
+      search.trim()
+    ) {
+      filter.title = {
+        $regex: search.trim(),
+        $options: "i",
+      };
+    }
+
+    if (status) {
+      filter.status = status;
+    }
+
+    if (createdBy !== undefined) {
+      if (!isValidId(createdBy)) {
+        return res.status(400).json({
+          success: false,
+          message: "Invalid createdBy user ID",
+        });
+      }
+
+      filter.createdBy = createdBy;
+    }
+
+    if (assignedTo !== undefined) {
+      if (!isValidId(assignedTo)) {
+        return res.status(400).json({
+          success: false,
+          message: "Invalid assignedTo user ID",
+        });
+      }
+
+      filter.assignedTo = assignedTo;
+    }
+
+    const skip =
+      (pageNumber - 1) *
+      limitNumber;
+
+    const sortOption =
+      sort === "oldest"
+        ? { deletedAt: 1 }
+        : { deletedAt: -1 };
+
+    const total =
+      await Todo.countDocuments(filter);
+
+    const todos = await Todo.find(filter)
+      .populate(
+        "createdBy",
+        "name email role"
+      )
+      .populate(
+        "assignedTo",
+        "name email role"
+      )
+      .sort(sortOption)
+      .skip(skip)
+      .limit(limitNumber);
+
+    res.status(200).json({
+      success: true,
+      count: todos.length,
+
+      pagination: {
+        total,
+        page: pageNumber,
+        limit: limitNumber,
+        totalPages: Math.ceil(
+          total / limitNumber
+        ),
+      },
+
+      data: todos,
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
+
+// ==========================================
+// PATCH /api/admin/todos/:id/restore
+// Restore a soft-deleted Todo
+// ==========================================
+
+const restoreTodo = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    if (!isValidId(id)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid Todo ID",
+      });
+    }
+
+    const todo = await Todo.findOne({
+      _id: id,
+      isDeleted: true,
+    });
+
+    if (!todo) {
+      return res.status(404).json({
+        success: false,
+        message:
+          "Deleted Todo not found",
+      });
+    }
+
+    // Restore Todo
+    todo.isDeleted = false;
+    todo.deletedAt = null;
+
+    await todo.save();
+
+    const restoredTodo =
+      await Todo.findById(todo._id)
+        .populate(
+          "createdBy",
+          "name email role"
+        )
+        .populate(
+          "assignedTo",
+          "name email role"
+        );
+
+    res.status(200).json({
+      success: true,
+      message:
+        "Todo restored successfully",
+      data: restoredTodo,
     });
   } catch (error) {
     res.status(500).json({
@@ -738,6 +981,8 @@ module.exports = {
   getAdminTodoById,
   updateAdminTodo,
   deleteAdminTodo,
+  getTrashTodos,
+  restoreTodo,
 
   // Admin User APIs
   makeAdmin,

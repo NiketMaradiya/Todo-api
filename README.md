@@ -4,42 +4,46 @@ A RESTful Todo Management API built with **Node.js, Express.js, MongoDB, Mongoos
 
 ## Features
 
-- User registration and login
-- JWT authentication
-- User roles: `user` and `admin`
-- Protected Todo APIs
-- Todo CRUD operations
-- Todo ownership
-- Todo assignment
-- Role-based admin access
-- Todo statistics
-- Search by title and description
-- Status filtering
-- Pagination
-- Sorting
-- Combined filters
-- Permission-based Todo visibility
-- Input validation and error handling
+* User registration and login
+* JWT authentication
+* User roles: `user` and `admin`
+* Protected Todo APIs
+* Todo CRUD operations
+* Todo ownership
+* Todo assignment
+* Role-based admin access
+* Todo statistics
+* Search by title and description
+* Status filtering
+* Pagination
+* Sorting
+* Combined filters
+* Permission-based Todo visibility
+* Input validation and error handling
+* **Soft Delete**
+* **Trash functionality**
+* **Admin-only Trash access**
+* **Admin-only Todo restore**
 
 ---
 
 ## Tech Stack
 
-- Node.js
-- Express.js
-- MongoDB
-- Mongoose
-- JSON Web Token (JWT)
-- bcrypt
-- dotenv
-- CORS
-- Nodemon
-- Jest
-- Supertest
+* Node.js
+* Express.js
+* MongoDB
+* Mongoose
+* JSON Web Token (JWT)
+* bcrypt
+* dotenv
+* CORS
+* Nodemon
+* Jest
+* Supertest
 
 ---
 
-## Project Structure
+# Project Structure
 
 ```text
 Todo-api/
@@ -100,7 +104,7 @@ JWT_SECRET=your_secret_key
 
 ## 4. Start MongoDB
 
-Make sure MongoDB is running.
+Make sure MongoDB is running before starting the application.
 
 ## 5. Start the Server
 
@@ -126,6 +130,12 @@ http://localhost:5000
 
 # Authentication APIs
 
+All authentication APIs are available under:
+
+```text
+/api/auth
+```
+
 ## Register User
 
 ```http
@@ -140,6 +150,12 @@ POST /api/auth/register
   "email": "user1@test.com",
   "password": "123456"
 }
+```
+
+A newly registered user receives the default role:
+
+```text
+user
 ```
 
 ---
@@ -175,6 +191,65 @@ Authorization: Bearer YOUR_JWT_TOKEN
 GET /api/profile
 ```
 
+Requires a valid JWT token.
+
+---
+
+# Todo Model
+
+A Todo contains the following important fields:
+
+```json
+{
+  "_id": "TODO_ID",
+  "title": "Team Meeting",
+  "description": "Discuss the new project",
+  "createdBy": "USER_ID",
+  "assignedTo": "USER_ID",
+  "status": "pending",
+  "isDeleted": false,
+  "deletedAt": null
+}
+```
+
+## Supported Status Values
+
+```text
+pending
+in-progress
+completed
+```
+
+## Soft Delete Fields
+
+### `isDeleted`
+
+```text
+Boolean
+```
+
+Default:
+
+```text
+false
+```
+
+It indicates whether the Todo has been moved to trash.
+
+### `deletedAt`
+
+```text
+Date
+```
+
+Default:
+
+```text
+null
+```
+
+When a Todo is soft-deleted, this field stores the deletion date and time.
+
 ---
 
 # Todo APIs
@@ -198,14 +273,6 @@ POST /api/todos
 }
 ```
 
-### Supported Status Values
-
-```text
-pending
-in-progress
-completed
-```
-
 ---
 
 ## Get All Todos
@@ -214,39 +281,37 @@ completed
 GET /api/todos
 ```
 
-### Permission Rules
-
 ### Normal User
 
 A normal user can see:
 
-- Todos created by them
-- Todos assigned to them
+* Todos created by them
+* Todos assigned to them
 
 ### Admin
 
 An admin can see:
 
-- All users' Todos
+* All active Todos
 
-Authorization scope is applied before search and filtering, preventing users from accessing other users' private Todos.
+### Important
+
+Soft-deleted Todos are automatically excluded from this API.
 
 ---
 
 # Search
 
-Search works with both:
+Search works with:
 
-- `title`
-- `description`
+* `title`
+* `description`
 
 Example:
 
 ```http
 GET /api/todos?search=meeting
 ```
-
-More examples:
 
 ```http
 GET /api/todos?search=node
@@ -286,8 +351,8 @@ GET /api/todos?status=completed
 
 Use:
 
-- `page`
-- `limit`
+* `page`
+* `limit`
 
 Example:
 
@@ -310,16 +375,6 @@ GET /api/todos?page=1&limit=10
 }
 ```
 
-### More Examples
-
-```http
-GET /api/todos?page=1&limit=2
-```
-
-```http
-GET /api/todos?page=2&limit=2
-```
-
 ---
 
 # Sorting
@@ -340,7 +395,7 @@ GET /api/todos?sort=oldest
 
 # Combined Filters
 
-All query parameters can be combined.
+All supported query parameters can be combined.
 
 Example:
 
@@ -353,9 +408,11 @@ GET /api/todos?search=meeting&status=pending&page=1&limit=10&sort=newest
 ```text
 Request
    ↓
-req.query
+JWT Authentication
    ↓
-Authorization / User Scope
+User Authorization Scope
+   ↓
+Soft Delete Filter
    ↓
 Search
    ↓
@@ -372,17 +429,27 @@ Response
 
 ---
 
-# Other Todo APIs
-
-## Get Todo by ID
+# Get Todo by ID
 
 ```http
 GET /api/todos/:id
 ```
 
+Example:
+
+```http
+GET /api/todos/64f123456789abcdef123456
+```
+
+Normal users can access only Todos they created or Todos assigned to them.
+
+Admins can access any active Todo.
+
+Soft-deleted Todos are not returned by this API.
+
 ---
 
-## Update Todo
+# Update Todo
 
 ```http
 PUT /api/todos/:id
@@ -394,9 +461,22 @@ or:
 PATCH /api/todos/:id
 ```
 
+### Example Request Body
+
+```json
+{
+  "title": "Updated Meeting",
+  "description": "Updated description",
+  "status": "in-progress",
+  "assignedTo": "USER_ID"
+}
+```
+
+Soft-deleted Todos cannot be updated through the normal Todo APIs.
+
 ---
 
-## Update Todo Status
+# Update Todo Status
 
 ```http
 PATCH /api/todos/:id/status
@@ -410,7 +490,17 @@ PATCH /api/todos/:id/status
 }
 ```
 
+Supported values:
+
+```text
+pending
+in-progress
+completed
+```
+
 ---
+
+# Soft Delete
 
 ## Delete Todo
 
@@ -418,9 +508,315 @@ PATCH /api/todos/:id/status
 DELETE /api/todos/:id
 ```
 
+A Todo is **not permanently removed** from MongoDB.
+
+Instead:
+
+```text
+isDeleted = true
+deletedAt = current date/time
+```
+
+Example database state after deletion:
+
+```json
+{
+  "isDeleted": true,
+  "deletedAt": "2026-08-14T09:30:00.000Z"
+}
+```
+
+The original Todo document remains in the database.
+
 ---
 
-## Todo Statistics
+# Soft Delete Behavior
+
+Before deletion:
+
+```json
+{
+  "title": "Test Soft Delete",
+  "isDeleted": false,
+  "deletedAt": null
+}
+```
+
+After deletion:
+
+```json
+{
+  "title": "Test Soft Delete",
+  "isDeleted": true,
+  "deletedAt": "2026-08-14T09:30:00.000Z"
+}
+```
+
+Normal Todo APIs automatically exclude:
+
+```text
+isDeleted = true
+```
+
+---
+
+# Admin APIs
+
+All Admin APIs require:
+
+1. A valid JWT token
+2. User role set to `admin`
+
+Admin routes use role-based authorization.
+
+Base path:
+
+```text
+/api/admin
+```
+
+---
+
+# Get All Users
+
+```http
+GET /api/admin/users
+```
+
+Admin only.
+
+---
+
+# Get All Active Todos
+
+```http
+GET /api/admin/todos
+```
+
+Admin only.
+
+This endpoint returns active Todos.
+
+Soft-deleted Todos are excluded.
+
+---
+
+# Get Admin Todo by ID
+
+```http
+GET /api/admin/todos/:id
+```
+
+Admin only.
+
+Soft-deleted Todos are excluded.
+
+---
+
+# Admin Update Todo
+
+```http
+PUT /api/admin/todos/:id
+```
+
+or:
+
+```http
+PATCH /api/admin/todos/:id
+```
+
+Admin can update any active Todo.
+
+---
+
+# Admin Delete Todo
+
+```http
+DELETE /api/admin/todos/:id
+```
+
+Admin deletion also uses soft delete.
+
+The Todo is changed to:
+
+```text
+isDeleted = true
+deletedAt = current date/time
+```
+
+The Todo is not permanently deleted.
+
+---
+
+# Trash Feature
+
+The Trash API allows administrators to view all soft-deleted Todos.
+
+## Get Trash
+
+```http
+GET /api/admin/todos/trash
+```
+
+Admin only.
+
+### Example Response
+
+```json
+{
+  "success": true,
+  "count": 1,
+  "pagination": {
+    "total": 1,
+    "page": 1,
+    "limit": 10,
+    "totalPages": 1
+  },
+  "data": [
+    {
+      "_id": "TODO_ID",
+      "title": "Test Soft Delete",
+      "description": "Testing trash feature",
+      "status": "pending",
+      "isDeleted": true,
+      "deletedAt": "2026-08-14T09:30:00.000Z"
+    }
+  ]
+}
+```
+
+## Trash Query Parameters
+
+The Trash API supports:
+
+```text
+search
+status
+createdBy
+assignedTo
+page
+limit
+sort
+```
+
+Example:
+
+```http
+GET /api/admin/todos/trash?page=1&limit=10&sort=newest
+```
+
+Example with search:
+
+```http
+GET /api/admin/todos/trash?search=meeting
+```
+
+Example with status:
+
+```http
+GET /api/admin/todos/trash?status=pending
+```
+
+---
+
+# Restore Todo
+
+Only admins can restore deleted Todos.
+
+```http
+PATCH /api/admin/todos/:id/restore
+```
+
+Example:
+
+```http
+PATCH /api/admin/todos/64f123456789abcdef123456/restore
+```
+
+After restoring:
+
+```text
+isDeleted = false
+deletedAt = null
+```
+
+Example response:
+
+```json
+{
+  "success": true,
+  "message": "Todo restored successfully",
+  "data": {
+    "_id": "TODO_ID",
+    "title": "Test Soft Delete",
+    "isDeleted": false,
+    "deletedAt": null
+  }
+}
+```
+
+The restored Todo becomes available again through normal Todo APIs.
+
+---
+
+# Soft Delete Flow
+
+```text
+User/Admin
+    ↓
+DELETE /api/todos/:id
+or
+DELETE /api/admin/todos/:id
+    ↓
+Find active Todo
+    ↓
+isDeleted = true
+    ↓
+deletedAt = current date/time
+    ↓
+Save Todo
+    ↓
+Todo moves to Trash
+```
+
+---
+
+# Restore Flow
+
+```text
+Admin
+    ↓
+GET /api/admin/todos/trash
+    ↓
+Find deleted Todo
+    ↓
+PATCH /api/admin/todos/:id/restore
+    ↓
+isDeleted = false
+    ↓
+deletedAt = null
+    ↓
+Save Todo
+    ↓
+Todo becomes active again
+```
+
+---
+
+# Visibility Rules
+
+| API                                  | Normal User               | Admin            |
+| ------------------------------------ | ------------------------- | ---------------- |
+| `GET /api/todos`                     | Own/assigned active Todos | All active Todos |
+| `GET /api/todos/:id`                 | Own/assigned active Todo  | Any active Todo  |
+| `DELETE /api/todos/:id`              | Own created Todo          | Supported        |
+| `GET /api/admin/todos`               | No                        | Yes              |
+| `GET /api/admin/todos/trash`         | No                        | Yes              |
+| `PATCH /api/admin/todos/:id/restore` | No                        | Yes              |
+
+---
+
+# Todo Statistics
 
 ```http
 GET /api/todos/stats
@@ -428,24 +824,339 @@ GET /api/todos/stats
 
 Normal users receive statistics based on:
 
-- Their created Todos
-- Todos assigned to them
+* Todos created by them
+* Todos assigned to them
 
-Admins can access statistics for all Todos according to the authorization rules.
+Admins can receive statistics across active Todos according to the authorization rules.
+
+Soft-deleted Todos are excluded from normal statistics.
 
 ---
 
-# Admin APIs
+# Postman Testing Guide
 
-Admin routes require:
-
-- A valid JWT token
-- User role set to `admin`
-
-Example:
+## 1. Create User One
 
 ```http
-GET /api/admin/users
+POST /api/auth/register
+```
+
+### Body
+
+```json
+{
+  "name": "User One",
+  "email": "user1@test.com",
+  "password": "123456"
+}
+```
+
+---
+
+## 2. Create User Two
+
+```http
+POST /api/auth/register
+```
+
+### Body
+
+```json
+{
+  "name": "User Two",
+  "email": "user2@test.com",
+  "password": "123456"
+}
+```
+
+---
+
+## 3. Login User One
+
+```http
+POST /api/auth/login
+```
+
+### Body
+
+```json
+{
+  "email": "user1@test.com",
+  "password": "123456"
+}
+```
+
+Copy the returned JWT token.
+
+Use:
+
+```text
+Authorization
+Bearer Token
+USER_1_TOKEN
+```
+
+---
+
+## 4. Login User Two
+
+```http
+POST /api/auth/login
+```
+
+### Body
+
+```json
+{
+  "email": "user2@test.com",
+  "password": "123456"
+}
+```
+
+Copy the returned JWT token.
+
+---
+
+## 5. Get User Profile
+
+```http
+GET /api/profile
+```
+
+Authorization:
+
+```text
+Bearer USER_2_TOKEN
+```
+
+Copy User Two's `_id`.
+
+---
+
+## 6. Create a Todo
+
+Login as User One.
+
+```http
+POST /api/todos
+```
+
+Authorization:
+
+```text
+Bearer USER_1_TOKEN
+```
+
+### Body
+
+```json
+{
+  "title": "Test Soft Delete",
+  "description": "Testing trash feature",
+  "status": "pending",
+  "assignedTo": "USER_2_ID"
+}
+```
+
+Copy the returned Todo `_id`.
+
+---
+
+## 7. Check Todo
+
+```http
+GET /api/todos
+```
+
+Authorization:
+
+```text
+Bearer USER_1_TOKEN
+```
+
+The Todo should appear.
+
+---
+
+## 8. Delete Todo
+
+```http
+DELETE /api/todos/TODO_ID
+```
+
+Authorization:
+
+```text
+Bearer USER_1_TOKEN
+```
+
+Expected:
+
+```json
+{
+  "success": true,
+  "message": "Todo moved to trash successfully"
+}
+```
+
+---
+
+## 9. Check Normal Todo List
+
+```http
+GET /api/todos
+```
+
+The deleted Todo should not appear.
+
+This confirms soft delete is working.
+
+---
+
+# Admin Testing
+
+## 10. Create Admin User
+
+Register a normal user:
+
+```http
+POST /api/auth/register
+```
+
+```json
+{
+  "name": "Admin User",
+  "email": "admin@test.com",
+  "password": "123456"
+}
+```
+
+The new user starts with:
+
+```text
+role = user
+```
+
+Change the user's role to:
+
+```text
+role = admin
+```
+
+using your existing admin/user-role process or directly in MongoDB for testing.
+
+---
+
+## 11. Login Admin
+
+```http
+POST /api/auth/login
+```
+
+### Body
+
+```json
+{
+  "email": "admin@test.com",
+  "password": "123456"
+}
+```
+
+Copy the returned admin token.
+
+---
+
+## 12. Get Trash
+
+```http
+GET /api/admin/todos/trash
+```
+
+Authorization:
+
+```text
+Bearer ADMIN_TOKEN
+```
+
+The previously deleted Todo should appear.
+
+---
+
+## 13. Restore Todo
+
+```http
+PATCH /api/admin/todos/TODO_ID/restore
+```
+
+Authorization:
+
+```text
+Bearer ADMIN_TOKEN
+```
+
+Expected:
+
+```json
+{
+  "success": true,
+  "message": "Todo restored successfully"
+}
+```
+
+---
+
+## 14. Check Trash Again
+
+```http
+GET /api/admin/todos/trash
+```
+
+The restored Todo should no longer appear in Trash.
+
+---
+
+## 15. Check Normal Todos
+
+```http
+GET /api/todos
+```
+
+The restored Todo should appear again.
+
+---
+
+# Complete Soft Delete Testing Flow
+
+```text
+Register User
+       ↓
+Login User
+       ↓
+Create Todo
+       ↓
+GET /api/todos
+       ↓
+DELETE /api/todos/:id
+       ↓
+GET /api/todos
+       ↓
+Todo disappears
+       ↓
+Login Admin
+       ↓
+GET /api/admin/todos/trash
+       ↓
+Deleted Todo appears
+       ↓
+PATCH /api/admin/todos/:id/restore
+       ↓
+GET /api/admin/todos/trash
+       ↓
+Todo disappears from Trash
+       ↓
+GET /api/todos
+       ↓
+Restored Todo appears
 ```
 
 ---
@@ -454,23 +1165,27 @@ GET /api/admin/users
 
 The API validates:
 
-- Required title
-- Valid Todo ID
-- Valid assigned user ID
-- Assigned user exists
-- Valid Todo status
-- Valid page number
-- Valid limit
-- Maximum limit of 100
-- Valid sorting value
-- JWT authentication
-- Todo ownership
-- Todo assignment access
-- Admin permissions
+* Required title
+* Valid Todo ID
+* Valid assigned user ID
+* Assigned user exists
+* Valid Todo status
+* Valid page number
+* Valid limit
+* Maximum limit of 100
+* Valid sorting value
+* JWT authentication
+* Todo ownership
+* Todo assignment access
+* Admin permissions
+* Soft-delete state
+* Restore state
 
-## Invalid Query Examples
+---
 
-### Invalid Page
+# Invalid Query Examples
+
+## Invalid Page
 
 ```http
 GET /api/todos?page=0
@@ -484,7 +1199,7 @@ GET /api/todos?page=-1
 GET /api/todos?page=abc
 ```
 
-### Invalid Limit
+## Invalid Limit
 
 ```http
 GET /api/todos?limit=0
@@ -498,249 +1213,102 @@ GET /api/todos?limit=101
 GET /api/todos?limit=abc
 ```
 
-### Invalid Status
+## Invalid Status
 
 ```http
 GET /api/todos?status=invalid
 ```
 
-### Invalid Sort
+## Invalid Sort
 
 ```http
 GET /api/todos?sort=random
 ```
 
-Invalid requests should return an appropriate validation error.
-
 ---
 
-# Postman Testing Guide
+# Security and Authorization
 
-## Step 1: Create User One
-
-```http
-POST /api/auth/register
-```
-
-```json
-{
-  "name": "User One",
-  "email": "user1@test.com",
-  "password": "123456"
-}
-```
-
----
-
-## Step 2: Create User Two
+Protected APIs require:
 
 ```http
-POST /api/auth/register
+Authorization: Bearer YOUR_JWT_TOKEN
 ```
 
-```json
-{
-  "name": "User Two",
-  "email": "user2@test.com",
-  "password": "123456"
-}
-```
-
----
-
-## Step 3: Login User One
-
-```http
-POST /api/auth/login
-```
-
-```json
-{
-  "email": "user1@test.com",
-  "password": "123456"
-}
-```
-
-Copy the returned JWT token.
-
-Save it as:
+Admin APIs require:
 
 ```text
-user1Token
+JWT token
++
+role = admin
 ```
 
----
-
-## Step 4: Login User Two
+Normal users cannot access:
 
 ```http
-POST /api/auth/login
+GET /api/admin/todos/trash
 ```
 
-```json
-{
-  "email": "user2@test.com",
-  "password": "123456"
-}
-```
-
-Save the returned token as:
-
-```text
-user2Token
-```
-
----
-
-## Step 5: Get User Two ID
-
-Use:
+or:
 
 ```http
-GET /api/profile
+PATCH /api/admin/todos/:id/restore
 ```
-
-Authorization:
-
-```text
-Bearer Token
-{{user2Token}}
-```
-
-Copy the returned `_id`.
 
 ---
 
-## Step 6: Create Test Todos
+# API Summary
 
-Login as User One and use:
+| Method | Endpoint                       | Description            |
+| ------ | ------------------------------ | ---------------------- |
+| POST   | `/api/auth/register`           | Register user          |
+| POST   | `/api/auth/login`              | Login user             |
+| POST   | `/api/auth/logout`             | Logout user            |
+| GET    | `/api/profile`                 | Get logged-in user     |
+| POST   | `/api/todos`                   | Create Todo            |
+| GET    | `/api/todos`                   | Get active Todos       |
+| GET    | `/api/todos/stats`             | Get Todo statistics    |
+| GET    | `/api/todos/:id`               | Get active Todo by ID  |
+| PUT    | `/api/todos/:id`               | Update Todo            |
+| PATCH  | `/api/todos/:id`               | Update Todo            |
+| PATCH  | `/api/todos/:id/status`        | Update Todo status     |
+| DELETE | `/api/todos/:id`               | Soft-delete Todo       |
+| GET    | `/api/admin/users`             | Get all users          |
+| GET    | `/api/admin/todos`             | Get all active Todos   |
+| GET    | `/api/admin/todos/:id`         | Get any active Todo    |
+| PUT    | `/api/admin/todos/:id`         | Admin update Todo      |
+| PATCH  | `/api/admin/todos/:id`         | Admin update Todo      |
+| DELETE | `/api/admin/todos/:id`         | Admin soft-delete Todo |
+| GET    | `/api/admin/todos/trash`       | Get deleted Todos      |
+| PATCH  | `/api/admin/todos/:id/restore` | Restore deleted Todo   |
 
-```text
-Authorization
-↓
-Bearer Token
-↓
-{{user1Token}}
-```
+---
 
-Create multiple Todos with different:
+# Query Parameters
 
-- Titles
-- Descriptions
-- Statuses
+| Parameter    | Example               | Description                  |
+| ------------ | --------------------- | ---------------------------- |
+| `search`     | `?search=meeting`     | Search title and description |
+| `status`     | `?status=pending`     | Filter by status             |
+| `createdBy`  | `?createdBy=USER_ID`  | Filter by creator            |
+| `assignedTo` | `?assignedTo=USER_ID` | Filter by assigned user      |
+| `page`       | `?page=1`             | Current page                 |
+| `limit`      | `?limit=10`           | Results per page             |
+| `sort`       | `?sort=newest`        | Sort newest or oldest        |
+
+All supported parameters can be combined.
 
 Example:
-
-```json
-{
-  "title": "Team Meeting",
-  "description": "Discuss the new project",
-  "status": "pending",
-  "assignedTo": "USER_TWO_ID"
-}
-```
-
-Create enough Todos to test pagination.
-
----
-
-# Testing Checklist
-
-## Authentication
-
-- [ ] Register User One
-- [ ] Register User Two
-- [ ] Login User One
-- [ ] Login User Two
-- [ ] Get User Two ID
-
-## Todo Creation
-
-- [ ] Create pending Todo
-- [ ] Create in-progress Todo
-- [ ] Create completed Todo
-- [ ] Assign Todo to another user
-- [ ] Create Todo with searchable text in description
-
-## Search
-
-```http
-GET /api/todos?search=meeting
-```
-
-- [ ] Search by title
-- [ ] Search by description
-
-## Status Filter
-
-```http
-GET /api/todos?status=pending
-```
-
-- [ ] Pending
-- [ ] In Progress
-- [ ] Completed
-
-## Pagination
-
-```http
-GET /api/todos?page=1&limit=2
-```
-
-- [ ] Test page 1
-- [ ] Test page 2
-- [ ] Test different limit values
-
-## Sorting
-
-```http
-GET /api/todos?sort=newest
-```
-
-- [ ] Newest
-- [ ] Oldest
-
-## Combined Filters
-
-### Search + Status
-
-```http
-GET /api/todos?search=meeting&status=pending
-```
-
-### Search + Pagination
-
-```http
-GET /api/todos?search=meeting&page=1&limit=1
-```
-
-### All Filters
 
 ```http
 GET /api/todos?search=meeting&status=pending&page=1&limit=10&sort=newest
 ```
 
-- [ ] Search + Status
-- [ ] Search + Pagination
-- [ ] All filters together
+Trash example:
 
-## Validation
-
-- [ ] Invalid status
-- [ ] Invalid page = 0
-- [ ] Invalid page = -1
-- [ ] Invalid page = abc
-- [ ] Invalid limit = 0
-- [ ] Invalid limit = abc
-- [ ] Limit greater than 100
-- [ ] Invalid sort
-
-## Permissions
-
-- [ ] User can see Todos created by them
-- [ ] User can see Todos assigned to them
-- [ ] User cannot see unrelated users' Todos
-- [ ] Admin can access all Todos
+```http
+GET /api/admin/todos/trash?search=meeting&status=pending&page=1&limit=10&sort=newest
+```
 
 ---
 
@@ -754,56 +1322,44 @@ npm test
 
 ---
 
-# API Summary
+# Development
 
-| Method | Endpoint | Description |
-|---|---|---|
-| POST | `/api/auth/register` | Register user |
-| POST | `/api/auth/login` | Login user |
-| GET | `/api/profile` | Get logged-in user profile |
-| POST | `/api/todos` | Create Todo |
-| GET | `/api/todos` | Get Todos with search, filter, pagination and sorting |
-| GET | `/api/todos/stats` | Get Todo statistics |
-| GET | `/api/todos/:id` | Get Todo by ID |
-| PUT | `/api/todos/:id` | Update Todo |
-| PATCH | `/api/todos/:id` | Update Todo |
-| PATCH | `/api/todos/:id/status` | Update Todo status |
-| DELETE | `/api/todos/:id` | Delete Todo |
-| GET | `/api/admin/users` | Get users for admin access |
+Start the project in development mode:
+
+```bash
+npm run dev
+```
+
+Nodemon automatically restarts the server when project files change.
 
 ---
 
-# Query Parameters
+# Production
 
-| Parameter | Example | Description |
-|---|---|---|
-| `search` | `?search=meeting` | Search title and description |
-| `status` | `?status=pending` | Filter by status |
-| `page` | `?page=1` | Current page |
-| `limit` | `?limit=10` | Results per page |
-| `sort` | `?sort=newest` | Sort newest or oldest |
+Start the project with:
 
-All parameters can be combined:
-
-```http
-GET /api/todos?search=meeting&status=pending&page=1&limit=10&sort=newest
+```bash
+npm start
 ```
 
 ---
 
 # Author
 
-Todo Management REST API project built with:
+Todo Management REST API built with:
 
-- Node.js
-- Express.js
-- MongoDB
-- Mongoose
-- JWT Authentication
-- Role-Based Authorization
-- Todo Ownership
-- Todo Assignment
-- Search
-- Filtering
-- Pagination
-- Sorting
+* Node.js
+* Express.js
+* MongoDB
+* Mongoose
+* JWT Authentication
+* Role-Based Authorization
+* Todo Ownership
+* Todo Assignment
+* Search
+* Filtering
+* Pagination
+* Sorting
+* Soft Delete
+* Trash
+* Restore

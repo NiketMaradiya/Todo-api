@@ -229,20 +229,21 @@ const getTodos = async (req, res) => {
     // Authorization / User Scope
     // ==========================================
 
-    let filter = {};
+    // Normal Todo APIs must exclude soft-deleted todos.
+    let filter = {
+      isDeleted: false,
+    };
 
-    // Admin can see all todos
+    // Admin can see all active todos
     if (req.user.role !== "admin") {
-      filter = {
-        $or: [
-          {
-            createdBy: req.user._id,
-          },
-          {
-            assignedTo: req.user._id,
-          },
-        ],
-      };
+      filter.$or = [
+        {
+          createdBy: req.user._id,
+        },
+        {
+          assignedTo: req.user._id,
+        },
+      ];
     }
 
     // ==========================================
@@ -277,13 +278,19 @@ const getTodos = async (req, res) => {
         filter = {
           $and: [
             {
+              isDeleted: false,
+            },
+            {
               $or: filter.$or,
             },
             searchFilter,
           ],
         };
       } else {
-        filter = searchFilter;
+        filter = {
+          isDeleted: false,
+          ...searchFilter,
+        };
       }
     }
 
@@ -382,7 +389,10 @@ const getTodoStats = async (
   res
 ) => {
   try {
-    let matchFilter = {};
+    // Soft-deleted todos are excluded from normal statistics.
+    let matchFilter = {
+      isDeleted: false,
+    };
 
     // Normal user scope
     if (req.user.role !== "admin") {
@@ -391,16 +401,14 @@ const getTodoStats = async (
           req.user._id
         );
 
-      matchFilter = {
-        $or: [
-          {
-            createdBy: userId,
-          },
-          {
-            assignedTo: userId,
-          },
-        ],
-      };
+      matchFilter.$or = [
+        {
+          createdBy: userId,
+        },
+        {
+          assignedTo: userId,
+        },
+      ];
     }
 
     const result =
@@ -516,6 +524,7 @@ const getTodoById = async (
 
     let filter = {
       _id: id,
+      isDeleted: false,
     };
 
     if (req.user.role !== "admin") {
@@ -607,6 +616,7 @@ const updateTodo = async (req, res) => {
 
     let filter = {
       _id: id,
+      isDeleted: false,
     };
 
     // Normal user can update only own created todo
@@ -777,6 +787,7 @@ const updateTodoStatus = async (
 
     let filter = {
       _id: id,
+      isDeleted: false,
     };
 
     if (req.user.role !== "admin") {
@@ -845,6 +856,7 @@ const deleteTodo = async (req, res) => {
 
     let filter = {
       _id: id,
+      isDeleted: false,
     };
 
     if (req.user.role !== "admin") {
@@ -853,9 +865,7 @@ const deleteTodo = async (req, res) => {
     }
 
     const todo =
-      await Todo.findOneAndDelete(
-        filter
-      );
+      await Todo.findOne(filter);
 
     if (!todo) {
       return res.status(404).json({
@@ -865,10 +875,16 @@ const deleteTodo = async (req, res) => {
       });
     }
 
+    // Soft Delete
+    todo.isDeleted = true;
+    todo.deletedAt = new Date();
+
+    await todo.save();
+
     res.status(200).json({
       success: true,
       message:
-        "Todo deleted successfully",
+        "Todo moved to trash successfully",
     });
   } catch (error) {
     res.status(500).json({

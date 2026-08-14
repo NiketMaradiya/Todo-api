@@ -30,10 +30,7 @@ router.put("/:id", updateTodo);
 
 router.patch("/:id", updateTodo);
 
-router.patch(
-  "/:id/status",
-  updateTodoStatus
-);
+router.patch("/:id/status",updateTodoStatus);
 
 router.delete("/:id", deleteTodo);
 

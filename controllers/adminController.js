@@ -79,15 +79,15 @@ const getAllTodos = async (req, res) => {
     if (status) {
       if (
         ![
-          "todo",
-          "inprogress",
-          "complate",
+          "pending",
+          "in-progress",
+          "completed",
         ].includes(status)
       ) {
         return res.status(400).json({
           success: false,
           message:
-            "Status must be todo, inprogress or complate",
+            "Status must be pending, in-progress or completed",
         });
       }
 
@@ -315,15 +315,15 @@ const updateAdminTodo = async (
     if (status !== undefined) {
       if (
         ![
-          "todo",
-          "inprogress",
-          "complate",
+          "pending",
+          "in-progress",
+          "completed",
         ].includes(status)
       ) {
         return res.status(400).json({
           success: false,
           message:
-            "Status must be todo, inprogress or complate",
+            "Status must be pending, in-progress or completed",
         });
       }
 

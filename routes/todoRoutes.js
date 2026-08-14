@@ -18,43 +18,89 @@ const {
   uploadAttachment,
 } = require("../middleware/uploadMiddleware");
 
-const router = express.Router();
+const router =
+  express.Router();
 
 router.use(protect);
 
-// Create Todo with optional attachment.
-// File field name: attachment
+// ==========================================
+// Create Todo
+// Optional attachment
+// Field name: attachment
+// ==========================================
+
 router.post(
   "/",
-  uploadAttachment.single("attachment"),
+  uploadAttachment.single(
+    "attachment"
+  ),
   createTodo
 );
 
-router.get("/", getTodos);
+// ==========================================
+// Get Todos
+// ==========================================
 
-router.get("/stats", getTodoStats);
+router.get(
+  "/",
+  getTodos
+);
 
-router.get("/:id", getTodoById);
+// ==========================================
+// Todo Statistics
+// ==========================================
 
-// Update Todo with optional attachment.
-// PUT and PATCH both support multipart/form-data.
+router.get(
+  "/stats",
+  getTodoStats
+);
+
+// ==========================================
+// Get Todo By ID
+// ==========================================
+
+router.get(
+  "/:id",
+  getTodoById
+);
+
+// ==========================================
+// Update Todo
+// Optional attachment
+// ==========================================
+
 router.put(
   "/:id",
-  uploadAttachment.single("attachment"),
+  uploadAttachment.single(
+    "attachment"
+  ),
   updateTodo
 );
 
 router.patch(
   "/:id",
-  uploadAttachment.single("attachment"),
+  uploadAttachment.single(
+    "attachment"
+  ),
   updateTodo
 );
+
+// ==========================================
+// Update Todo Status
+// ==========================================
 
 router.patch(
   "/:id/status",
   updateTodoStatus
 );
 
-router.delete("/:id", deleteTodo);
+// ==========================================
+// Delete Todo
+// ==========================================
+
+router.delete(
+  "/:id",
+  deleteTodo
+);
 
 module.exports = router;

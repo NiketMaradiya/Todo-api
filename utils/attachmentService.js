@@ -1,31 +1,13 @@
-const fs = require("fs/promises");
-const path = require("path");
-const crypto = require("crypto");
-
 const {
   cloudinary,
   isCloudinaryConfigured,
 } = require("../config/cloudinary");
 
-const UPLOAD_DIR = path.join(
-  process.cwd(),
-  "public",
-  "uploads"
-);
+// ==========================================
+// Upload Any Attachment To Cloudinary
+// ==========================================
 
-const IMAGE_MIME_TYPES = new Set([
-  "image/jpeg",
-  "image/png",
-  "image/webp",
-]);
-
-const ensureUploadDirectory = async () => {
-  await fs.mkdir(UPLOAD_DIR, {
-    recursive: true,
-  });
-};
-
-const uploadImageToCloudinary = (
+const uploadAttachmentToCloudinary = (
   file
 ) => {
   return new Promise(
@@ -35,8 +17,13 @@ const uploadImageToCloudinary = (
           {
             folder:
               "todo-api/attachments",
-            resource_type: "image",
+
+            // Cloudinary automatically detects
+            // whether the file is an image,
+            // PDF or another supported document.
+            resource_type: "auto",
           },
+
           (error, result) => {
             if (error) {
               return reject(error);
@@ -62,6 +49,8 @@ const uploadImageToCloudinary = (
         reject
       );
 
+      // Multer uses memoryStorage(),
+      // so file.buffer contains the uploaded file.
       uploadStream.end(
         file.buffer
       );
@@ -69,33 +58,9 @@ const uploadImageToCloudinary = (
   );
 };
 
-const saveDocumentLocally = async (
-  file
-) => {
-  await ensureUploadDirectory();
-
-  const extension = path
-    .extname(file.originalname)
-    .toLowerCase();
-
-  const randomName = `${Date.now()}-${crypto
-    .randomBytes(12)
-    .toString(
-      "hex"
-    )}${extension}`;
-
-  const filePath = path.join(
-    UPLOAD_DIR,
-    randomName
-  );
-
-  await fs.writeFile(
-    filePath,
-    file.buffer
-  );
-
-  return `/uploads/${randomName}`;
-};
+// ==========================================
+// Main Attachment Function
+// ==========================================
 
 const uploadAttachmentFile = async (
   file
@@ -104,32 +69,22 @@ const uploadAttachmentFile = async (
     return null;
   }
 
-  // Images -> Cloudinary
+  // Check Cloudinary configuration.
   if (
-    IMAGE_MIME_TYPES.has(
-      file.mimetype
-    )
+    !isCloudinaryConfigured()
   ) {
-    if (
-      !isCloudinaryConfigured()
-    ) {
-      throw new Error(
-        "Cloudinary is not configured. Add your real CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY and CLOUDINARY_API_SECRET values to .env"
-      );
-    }
-
-    const result =
-      await uploadImageToCloudinary(
-        file
-      );
-
-    return result.secure_url;
+    throw new Error(
+      "Cloudinary is not configured. Add your real CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY and CLOUDINARY_API_SECRET values to .env"
+    );
   }
 
-  // PDF/DOC/DOCX -> local public/uploads
-  return saveDocumentLocally(
-    file
-  );
+  // Upload ALL supported files to Cloudinary.
+  const result =
+    await uploadAttachmentToCloudinary(
+      file
+    );
+
+  return result.secure_url;
 };
 
 module.exports = {

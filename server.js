@@ -2,7 +2,6 @@ require("dotenv").config();
 
 const express = require("express");
 const cors = require("cors");
-const path = require("path");
 
 const connectDB = require("./config/db");
 
@@ -15,25 +14,25 @@ const {
   errorHandler,
 } = require("./middleware/errorMiddleware");
 
-const app = express();
+const app =
+  express();
 
-app.use(cors());
+// ==========================================
+// Global Middleware
+// ==========================================
 
-app.use(express.json());
-
-// Serve locally stored documents.
 app.use(
-  "/uploads",
-  express.static(
-    path.join(
-      __dirname,
-      "public",
-      "uploads"
-    )
-  )
+  cors()
 );
 
-// API routes
+app.use(
+  express.json()
+);
+
+// ==========================================
+// Routes
+// ==========================================
+
 app.use(
   "/api/auth",
   authRoutes
@@ -49,40 +48,68 @@ app.use(
   adminRoutes
 );
 
-// Health check
-app.get("/", (req, res) => {
-  res.status(200).json({
-    success: true,
-    message: "Todo API is running",
-  });
-});
+// ==========================================
+// Health Check
+// ==========================================
 
-app.use(notFound);
-app.use(errorHandler);
+app.get(
+  "/",
+  (req, res) => {
+    res.status(200).json({
+      success: true,
+      message:
+        "Todo API is running",
+    });
+  }
+);
 
-if (require.main === module) {
+// ==========================================
+// Error Handling
+// ==========================================
+
+app.use(
+  notFound
+);
+
+app.use(
+  errorHandler
+);
+
+// ==========================================
+// Start Server
+// ==========================================
+
+if (
+  require.main === module
+) {
   const PORT =
-    process.env.PORT || 5000;
+    process.env.PORT ||
+    5000;
 
   connectDB()
     .then(() => {
-      app.listen(PORT, () => {
-        console.log(
-          `Server running on port ${PORT}`
-        );
-      });
+      app.listen(
+        PORT,
+        () => {
+          console.log(
+            `Server running on port ${PORT}`
+          );
+        }
+      );
     })
-    .catch((error) => {
-      console.error(
-        "Server startup failed:"
-      );
+    .catch(
+      (error) => {
+        console.error(
+          "Server startup failed:"
+        );
 
-      console.error(
-        error.message
-      );
+        console.error(
+          error.message
+        );
 
-      process.exit(1);
-    });
+        process.exit(1);
+      }
+    );
 }
 
 module.exports = app;

@@ -1,44 +1,88 @@
 const multer = require("multer");
 const path = require("path");
 
-// Maximum attachment size: 5 MB
-const MAX_FILE_SIZE = 5 * 1024 * 1024;
+// ==========================================
+// Maximum Attachment Size
+// ==========================================
 
-// Supported file extensions.
-const allowedExtensions = new Set([
-  ".jpg",
-  ".jpeg",
-  ".png",
-  ".webp",
-  ".pdf",
-  ".doc",
-  ".docx",
-]);
+const MAX_FILE_SIZE =
+  5 * 1024 * 1024;
 
-// Supported MIME types.
-const allowedMimeTypes = new Set([
-  "image/jpeg",
-  "image/png",
-  "image/webp",
-  "application/pdf",
-  "application/msword",
-  "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-]);
+// ==========================================
+// Allowed File Extensions
+// ==========================================
 
-const storage = multer.memoryStorage();
+const allowedExtensions =
+  new Set([
+    ".jpg",
+    ".jpeg",
+    ".png",
+    ".webp",
+    ".pdf",
+    ".doc",
+    ".docx",
+  ]);
 
-const fileFilter = (req, file, cb) => {
-  const extension = path.extname(file.originalname).toLowerCase();
+// ==========================================
+// Allowed MIME Types
+// ==========================================
+
+const allowedMimeTypes =
+  new Set([
+    "image/jpeg",
+    "image/png",
+    "image/webp",
+    "application/pdf",
+    "application/msword",
+    "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+  ]);
+
+// ==========================================
+// Multer Storage
+// ==========================================
+//
+// Keep uploaded file in memory temporarily.
+// The file will then be sent to Cloudinary.
+//
+
+const storage =
+  multer.memoryStorage();
+
+// ==========================================
+// File Validation
+// ==========================================
+
+const fileFilter = (
+  req,
+  file,
+  cb
+) => {
+  const extension = path
+    .extname(
+      file.originalname
+    )
+    .toLowerCase();
+
+  const isValidExtension =
+    allowedExtensions.has(
+      extension
+    );
+
+  const isValidMimeType =
+    allowedMimeTypes.has(
+      file.mimetype
+    );
 
   if (
-    !allowedExtensions.has(extension) ||
-    !allowedMimeTypes.has(file.mimetype)
+    !isValidExtension ||
+    !isValidMimeType
   ) {
     const error = new Error(
       "Unsupported file type. Allowed: JPG, JPEG, PNG, WEBP, PDF, DOC and DOCX"
     );
 
-    error.code = "UNSUPPORTED_FILE_TYPE";
+    error.code =
+      "UNSUPPORTED_FILE_TYPE";
 
     return cb(error);
   }
@@ -46,14 +90,23 @@ const fileFilter = (req, file, cb) => {
   cb(null, true);
 };
 
-const uploadAttachment = multer({
-  storage,
-  limits: {
-    fileSize: MAX_FILE_SIZE,
-    files: 1,
-  },
-  fileFilter,
-});
+// ==========================================
+// Multer Upload Configuration
+// ==========================================
+
+const uploadAttachment =
+  multer({
+    storage,
+
+    limits: {
+      fileSize:
+        MAX_FILE_SIZE,
+
+      files: 1,
+    },
+
+    fileFilter,
+  });
 
 module.exports = {
   uploadAttachment,

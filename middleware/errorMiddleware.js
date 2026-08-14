@@ -1,18 +1,27 @@
 const multer = require("multer");
 
+// ==========================================
+// 404 Handler
+// ==========================================
+
 const notFound = (
   req,
   res,
   next
 ) => {
-  const error = new Error(
-    `Route not found: ${req.method} ${req.originalUrl}`
-  );
+  const error =
+    new Error(
+      `Route not found: ${req.method} ${req.originalUrl}`
+    );
 
   res.status(404);
 
   next(error);
 };
+
+// ==========================================
+// Global Error Handler
+// ==========================================
 
 const errorHandler = (
   err,
@@ -20,11 +29,14 @@ const errorHandler = (
   res,
   next
 ) => {
-  console.error(err);
+  console.error(
+    err
+  );
 
   let statusCode =
     res.statusCode &&
-    res.statusCode !== 200
+    res.statusCode !==
+      200
       ? res.statusCode
       : 500;
 
@@ -32,9 +44,13 @@ const errorHandler = (
     err.message ||
     "Internal Server Error";
 
-  // Multer errors
+  // ==========================================
+  // Multer Errors
+  // ==========================================
+
   if (
-    err instanceof multer.MulterError
+    err instanceof
+    multer.MulterError
   ) {
     if (
       err.code ===
@@ -65,7 +81,10 @@ const errorHandler = (
     }
   }
 
-  // Custom unsupported file type
+  // ==========================================
+  // Unsupported File Type
+  // ==========================================
+
   if (
     err.code ===
     "UNSUPPORTED_FILE_TYPE"
@@ -76,7 +95,10 @@ const errorHandler = (
       "Unsupported file type. Allowed: JPG, JPEG, PNG, WEBP, PDF, DOC and DOCX";
   }
 
-  // Mongoose errors
+  // ==========================================
+  // Mongoose Errors
+  // ==========================================
+
   if (
     err.name ===
     "ValidationError"
@@ -91,14 +113,24 @@ const errorHandler = (
     statusCode = 400;
   }
 
-  if (err.code === 11000) {
+  if (
+    err.code === 11000
+  ) {
     statusCode = 400;
   }
 
-  res.status(statusCode).json({
-    success: false,
-    message,
-  });
+  // ==========================================
+  // Response
+  // ==========================================
+
+  res
+    .status(
+      statusCode
+    )
+    .json({
+      success: false,
+      message,
+    });
 };
 
 module.exports = {

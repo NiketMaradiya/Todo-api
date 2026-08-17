@@ -46,6 +46,21 @@ const todoSchema =
         default: "pending",
       },
 
+      priority: {
+        type: String,
+        enum: [
+          "low",
+          "medium",
+          "high",
+        ],
+        default: "medium",
+      },
+
+      dueDate: {
+        type: Date,
+        default: null,
+      },
+
       // Soft Delete Fields
       isDeleted: {
         type: Boolean,

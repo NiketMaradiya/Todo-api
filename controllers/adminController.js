@@ -247,19 +247,25 @@ const updateAdminTodo = async (
   res
 ) => {
   try {
-    const { id } = req.params;
+    const { id } =
+      req.params;
 
     const {
       title,
       description,
       status,
+      priority,
+      dueDate,
       assignedTo,
     } = req.body;
 
-    if (!isValidId(id)) {
+    if (
+      !isValidId(id)
+    ) {
       return res.status(400).json({
         success: false,
-        message: "Invalid Todo ID",
+        message:
+          "Invalid Todo ID",
       });
     }
 
@@ -267,31 +273,38 @@ const updateAdminTodo = async (
       title === undefined &&
       description === undefined &&
       status === undefined &&
+      priority === undefined &&
+      dueDate === undefined &&
       assignedTo === undefined
     ) {
       return res.status(400).json({
         success: false,
         message:
-          "Please provide title, description, status or assignedTo",
+          "Please provide title, description, status, priority, dueDate or assignedTo",
       });
     }
 
-    const todo = await Todo.findOne({
-      _id: id,
-      isDeleted: false,
-    });
+    const todo =
+      await Todo.findOne({
+        _id: id,
+        isDeleted: false,
+      });
 
     if (!todo) {
       return res.status(404).json({
         success: false,
-        message: "Todo not found",
+        message:
+          "Todo not found",
       });
     }
 
     // Update title
-    if (title !== undefined) {
+    if (
+      title !== undefined
+    ) {
       if (
-        typeof title !== "string" ||
+        typeof title !==
+          "string" ||
         !title.trim()
       ) {
         return res.status(400).json({
@@ -301,13 +314,17 @@ const updateAdminTodo = async (
         });
       }
 
-      todo.title = title.trim();
+      todo.title =
+        title.trim();
     }
 
     // Update description
-    if (description !== undefined) {
+    if (
+      description !== undefined
+    ) {
       if (
-        typeof description !== "string"
+        typeof description !==
+          "string"
       ) {
         return res.status(400).json({
           success: false,
@@ -321,13 +338,16 @@ const updateAdminTodo = async (
     }
 
     // Update status
-    if (status !== undefined) {
+    if (
+      status !== undefined
+    ) {
       if (
         [
           "pending",
           "in-progress",
           "completed",
-        ].includes(status) === false
+        ].includes(status) ===
+        false
       ) {
         return res.status(400).json({
           success: false,
@@ -336,31 +356,98 @@ const updateAdminTodo = async (
         });
       }
 
-      todo.status = status;
+      todo.status =
+        status;
     }
 
-    // Update assigned user
-    if (assignedTo !== undefined) {
-      if (!isValidId(assignedTo)) {
+    // Update priority
+    if (
+      priority !== undefined
+    ) {
+      if (
+        ![
+          "low",
+          "medium",
+          "high",
+        ].includes(priority)
+      ) {
         return res.status(400).json({
           success: false,
           message:
-            "Invalid assigned user ID",
+            "Priority must be low, medium or high",
         });
       }
 
-      const assignedUser =
-        await User.findById(assignedTo);
+      todo.priority =
+        priority;
+    }
 
-      if (!assignedUser) {
-        return res.status(404).json({
+    // Update due date
+    if (
+      dueDate !== undefined
+    ) {
+      if (
+        dueDate === null ||
+        dueDate === ""
+      ) {
+        todo.dueDate =
+          null;
+      } else if (
+        Number.isNaN(
+          new Date(
+            dueDate
+          ).getTime()
+        )
+      ) {
+        return res.status(400).json({
           success: false,
           message:
-            "Assigned user not found",
+            "Invalid due date",
         });
+      } else {
+        todo.dueDate =
+          new Date(dueDate);
       }
+    }
 
-      todo.assignedTo = assignedTo;
+    // Update assigned user
+    if (
+      assignedTo !== undefined
+    ) {
+      if (
+        assignedTo === null
+      ) {
+        todo.assignedTo =
+          null;
+      } else {
+        if (
+          !isValidId(
+            assignedTo
+          )
+        ) {
+          return res.status(400).json({
+            success: false,
+            message:
+              "Invalid assigned user ID",
+          });
+        }
+
+        const assignedUser =
+          await User.findById(
+            assignedTo
+          );
+
+        if (!assignedUser) {
+          return res.status(404).json({
+            success: false,
+            message:
+              "Assigned user not found",
+          });
+        }
+
+        todo.assignedTo =
+          assignedTo;
+      }
     }
 
     // IMPORTANT:
@@ -370,7 +457,9 @@ const updateAdminTodo = async (
     await todo.save();
 
     const updatedTodo =
-      await Todo.findById(todo._id)
+      await Todo.findById(
+        todo._id
+      )
         .populate(
           "createdBy",
           "name email role"
@@ -384,12 +473,14 @@ const updateAdminTodo = async (
       success: true,
       message:
         "Todo updated successfully by admin",
-      data: updatedTodo,
+      data:
+        updatedTodo,
     });
   } catch (error) {
     res.status(400).json({
       success: false,
-      message: error.message,
+      message:
+        error.message,
     });
   }
 };

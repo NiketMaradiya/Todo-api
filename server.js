@@ -1,46 +1,31 @@
 require("dotenv").config();
 
-const express =
-  require("express");
+const express = require("express");
+const cors = require("cors");
 
-const cors =
-  require("cors");
+const connectDB = require("./config/db");
 
-const connectDB =
-  require("./config/db");
-
-const authRoutes =
-  require("./routes/authRoutes");
-
-const todoRoutes =
-  require("./routes/todoRoutes");
-
-const adminRoutes =
-  require("./routes/adminRoutes");
-
-const notificationRoutes =
-  require(
-    "./routes/notificationRoutes"
-  );
+const authRoutes = require("./routes/authRoutes");
+const todoRoutes = require("./routes/todoRoutes");
+const adminRoutes = require("./routes/adminRoutes");
+const notificationRoutes = require(
+  "./routes/notificationRoutes"
+);
 
 const {
   notFound,
-
   errorHandler,
 } = require(
   "./middleware/errorMiddleware"
 );
 
-const app =
-  express();
+const app = express();
 
 // ==========================================
 // Global Middleware
 // ==========================================
 
-app.use(
-  cors()
-);
+app.use(cors());
 
 app.use(
   express.json()
@@ -50,25 +35,44 @@ app.use(
 // Routes
 // ==========================================
 
+// Authentication
 app.use(
   "/api/auth",
   authRoutes
 );
 
+// Todos
+//
+// Includes:
+// - Todo CRUD
+// - Comments
+// - Attachments
+// - Status
+// - Activity / Audit Log
+//
+// GET /api/todos/:id/activity
+//
 app.use(
   "/api/todos",
   todoRoutes
 );
 
+// Admin
+//
+// Includes:
+// - Admin users
+// - Admin Todo access
+// - Trash
+// - Restore
+//
+// PATCH /api/admin/todos/:id/restore
+//
 app.use(
   "/api/admin",
   adminRoutes
 );
 
-// ==========================================
-// Notification Routes
-// ==========================================
-
+// Notifications
 app.use(
   "/api/notifications",
   notificationRoutes
@@ -81,7 +85,7 @@ app.use(
 app.get(
   "/",
   (req, res) => {
-    res.status(200).json({
+    return res.status(200).json({
       success: true,
 
       message:
@@ -91,12 +95,16 @@ app.get(
 );
 
 // ==========================================
-// Error Handling
+// 404 Handler
 // ==========================================
 
 app.use(
   notFound
 );
+
+// ==========================================
+// Global Error Handler
+// ==========================================
 
 app.use(
   errorHandler
@@ -139,5 +147,4 @@ if (
     );
 }
 
-module.exports =
-  app;
+module.exports = app;

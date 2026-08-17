@@ -4,7 +4,7 @@ const {
 } = require("../config/cloudinary");
 
 // ==========================================
-// Upload Any Attachment To Cloudinary
+// Upload Attachment To Cloudinary
 // ==========================================
 
 const uploadAttachmentToCloudinary = (
@@ -12,16 +12,22 @@ const uploadAttachmentToCloudinary = (
 ) => {
   return new Promise(
     (resolve, reject) => {
+      if (!file || !file.buffer) {
+        return reject(
+          new Error(
+            "Invalid attachment file"
+          )
+        );
+      }
+
       const uploadStream =
         cloudinary.uploader.upload_stream(
           {
             folder:
               "todo-api/attachments",
 
-            // Cloudinary automatically detects
-            // whether the file is an image,
-            // PDF or another supported document.
-            resource_type: "auto",
+            resource_type:
+              "auto",
           },
 
           (error, result) => {
@@ -40,7 +46,27 @@ const uploadAttachmentToCloudinary = (
               );
             }
 
-            resolve(result);
+            resolve({
+              url:
+                result.secure_url,
+
+              public_id:
+                result.public_id ||
+                null,
+
+              resource_type:
+                result.resource_type ||
+                null,
+
+              format:
+                result.format ||
+                null,
+
+              original_filename:
+                result.original_filename ||
+                file.originalname ||
+                null,
+            });
           }
         );
 
@@ -49,8 +75,6 @@ const uploadAttachmentToCloudinary = (
         reject
       );
 
-      // Multer uses memoryStorage(),
-      // so file.buffer contains the uploaded file.
       uploadStream.end(
         file.buffer
       );
@@ -62,30 +86,26 @@ const uploadAttachmentToCloudinary = (
 // Main Attachment Function
 // ==========================================
 
-const uploadAttachmentFile = async (
-  file
-) => {
-  if (!file) {
-    return null;
-  }
+const uploadAttachmentFile =
+  async (file) => {
+    if (!file) {
+      throw new Error(
+        "Attachment file is required"
+      );
+    }
 
-  // Check Cloudinary configuration.
-  if (
-    !isCloudinaryConfigured()
-  ) {
-    throw new Error(
-      "Cloudinary is not configured. Add your real CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY and CLOUDINARY_API_SECRET values to .env"
-    );
-  }
+    if (
+      !isCloudinaryConfigured()
+    ) {
+      throw new Error(
+        "Cloudinary is not configured. Add your real CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY and CLOUDINARY_API_SECRET values to .env"
+      );
+    }
 
-  // Upload ALL supported files to Cloudinary.
-  const result =
-    await uploadAttachmentToCloudinary(
+    return await uploadAttachmentToCloudinary(
       file
     );
-
-  return result.secure_url;
-};
+  };
 
 module.exports = {
   uploadAttachmentFile,

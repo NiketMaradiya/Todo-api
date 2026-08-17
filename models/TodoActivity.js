@@ -1,5 +1,9 @@
 const mongoose = require("mongoose");
 
+// ==========================================
+// Todo Activity Schema
+// ==========================================
+
 const todoActivitySchema = new mongoose.Schema(
   {
     todoId: {
@@ -52,6 +56,13 @@ const todoActivitySchema = new mongoose.Schema(
   }
 );
 
+// ==========================================
+// Index
+//
+// Get activities for a Todo
+// newest first
+// ==========================================
+
 todoActivitySchema.index({
   todoId: 1,
   createdAt: -1,
@@ -60,4 +71,4 @@ todoActivitySchema.index({
 module.exports = mongoose.model(
   "TodoActivity",
   todoActivitySchema
-);  
+);

@@ -1,32 +1,12 @@
 # Todo API
 
-A complete RESTful Todo Management API built with **Node.js, Express.js, MongoDB, and Mongoose**.
+A complete **RESTful Todo Management API** built with **Node.js, Express.js, MongoDB, and Mongoose**.
 
-This project includes authentication, user roles, Todo CRUD, Todo assignment, due dates, priorities, soft delete, restore, Cloudinary attachments, comments, activity history, and a notification system.
-
----
-
-# 1. Project Overview
-
-The Todo API allows users to create and manage tasks.
-
-Users can create tasks, assign tasks to other users, set priorities and due dates, upload files, add comments, and track Todo activity.
-
-The system also includes notifications so users can be informed when important actions happen, such as:
-
-* A Todo is assigned to them
-* A Todo is updated
-* A Todo is completed
-* A comment is added
-* A due date is approaching
-* A Todo is deleted
-* A Todo is restored
-
-Admins have additional permissions to manage users, todos, deleted todos, and other administrative operations.
+This project supports user authentication, role-based authorization, todo assignment, due dates, priorities, comments, notifications, Cloudinary file attachments, soft delete functionality, and a complete activity/audit log system.
 
 ---
 
-# 2. Main Features
+# 🚀 Features
 
 ## Authentication
 
@@ -35,304 +15,137 @@ Admins have additional permissions to manage users, todos, deleted todos, and ot
 * User logout
 * JWT authentication
 * Password hashing using bcrypt
-* Protected API routes
-* User profile
+* Protected routes
+* User profile access
 
-## User Management
+## User Roles
 
-* User roles
-* Normal user
-* Admin user
-* Make user admin
-* Remove admin role
-* Admin user management
+The application supports two roles:
 
-## Todo Management
+* `user`
+* `admin`
 
-* Create Todo
-* Get Todo
-* Get all Todos
-* Update Todo
-* Delete Todo
-* Search Todos
-* Filter Todos
-* Pagination
-* Sorting
+### Normal User
 
-## Todo Assignment
+A normal user can:
 
-* Assign Todo to a user
-* Validate assigned user
-* Store creator
-* Store assigned user
-* Users can see their assigned Todos
-* Admin can see all Todos
-
-## Due Date
-
-* Add due date
-* Update due date
-* Track Todo deadlines
-
-## Priority
-
-Supported priorities:
-
-```text
-low
-medium
-high
-```
-
-Invalid priority values are rejected.
-
-## Soft Delete
-
-* Todo is not permanently removed
-* Deleted Todo is marked as deleted
-* Deleted Todo has deletion date
-* Deleted Todo does not appear in normal Todo lists
-* Admin can view trash
-* Admin can restore Todo
-
-## Attachments
-
-* Upload Todo attachments
-* Multer file handling
-* Cloudinary upload
-* Save Cloudinary URL
-* Associate attachment with Todo
-
-## Comments
-
+* Register and login
+* Create todos
+* View their own created todos
+* View todos assigned to them
+* Update authorized todos
 * Add comments
-* Get comments
-* Update comments
-* Delete comments
-* Associate comments with Todo and user
+* View comments
+* Upload attachments
+* View notifications
+* Mark notifications as read
+* View todo activity history
 
-## Activity History
+### Admin
 
-The application records important actions performed on Todos.
+An admin can:
 
-Examples:
-
-```text
-Todo created
-Todo updated
-Todo assigned
-Status changed
-Priority changed
-Due date changed
-Comment added
-Attachment uploaded
-Todo deleted
-Todo restored
-```
-
-## Notification System
-
-The application includes a notification system that informs users when important events happen.
-
-Notifications can be generated when:
-
-```text
-Todo is assigned
-Todo is updated
-Todo status changes
-Todo becomes completed
-Comment is added
-Todo is deleted
-Todo is restored
-Due date is approaching
-```
-
-Users can:
-
-* Get their notifications
-* See unread notifications
-* Mark one notification as read
-* Mark all notifications as read
-* Delete notifications
-* Check notification count
+* View all users
+* Change user roles
+* Make a user an admin
+* Remove admin role
+* View all todos
+* View deleted todos
+* Restore deleted todos
+* Manage users
+* Access system-level data according to authorization rules
 
 ---
 
-# 3. Technology Stack
+# 🛠 Technologies Used
 
-## Backend
-
-```text
-Node.js
-Express.js
-```
-
-## Database
-
-```text
-MongoDB
-Mongoose
-```
-
-## Authentication
-
-```text
-JSON Web Token
-bcrypt
-```
-
-## File Upload
-
-```text
-Multer
-Cloudinary
-```
-
-## Configuration
-
-```text
-dotenv
-```
-
-## Testing
-
-```text
-Jest
-Supertest
-```
-
-## Development
-
-```text
-Nodemon
-```
+* Node.js
+* Express.js
+* MongoDB
+* Mongoose
+* JWT
+* bcrypt
+* Multer
+* Cloudinary
+* dotenv
+* cors
+* Nodemon
+* Jest
+* Supertest
 
 ---
 
-# 4. Project Architecture
-
-The project follows a layered backend structure.
-
-```text
-Client / Postman
-        |
-        v
-      Routes
-        |
-        v
-   Middleware
-        |
-        v
-   Controllers
-        |
-        v
-     Models
-        |
-        v
-    MongoDB
-```
-
-For example:
-
-```text
-Postman
-   |
-   v
-todoRoutes.js
-   |
-   v
-authMiddleware.js
-   |
-   v
-todoController.js
-   |
-   v
-Todo.js
-   |
-   v
-MongoDB
-```
-
-Notification flow:
-
-```text
-Todo Action
-    |
-    v
-Controller
-    |
-    v
-Create Notification
-    |
-    v
-Notification Model
-    |
-    v
-MongoDB
-    |
-    v
-User Notification API
-```
-
----
-
-# 5. Project Folder Structure
+# 📁 Project Structure
 
 ```text
 todo-api/
 │
 ├── config/
-│   ├── db.js
-│   └── cloudinary.js
+│   └── db.js
 │
 ├── controllers/
-│   ├── authController.js
-│   ├── todoController.js
 │   ├── adminController.js
+│   ├── authController.js
 │   ├── commentController.js
-│   └── notificationController.js
+│   ├── notificationController.js
+│   ├── todoController.js
+│   └── todoActivityController.js
 │
 ├── middleware/
-│   ├── authMiddleware.js
 │   ├── adminMiddleware.js
+│   ├── authMiddleware.js
+│   ├── roleMiddleware.js
 │   └── uploadMiddleware.js
 │
 ├── models/
-│   ├── User.js
-│   ├── Todo.js
 │   ├── Comment.js
-│   ├── Activity.js
-│   └── Notification.js
+│   ├── Notification.js
+│   ├── Todo.js
+│   ├── TodoActivity.js
+│   └── User.js
 │
 ├── routes/
-│   ├── authRoutes.js
-│   ├── todoRoutes.js
 │   ├── adminRoutes.js
+│   ├── authRoutes.js
 │   ├── commentRoutes.js
-│   └── notificationRoutes.js
+│   ├── notificationRoutes.js
+│   ├── todoActivityRoutes.js
+│   └── todoRoutes.js
+│
+├── utils/
+│   ├── cloudinary.js
+│   └── createNotification.js
 │
 ├── tests/
+│   ├── auth.test.js
 │   └── todo.test.js
 │
 ├── .env
 ├── .gitignore
 ├── package.json
-├── package-lock.json
 ├── server.js
 └── README.md
 ```
 
+> Your exact folder/file names may be slightly different depending on your implementation.
+
 ---
 
-# 6. Installation
+# ⚙️ Installation
 
-Open the terminal inside the project directory.
+## 1. Clone the Project
+
+```bash
+git clone <your-repository-url>
+```
+
+## 2. Open the Project
 
 ```bash
 cd todo-api
 ```
 
-Install all dependencies:
+## 3. Install Dependencies
 
 ```bash
 npm install
@@ -340,107 +153,41 @@ npm install
 
 ---
 
-# 7. Environment Variables
+# 🔐 Environment Variables
 
-Create a file named:
-
-```text
-.env
-```
-
-Example:
+Create a `.env` file in the root folder.
 
 ```env
 PORT=5000
 
 MONGO_URI=mongodb://127.0.0.1:27017/todo-api
 
-JWT_SECRET=your_jwt_secret_key
+JWT_SECRET=your_super_secret_jwt_key
 
 CLOUDINARY_CLOUD_NAME=your_cloud_name
 CLOUDINARY_API_KEY=your_api_key
 CLOUDINARY_API_SECRET=your_api_secret
 ```
 
-Do not upload `.env` to GitHub.
-
-Add it to `.gitignore`:
-
-```text
-.env
-node_modules/
-```
+Do not upload your real `.env` file to GitHub.
 
 ---
 
-# 8. MongoDB Setup
+# ▶️ Run the Application
 
-Make sure MongoDB is running.
-
-For local MongoDB, the connection normally looks like:
-
-```text
-mongodb://127.0.0.1:27017/todo-api
-```
-
-The database name is:
-
-```text
-todo-api
-```
-
-Once the server starts successfully, the console should show a MongoDB connection message.
-
----
-
-# 9. Cloudinary Setup
-
-The project uses Cloudinary for Todo attachments.
-
-Create a Cloudinary account and get:
-
-```text
-Cloud Name
-API Key
-API Secret
-```
-
-Add them to `.env`:
-
-```env
-CLOUDINARY_CLOUD_NAME=your_cloud_name
-CLOUDINARY_API_KEY=your_api_key
-CLOUDINARY_API_SECRET=your_api_secret
-```
-
-Uploaded files are stored in Cloudinary instead of only storing them on the local computer.
-
-The Todo stores the uploaded file URL.
-
----
-
-# 10. Start the Server
-
-Development:
+For development:
 
 ```bash
 npm run dev
 ```
 
-Normal start:
+For production:
 
 ```bash
 npm start
 ```
 
-Expected output:
-
-```text
-Server running on port 5000
-MongoDB Connected Successfully
-```
-
-Base URL:
+The server will run on:
 
 ```text
 http://localhost:5000
@@ -448,213 +195,169 @@ http://localhost:5000
 
 ---
 
-# 11. Authentication
+# 🔑 Authentication
 
-Authentication is based on JWT.
+Protected routes require a JWT token.
 
-After successful login, the server returns a token.
+After login, copy the token from the response.
 
-Example:
+In Postman:
 
-```json
-{
-  "success": true,
-  "message": "Login successful",
-  "token": "YOUR_JWT_TOKEN"
-}
+```text
+Authorization
+→ Bearer Token
+→ Paste your JWT token
 ```
 
-The token must be sent with protected requests.
-
-Use this header:
+The request header will be:
 
 ```text
 Authorization: Bearer YOUR_JWT_TOKEN
 ```
 
-In Postman you can also use:
-
-```text
-Authorization
-Type: Bearer Token
-Token: YOUR_JWT_TOKEN
-```
-
 ---
 
-# 12. User Registration
+# 👤 Authentication APIs
 
-## Request
+## 1. Register User
+
+### Request
 
 ```http
 POST /api/auth/register
 ```
 
-## URL
+### URL
 
 ```text
 http://localhost:5000/api/auth/register
 ```
 
-## Body
+### Body
 
 ```json
 {
-  "name": "Admin User",
-  "email": "admin@example.com",
+  "name": "Test User",
+  "email": "testuser@example.com",
   "password": "123456"
 }
 ```
 
-## Another User
+### Example Response
 
 ```json
 {
-  "name": "Normal User",
-  "email": "user@example.com",
-  "password": "123456"
+  "success": true,
+  "message": "User registered successfully",
+  "user": {
+    "id": "USER_ID",
+    "name": "Test User",
+    "email": "testuser@example.com",
+    "role": "user"
+  }
 }
 ```
 
 ---
 
-# 13. Login
+## 2. Login User
 
-## Request
+### Request
 
 ```http
 POST /api/auth/login
 ```
 
-## Body
+### URL
+
+```text
+http://localhost:5000/api/auth/login
+```
+
+### Body
 
 ```json
 {
-  "email": "user@example.com",
+  "email": "testuser@example.com",
   "password": "123456"
 }
 ```
 
-Copy the returned JWT token.
+### Example Response
 
-Keep two tokens during testing:
-
-```text
-ADMIN_TOKEN
-USER_TOKEN
+```json
+{
+  "success": true,
+  "message": "Login successful",
+  "token": "YOUR_JWT_TOKEN",
+  "user": {
+    "id": "USER_ID",
+    "name": "Test User",
+    "email": "testuser@example.com",
+    "role": "user"
+  }
+}
 ```
+
+Save this token for testing protected APIs.
 
 ---
 
-# 14. Get Profile
+## 3. Logout User
 
-```http
-GET /api/auth/profile
-```
-
-Authorization:
-
-```text
-Bearer USER_TOKEN
-```
-
----
-
-# 15. Logout
+### Request
 
 ```http
 POST /api/auth/logout
 ```
 
-Authorization:
+### Authorization
 
 ```text
-Bearer USER_TOKEN
+Bearer Token
+```
+
+### Example Response
+
+```json
+{
+  "success": true,
+  "message": "Logout successful"
+}
 ```
 
 ---
 
-# 16. User Roles
+## 4. Get User Profile
 
-The system supports:
-
-```text
-user
-admin
-```
-
-Default role:
-
-```text
-user
-```
-
-Admin permissions are greater than normal-user permissions.
-
----
-
-# 17. Admin User APIs
-
-## Get Users
+### Request
 
 ```http
-GET /api/admin/users
+GET /api/profile
 ```
 
-Authorization:
+### Authorization
 
 ```text
-Bearer ADMIN_TOKEN
+Bearer Token
 ```
 
 ---
 
-## Make User Admin
+# 📝 Todo APIs
 
-```http
-POST /api/admin/users/:id/make-admin
-```
+## Todo Model
 
-Example:
-
-```text
-POST /api/admin/users/USER_ID/make-admin
-```
-
-Authorization:
-
-```text
-Bearer ADMIN_TOKEN
-```
-
----
-
-## Remove Admin Role
-
-```http
-POST /api/admin/users/:id/remove-admin
-```
-
-Authorization:
-
-```text
-Bearer ADMIN_TOKEN
-```
-
----
-
-# 18. Todo Data
-
-A Todo can contain information such as:
+A Todo can contain:
 
 ```text
 title
 description
+status
+priority
+dueDate
 createdBy
 assignedTo
-status
-dueDate
-priority
 attachmentUrl
 isDeleted
 deletedAt
@@ -664,9 +367,34 @@ updatedAt
 
 ---
 
-# 19. Todo Status
+# 1. Create Todo
 
-Supported statuses:
+### Request
+
+```http
+POST /api/todos
+```
+
+### Authorization
+
+```text
+Bearer Token
+```
+
+### Body
+
+```json
+{
+  "title": "Complete Todo API",
+  "description": "Finish the Todo API project",
+  "assignedTo": "ASSIGNED_USER_ID",
+  "status": "todo",
+  "priority": "high",
+  "dueDate": "2026-08-30"
+}
+```
+
+### Status Values
 
 ```text
 todo
@@ -674,19 +402,7 @@ inprogress
 complate
 ```
 
-Example:
-
-```json
-{
-  "status": "inprogress"
-}
-```
-
----
-
-# 20. Todo Priority
-
-Supported priorities:
+### Priority Values
 
 ```text
 low
@@ -694,82 +410,210 @@ medium
 high
 ```
 
+### Example Response
+
+```json
+{
+  "success": true,
+  "message": "Todo created successfully",
+  "todo": {
+    "_id": "TODO_ID",
+    "title": "Complete Todo API",
+    "description": "Finish the Todo API project",
+    "status": "todo",
+    "priority": "high",
+    "dueDate": "2026-08-30T00:00:00.000Z",
+    "createdBy": "USER_ID",
+    "assignedTo": "ASSIGNED_USER_ID",
+    "isDeleted": false
+  }
+}
+```
+
+When a todo is created, an activity log can be recorded with the action:
+
+```text
+created
+```
+
+---
+
+# 2. Get All Todos
+
+### Request
+
+```http
+GET /api/todos
+```
+
+### Authorization
+
+```text
+Bearer Token
+```
+
+Normal users can view:
+
+* Todos created by them
+* Todos assigned to them
+
+Admin users can view:
+
+* All active todos
+
+Soft-deleted todos are excluded from normal todo listing.
+
+---
+
+# 3. Search Todos
+
+### Request
+
+```http
+GET /api/todos?search=Node
+```
+
+Example:
+
+```text
+http://localhost:5000/api/todos?search=Node
+```
+
+---
+
+# 4. Filter by Status
+
+```text
+GET /api/todos?status=todo
+```
+
+```text
+GET /api/todos?status=inprogress
+```
+
+```text
+GET /api/todos?status=complate
+```
+
+---
+
+# 5. Filter by Priority
+
+```text
+GET /api/todos?priority=low
+```
+
+```text
+GET /api/todos?priority=medium
+```
+
+```text
+GET /api/todos?priority=high
+```
+
+---
+
+# 6. Pagination
+
+Example:
+
+```text
+GET /api/todos?page=1&limit=10
+```
+
+---
+
+# 7. Sorting
+
+Example:
+
+```text
+GET /api/todos?sort=newest
+```
+
+Other sorting options depend on your controller implementation.
+
+---
+
+# 8. Get Single Todo
+
+### Request
+
+```http
+GET /api/todos/:id
+```
+
+Example:
+
+```text
+http://localhost:5000/api/todos/TODO_ID
+```
+
+---
+
+# ✏️ Update Todo
+
+### Request
+
+```http
+PUT /api/todos/:id
+```
+
+### Authorization
+
+```text
+Bearer Token
+```
+
+### Body
+
+```json
+{
+  "title": "Updated Todo Title",
+  "description": "Updated description",
+  "status": "inprogress",
+  "priority": "medium",
+  "dueDate": "2026-09-01",
+  "assignedTo": "NEW_ASSIGNED_USER_ID"
+}
+```
+
+The activity system can automatically detect important changes.
+
+Possible activity actions:
+
+```text
+updated
+assigned
+reassigned
+status_changed
+priority_changed
+```
+
+---
+
+# 📌 Todo Assignment
+
+A todo contains:
+
+```text
+createdBy
+assignedTo
+```
+
 Example:
 
 ```json
 {
-  "priority": "high"
-}
-```
-
-An invalid priority must not be saved.
-
-Example invalid value:
-
-```json
-{
-  "priority": "urgent"
-}
-```
-
----
-
-# 21. Create Todo
-
-## Endpoint
-
-```http
-POST /api/todos
-```
-
-## URL
-
-```text
-http://localhost:5000/api/todos
-```
-
-## Authorization
-
-```text
-Bearer USER_TOKEN
-```
-
-## Body
-
-```json
-{
-  "title": "Complete Todo API",
-  "description": "Complete all Todo API features",
-  "assignedTo": "USER_ID",
-  "status": "todo",
-  "dueDate": "2026-08-30",
-  "priority": "high"
-}
-```
-
-The API automatically stores the logged-in user as:
-
-```text
-createdBy
-```
-
----
-
-# 22. Assigned User Validation
-
-When assigning a Todo:
-
-```json
-{
+  "title": "Backend Task",
+  "description": "Complete API",
   "assignedTo": "USER_ID"
 }
 ```
 
-The system checks whether the user exists.
+The assigned user must exist.
 
-If the user does not exist, the API returns an error.
-
-Example:
+If the assigned user does not exist, the API should return an error such as:
 
 ```json
 {
@@ -780,193 +624,43 @@ Example:
 
 ---
 
-# 23. Todo Visibility
+# 🔄 Reassign Todo
 
-## Normal User
-
-A normal user can see:
-
-```text
-Todos created by them
-+
-Todos assigned to them
-```
-
-## Admin
-
-An admin can see:
-
-```text
-All active Todos
-```
-
----
-
-# 24. Get Todos
-
-```http
-GET /api/todos
-```
-
-Example:
-
-```text
-http://localhost:5000/api/todos
-```
-
----
-
-# 25. Search Todos
-
-```http
-GET /api/todos?search=Node
-```
-
-Another example:
-
-```http
-GET /api/todos?search=project
-```
-
----
-
-# 26. Filter Todos by Status
-
-```http
-GET /api/todos?status=todo
-```
-
-Example:
-
-```http
-GET /api/todos?status=inprogress
-```
-
----
-
-# 27. Pagination
-
-```http
-GET /api/todos?page=1&limit=10
-```
-
-Example:
-
-```text
-page = 1
-limit = 10
-```
-
-This means:
-
-```text
-Return first 10 records
-```
-
----
-
-# 28. Sorting
-
-Newest:
-
-```http
-GET /api/todos?sort=newest
-```
-
-Oldest:
-
-```http
-GET /api/todos?sort=oldest
-```
-
----
-
-# 29. Combined Todo Search
-
-Example:
-
-```http
-GET /api/todos?search=Node&status=inprogress&page=1&limit=10&sort=newest
-```
-
-This combines:
-
-```text
-Search
-Status
-Pagination
-Sorting
-```
-
----
-
-# 30. Get Single Todo
-
-```http
-GET /api/todos/:id
-```
-
-Example:
-
-```text
-GET http://localhost:5000/api/todos/TODO_ID
-```
-
-Authorization:
-
-```text
-Bearer USER_TOKEN
-```
-
----
-
-# 31. Update Todo
+To assign a todo to another user:
 
 ```http
 PUT /api/todos/:id
 ```
 
-Example URL:
+Example body:
+
+```json
+{
+  "assignedTo": "NEW_USER_ID"
+}
+```
+
+The activity log should record:
 
 ```text
-http://localhost:5000/api/todos/TODO_ID
+action: reassigned
+oldValue: previous user
+newValue: new user
+```
+
+A notification can also be created for the newly assigned user.
+
+---
+
+# 🔄 Change Todo Status
+
+Example request:
+
+```http
+PUT /api/todos/:id
 ```
 
 Body:
-
-```json
-{
-  "title": "Updated Todo",
-  "description": "Updated description",
-  "status": "inprogress",
-  "dueDate": "2026-09-10",
-  "priority": "medium"
-}
-```
-
----
-
-# 32. Update Only Priority
-
-```json
-{
-  "priority": "low"
-}
-```
-
----
-
-# 33. Update Only Due Date
-
-```json
-{
-  "dueDate": "2026-09-20"
-}
-```
-
----
-
-# 34. Update Status
 
 ```json
 {
@@ -974,149 +668,123 @@ Body:
 }
 ```
 
-A status change can also create an activity record and notification.
+The activity system records:
+
+```text
+status_changed
+```
+
+Example:
+
+```json
+{
+  "oldValue": "inprogress",
+  "newValue": "complate"
+}
+```
 
 ---
 
-# 35. Soft Delete
+# ⭐ Change Todo Priority
 
-The Delete API uses soft delete.
+Example:
 
-## Endpoint
+```http
+PUT /api/todos/:id
+```
+
+Body:
+
+```json
+{
+  "priority": "high"
+}
+```
+
+The activity system records:
+
+```text
+priority_changed
+```
+
+Example:
+
+```json
+{
+  "oldValue": "medium",
+  "newValue": "high"
+}
+```
+
+---
+
+# 🗑 Soft Delete Todo
+
+### Request
 
 ```http
 DELETE /api/todos/:id
 ```
 
-Example:
+The todo is not permanently removed from MongoDB.
 
-```text
-DELETE http://localhost:5000/api/todos/TODO_ID
+Instead, the application updates:
+
+```json
+{
+  "isDeleted": true,
+  "deletedAt": "DATE"
+}
 ```
 
-Instead of physically removing the MongoDB document, the Todo is marked:
-
-```text
-isDeleted = true
-```
-
-and:
-
-```text
-deletedAt = current date
-```
-
-Deleted Todos are excluded from the normal Todo list.
+This allows the admin to restore the todo later.
 
 ---
 
-# 36. Admin Trash
+# ♻️ Trash and Restore System
 
-Admin can view deleted Todos.
+## View Deleted Todos
+
+Admin only.
+
+### Request
 
 ```http
 GET /api/admin/todos/trash
 ```
 
-Authorization:
+### Authorization
 
 ```text
-Bearer ADMIN_TOKEN
+Bearer Token
 ```
 
 ---
 
-# 37. Restore Todo
+## Restore Todo
+
+Admin only.
+
+### Request
 
 ```http
 PATCH /api/admin/todos/:id/restore
 ```
 
-Example:
+The todo will be restored with:
 
-```text
-PATCH http://localhost:5000/api/admin/todos/TODO_ID/restore
-```
-
-After restore:
-
-```text
-isDeleted = false
-deletedAt = null
-```
-
-The Todo becomes active again.
-
----
-
-# 38. Attachment System
-
-Todo attachments are handled using:
-
-```text
-Multer
-+
-Cloudinary
-```
-
-Files are uploaded using:
-
-```text
-multipart/form-data
+```json
+{
+  "isDeleted": false,
+  "deletedAt": null
+}
 ```
 
 ---
 
-# 39. Upload Todo Attachment
+# 💬 Comments System
 
-## Endpoint
-
-```http
-POST /api/todos/:id/attachment
-```
-
-Example:
-
-```text
-POST http://localhost:5000/api/todos/TODO_ID/attachment
-```
-
-Authorization:
-
-```text
-Bearer USER_TOKEN
-```
-
-In Postman:
-
-```text
-Body
-→ form-data
-```
-
-Add:
-
-```text
-Key: attachment
-Type: File
-Value: Select a file
-```
-
-Then click:
-
-```text
-Send
-```
-
-After successful upload, Cloudinary returns a file URL.
-
-The URL is associated with the Todo.
-
----
-
-# 40. Comment System
-
-A Comment contains:
+Each comment contains:
 
 ```text
 todoId
@@ -1128,572 +796,458 @@ updatedAt
 
 ---
 
-# 41. Add Comment
+## Add Comment
+
+### Request
 
 ```http
 POST /api/todos/:todoId/comments
 ```
 
-Example:
+### Authorization
 
 ```text
-POST http://localhost:5000/api/todos/TODO_ID/comments
+Bearer Token
 ```
 
-Body:
+### Body
 
 ```json
 {
-  "comment": "I have started working on this task."
+  "comment": "I have completed the backend API."
 }
 ```
 
-Authorization:
+When a comment is added, the activity system records:
 
 ```text
-Bearer USER_TOKEN
+comment_added
 ```
 
 ---
 
-# 42. Get Todo Comments
+## Get Todo Comments
+
+### Request
 
 ```http
 GET /api/todos/:todoId/comments
 ```
 
-Example:
+### Authorization
 
 ```text
-GET http://localhost:5000/api/todos/TODO_ID/comments
+Bearer Token
 ```
 
 ---
 
-# 43. Update Comment
+# 📎 File Attachments
 
-```http
-PUT /api/todos/:todoId/comments/:commentId
+The Todo API supports file uploads.
+
+Files are uploaded to **Cloudinary**.
+
+The Todo stores the Cloudinary file URL.
+
+Example field:
+
+```text
+attachmentUrl
 ```
 
-Body:
+---
+
+## Upload Attachment
+
+### Request
+
+```http
+POST /api/todos/:id/attachment
+```
+
+### Authorization
+
+```text
+Bearer Token
+```
+
+### Body Type
+
+Select:
+
+```text
+form-data
+```
+
+Example:
+
+```text
+Key: file
+Type: File
+Value: Select your file
+```
+
+The uploaded file URL is stored in the Todo document.
+
+Example:
 
 ```json
 {
-  "comment": "Updated comment text."
+  "success": true,
+  "message": "File uploaded successfully",
+  "attachmentUrl": "CLOUDINARY_FILE_URL"
 }
 ```
 
 ---
 
-# 44. Delete Comment
+# 🔔 Notification System
 
-```http
-DELETE /api/todos/:todoId/comments/:commentId
-```
+Notifications can be created when important actions happen.
 
----
+Examples:
 
-# 45. Activity History
-
-The Activity system stores important events.
-
-Typical activities:
-
-```text
-TODO_CREATED
-TODO_UPDATED
-TODO_ASSIGNED
-TODO_STATUS_CHANGED
-TODO_PRIORITY_CHANGED
-TODO_DUE_DATE_CHANGED
-TODO_DELETED
-TODO_RESTORED
-COMMENT_ADDED
-COMMENT_UPDATED
-COMMENT_DELETED
-ATTACHMENT_UPLOADED
-```
-
-An activity record can contain:
-
-```text
-todoId
-userId
-action
-createdAt
-```
-
----
-
-# 46. Get Activity History
-
-```http
-GET /api/todos/:todoId/activity
-```
-
-Example:
-
-```text
-GET http://localhost:5000/api/todos/TODO_ID/activity
-```
-
-Authorization:
-
-```text
-Bearer USER_TOKEN
-```
-
----
-
-# 47. Notification System
-
-The Notification System informs users about important events.
-
-A notification belongs to a specific user.
+* Todo assigned
+* Todo reassigned
+* Status updated
+* Priority updated
+* Comment added
 
 A notification can contain:
 
 ```text
 userId
-todoId
-type
+title
 message
+todoId
 isRead
 createdAt
-updatedAt
 ```
 
 ---
 
-# 48. Why Notifications Are Needed
+## Get My Notifications
 
-Suppose User A creates a Todo and assigns it to User B.
-
-User B should know that:
-
-```text
-A new Todo has been assigned to you.
-```
-
-The system creates a notification for User B.
-
-Another example:
-
-User B comments on a Todo.
-
-The Todo owner can receive:
-
-```text
-A new comment was added to your Todo.
-```
-
-This allows users to see important activity without continuously checking every Todo.
-
----
-
-# 49. Notification Types
-
-The system can use notification types such as:
-
-```text
-TODO_ASSIGNED
-TODO_UPDATED
-TODO_STATUS_CHANGED
-TODO_COMPLETED
-COMMENT_ADDED
-TODO_DELETED
-TODO_RESTORED
-DUE_DATE_REMINDER
-```
-
----
-
-# 50. Notification Flow
-
-Example: Todo Assignment
-
-```text
-User A
-  |
-  | Creates Todo
-  |
-  v
-Todo Controller
-  |
-  | assignedTo = User B
-  |
-  v
-Create Notification
-  |
-  v
-Notification Model
-  |
-  v
-MongoDB
-  |
-  v
-User B
-```
-
-User B can later retrieve the notification.
-
----
-
-# 51. Todo Assignment Notification
-
-When a Todo is assigned:
-
-```text
-TODO_ASSIGNED
-```
-
-Example message:
-
-```text
-You have been assigned a new Todo.
-```
-
-The notification should be connected to:
-
-```text
-userId = assigned user
-todoId = assigned Todo
-```
-
----
-
-# 52. Todo Update Notification
-
-When a Todo is updated, a notification can be created for the relevant user.
-
-Example:
-
-```text
-The Todo "Complete API" has been updated.
-```
-
-Type:
-
-```text
-TODO_UPDATED
-```
-
----
-
-# 53. Status Change Notification
-
-When Todo status changes:
-
-```text
-todo
-→
-inprogress
-```
-
-or:
-
-```text
-inprogress
-→
-complate
-```
-
-a notification can be generated.
-
-Example:
-
-```text
-Todo "Complete API" status changed to completed.
-```
-
-Type:
-
-```text
-TODO_STATUS_CHANGED
-```
-
----
-
-# 54. Comment Notification
-
-When another user comments on a Todo:
-
-```text
-COMMENT_ADDED
-```
-
-Example:
-
-```text
-A new comment was added to your Todo.
-```
-
-This notification should normally be sent to the relevant Todo owner or participant.
-
----
-
-# 55. Due Date Notification
-
-A due-date reminder can notify the user when a Todo deadline is approaching.
-
-Example:
-
-```text
-Your Todo "Complete API" is due tomorrow.
-```
-
-Type:
-
-```text
-DUE_DATE_REMINDER
-```
-
-The exact reminder timing depends on how the notification scheduler is implemented.
-
----
-
-# 56. Delete Notification
-
-When a Todo is deleted:
-
-```text
-TODO_DELETED
-```
-
-Example:
-
-```text
-Todo "Complete API" was deleted.
-```
-
----
-
-# 57. Restore Notification
-
-When an admin restores a Todo:
-
-```text
-TODO_RESTORED
-```
-
-Example:
-
-```text
-Todo "Complete API" has been restored.
-```
-
----
-
-# 58. Notification APIs
-
-The notification system should expose protected endpoints for the logged-in user.
-
-Common endpoints are:
-
-```text
-GET    /api/notifications
-GET    /api/notifications/unread
-PATCH  /api/notifications/:id/read
-PATCH  /api/notifications/read-all
-DELETE /api/notifications/:id
-```
-
-Use the exact route names implemented in the project when testing.
-
----
-
-# 59. Get Notifications
+### Request
 
 ```http
 GET /api/notifications
 ```
 
-Authorization:
+### Authorization
 
 ```text
-Bearer USER_TOKEN
+Bearer Token
 ```
-
-This returns notifications belonging to the logged-in user.
-
-A user must not receive another user's private notifications.
 
 ---
 
-# 60. Get Unread Notifications
+## Mark Notification as Read
+
+Example:
 
 ```http
-GET /api/notifications/unread
-```
-
-Authorization:
-
-```text
-Bearer USER_TOKEN
-```
-
-This returns notifications where:
-
-```text
-isRead = false
+PATCH /api/notifications/:id/read
 ```
 
 ---
 
-# 61. Mark Notification as Read
+## Mark All Notifications as Read
 
-```http
-PATCH /api/notifications/NOTIFICATION_ID/read
-```
-
-Authorization:
-
-```text
-Bearer USER_TOKEN
-```
-
-After the request:
-
-```text
-isRead = true
-```
-
----
-
-# 62. Mark All Notifications as Read
+Example:
 
 ```http
 PATCH /api/notifications/read-all
 ```
 
-Authorization:
+---
 
-```text
-Bearer USER_TOKEN
-```
+# 📜 Todo Activity and Audit Log System
 
-This marks all notifications belonging to the logged-in user as read.
+The project includes a complete activity history system.
+
+Every important action can be recorded.
 
 ---
 
-# 63. Delete Notification
+# TodoActivity Model
+
+The TodoActivity model contains:
+
+```text
+todoId
+userId
+action
+oldValue
+newValue
+createdAt
+```
+
+Example schema:
+
+```javascript
+{
+  todoId: ObjectId,
+  userId: ObjectId,
+  action: String,
+  oldValue: Mixed,
+  newValue: Mixed,
+  createdAt: Date
+}
+```
+
+---
+
+# Activity Actions
+
+The system can record the following actions:
+
+```text
+created
+updated
+assigned
+reassigned
+status_changed
+priority_changed
+comment_added
+```
+
+---
+
+# 1. Todo Created Activity
+
+When a todo is created:
+
+```json
+{
+  "action": "created"
+}
+```
+
+The activity records:
+
+* Todo ID
+* User ID
+* Action
+* Creation time
+
+---
+
+# 2. Todo Updated Activity
+
+When a general todo field changes:
+
+```json
+{
+  "action": "updated",
+  "oldValue": {
+    "title": "Old Title"
+  },
+  "newValue": {
+    "title": "New Title"
+  }
+}
+```
+
+---
+
+# 3. Todo Assigned Activity
+
+When a todo is assigned for the first time:
+
+```json
+{
+  "action": "assigned",
+  "oldValue": null,
+  "newValue": "ASSIGNED_USER_ID"
+}
+```
+
+---
+
+# 4. Todo Reassigned Activity
+
+When the assigned user changes:
+
+```json
+{
+  "action": "reassigned",
+  "oldValue": "OLD_USER_ID",
+  "newValue": "NEW_USER_ID"
+}
+```
+
+---
+
+# 5. Status Changed Activity
+
+Example:
+
+```json
+{
+  "action": "status_changed",
+  "oldValue": "todo",
+  "newValue": "inprogress"
+}
+```
+
+---
+
+# 6. Priority Changed Activity
+
+Example:
+
+```json
+{
+  "action": "priority_changed",
+  "oldValue": "medium",
+  "newValue": "high"
+}
+```
+
+---
+
+# 7. Comment Added Activity
+
+When a user adds a comment:
+
+```json
+{
+  "action": "comment_added",
+  "newValue": "User added a comment"
+}
+```
+
+---
+
+# 📋 Get Todo Activity History
+
+### Request
 
 ```http
-DELETE /api/notifications/NOTIFICATION_ID
+GET /api/todos/:todoId/activities
 ```
 
-Authorization:
+### Authorization
 
 ```text
-Bearer USER_TOKEN
+Bearer Token
 ```
 
-Only the owner of the notification should be able to remove it.
+Example:
 
----
+```text
+http://localhost:5000/api/todos/TODO_ID/activities
+```
 
-# 64. Notification Example
-
-Example stored notification:
+### Example Response
 
 ```json
 {
-  "userId": "USER_ID",
-  "todoId": "TODO_ID",
-  "type": "TODO_ASSIGNED",
-  "message": "You have been assigned a new Todo.",
-  "isRead": false
+  "success": true,
+  "count": 3,
+  "activities": [
+    {
+      "_id": "ACTIVITY_ID",
+      "todoId": "TODO_ID",
+      "userId": {
+        "_id": "USER_ID",
+        "name": "Test User",
+        "email": "testuser@example.com"
+      },
+      "action": "created",
+      "oldValue": null,
+      "newValue": null,
+      "createdAt": "2026-08-17T10:00:00.000Z"
+    },
+    {
+      "_id": "ACTIVITY_ID",
+      "action": "status_changed",
+      "oldValue": "todo",
+      "newValue": "inprogress",
+      "createdAt": "2026-08-17T10:30:00.000Z"
+    },
+    {
+      "_id": "ACTIVITY_ID",
+      "action": "priority_changed",
+      "oldValue": "medium",
+      "newValue": "high",
+      "createdAt": "2026-08-17T11:00:00.000Z"
+    }
+  ]
 }
 ```
 
-After reading:
+Activities are normally sorted by newest first.
 
-```json
-{
-  "userId": "USER_ID",
-  "todoId": "TODO_ID",
-  "type": "TODO_ASSIGNED",
-  "message": "You have been assigned a new Todo.",
-  "isRead": true
-}
+---
+
+# 👑 Admin APIs
+
+## Get All Users
+
+Admin only.
+
+```http
+GET /api/admin/users
 ```
 
 ---
 
-# 65. Important Notification Security Rule
+## Make User Admin
 
-A logged-in user should only see their own notifications.
+```http
+POST /api/admin/users/:id/make-admin
+```
 
-For example:
+---
+
+## Remove Admin Role
+
+```http
+POST /api/admin/users/:id/remove-admin
+```
+
+---
+
+# 🧪 Complete Postman Testing Order
+
+Follow this order when testing the API.
+
+---
+
+## Step 1: Start MongoDB
+
+Make sure MongoDB is running.
+
+---
+
+## Step 2: Start Server
+
+```bash
+npm run dev
+```
+
+Expected output:
 
 ```text
-User A
+MongoDB Connected Successfully
+Server running on port 5000
 ```
-
-must not be able to request:
-
-```text
-User B notifications
-```
-
-The notification controller should use the authenticated user ID from JWT.
 
 ---
 
-# 66. Notification Testing in Postman
-
-The following workflow is recommended.
-
----
-
-## Step 1: Register Admin
+## Step 3: Register User 1
 
 ```http
 POST http://localhost:5000/api/auth/register
 ```
 
-Body:
-
 ```json
 {
-  "name": "Admin User",
-  "email": "admin@example.com",
-  "password": "123456"
-}
-```
-
----
-
-## Step 2: Register User
-
-```http
-POST http://localhost:5000/api/auth/register
-```
-
-Body:
-
-```json
-{
-  "name": "Normal User",
-  "email": "user@example.com",
-  "password": "123456"
-}
-```
-
----
-
-## Step 3: Login Admin
-
-```http
-POST http://localhost:5000/api/auth/login
-```
-
-Body:
-
-```json
-{
-  "email": "admin@example.com",
+  "name": "User One",
+  "email": "user1@example.com",
   "password": "123456"
 }
 ```
@@ -1701,22 +1255,21 @@ Body:
 Save:
 
 ```text
-ADMIN_TOKEN
+USER_1_ID
 ```
 
 ---
 
-## Step 4: Login Normal User
+## Step 4: Register User 2
 
 ```http
-POST http://localhost:5000/api/auth/login
+POST http://localhost:5000/api/auth/register
 ```
-
-Body:
 
 ```json
 {
-  "email": "user@example.com",
+  "name": "User Two",
+  "email": "user2@example.com",
   "password": "123456"
 }
 ```
@@ -1724,419 +1277,333 @@ Body:
 Save:
 
 ```text
-USER_TOKEN
+USER_2_ID
 ```
 
 ---
 
-# 67. Notification Test - Assignment
-
-Create a Todo and assign it to the normal user.
-
-Use:
+## Step 5: Login User 1
 
 ```http
-POST /api/todos
+POST http://localhost:5000/api/auth/login
+```
+
+```json
+{
+  "email": "user1@example.com",
+  "password": "123456"
+}
+```
+
+Copy:
+
+```text
+USER_1_TOKEN
+```
+
+---
+
+## Step 6: Login User 2
+
+```http
+POST http://localhost:5000/api/auth/login
+```
+
+```json
+{
+  "email": "user2@example.com",
+  "password": "123456"
+}
+```
+
+Copy:
+
+```text
+USER_2_TOKEN
+```
+
+---
+
+## Step 7: Create Todo
+
+Login as User 1.
+
+Authorization:
+
+```text
+Bearer USER_1_TOKEN
+```
+
+Request:
+
+```http
+POST http://localhost:5000/api/todos
 ```
 
 Body:
 
 ```json
 {
-  "title": "Test Notification",
-  "description": "Testing assignment notification",
-  "assignedTo": "USER_ID",
+  "title": "Learn Todo API",
+  "description": "Complete all Todo API features",
+  "assignedTo": "USER_2_ID",
   "status": "todo",
-  "priority": "high",
+  "priority": "medium",
   "dueDate": "2026-08-30"
 }
 ```
 
-After successful assignment, the notification system should create a notification for the assigned user.
-
----
-
-# 68. Check User Notifications
-
-Login using the normal user's token.
-
-Then call:
-
-```http
-GET /api/notifications
-```
-
-Authorization:
+Copy:
 
 ```text
-Bearer USER_TOKEN
-```
-
-You should see the assignment notification.
-
-Example:
-
-```json
-{
-  "type": "TODO_ASSIGNED",
-  "message": "You have been assigned a new Todo.",
-  "isRead": false
-}
-```
-
----
-
-# 69. Check Unread Notifications
-
-```http
-GET /api/notifications/unread
-```
-
-Authorization:
-
-```text
-Bearer USER_TOKEN
-```
-
-The notification should appear because:
-
-```text
-isRead = false
-```
-
----
-
-# 70. Mark Notification as Read
-
-Copy the notification ID.
-
-Then:
-
-```http
-PATCH /api/notifications/NOTIFICATION_ID/read
-```
-
-Authorization:
-
-```text
-Bearer USER_TOKEN
-```
-
-The notification should become:
-
-```text
-isRead = true
-```
-
----
-
-# 71. Check Unread Again
-
-Call:
-
-```http
-GET /api/notifications/unread
-```
-
-The notification that was marked as read should no longer appear in the unread list.
-
----
-
-# 72. Mark All Notifications as Read
-
-```http
-PATCH /api/notifications/read-all
-```
-
-Authorization:
-
-```text
-Bearer USER_TOKEN
-```
-
-All notifications for that user should become:
-
-```text
-isRead = true
-```
-
----
-
-# 73. Test Comment Notification
-
-1. Create a Todo.
-2. Assign it to another user.
-3. Add a comment.
-4. Login as the user who should receive the notification.
-5. Call:
-
-```http
-GET /api/notifications
-```
-
-Check that the comment notification exists.
-
-Example:
-
-```text
-A new comment was added to your Todo.
-```
-
----
-
-# 74. Test Status Notification
-
-Update a Todo:
-
-```http
-PUT /api/todos/TODO_ID
-```
-
-Body:
-
-```json
-{
-  "status": "complate"
-}
-```
-
-Then check:
-
-```http
-GET /api/notifications
-```
-
-A status-related notification should be generated according to the implemented notification rules.
-
----
-
-# 75. Test Delete Notification
-
-Delete a Todo:
-
-```http
-DELETE /api/todos/TODO_ID
-```
-
-Then check notifications for the relevant user.
-
-Expected type:
-
-```text
-TODO_DELETED
-```
-
----
-
-# 76. Test Restore Notification
-
-Admin restores the Todo:
-
-```http
-PATCH /api/admin/todos/TODO_ID/restore
-```
-
-Then check notifications.
-
-Expected type:
-
-```text
-TODO_RESTORED
-```
-
----
-
-# 77. Complete Postman Testing Order
-
-For testing the complete system, use this order:
-
-```text
-1. Start MongoDB
-2. Start Node server
-3. Register Admin
-4. Register User
-5. Login Admin
-6. Login User
-7. Make user Admin if required
-8. Create Todo
-9. Assign Todo
-10. Get Todos
-11. Search Todo
-12. Filter Todo
-13. Test pagination
-14. Test sorting
-15. Update Todo
-16. Update priority
-17. Update due date
-18. Upload attachment
-19. Add comment
-20. Get comments
-21. Update comment
-22. Check activity
-23. Check notification
-24. Check unread notification
-25. Mark notification as read
-26. Mark all notifications as read
-27. Delete comment
-28. Soft delete Todo
-29. Check admin trash
-30. Restore Todo
-31. Check activity again
-32. Check restore notification
-```
-
----
-
-# 78. Important IDs Required During Postman Testing
-
-Keep these values available:
-
-```text
-ADMIN_USER_ID
-USER_ID
 TODO_ID
-COMMENT_ID
-NOTIFICATION_ID
-ADMIN_TOKEN
-USER_TOKEN
 ```
-
-These values will be required by different endpoints.
 
 ---
 
-# 79. Postman Environment Variables
+## Step 8: Check User 2 Notifications
 
-For easier testing, create a Postman environment.
-
-Recommended variables:
+Authorization:
 
 ```text
-baseUrl
-adminToken
-userToken
-adminUserId
-userId
-todoId
-commentId
-notificationId
+Bearer USER_2_TOKEN
 ```
+
+Request:
+
+```http
+GET http://localhost:5000/api/notifications
+```
+
+Check whether the assignment notification is returned.
+
+---
+
+## Step 9: Get All Todos
+
+As User 1:
+
+```http
+GET http://localhost:5000/api/todos
+```
+
+As User 2:
+
+```http
+GET http://localhost:5000/api/todos
+```
+
+User 2 should be able to see the todo assigned to them according to the authorization logic.
+
+---
+
+## Step 10: Update Todo Status
+
+```http
+PUT http://localhost:5000/api/todos/TODO_ID
+```
+
+```json
+{
+  "status": "inprogress"
+}
+```
+
+---
+
+## Step 11: Update Priority
+
+```http
+PUT http://localhost:5000/api/todos/TODO_ID
+```
+
+```json
+{
+  "priority": "high"
+}
+```
+
+---
+
+## Step 12: Reassign Todo
+
+```http
+PUT http://localhost:5000/api/todos/TODO_ID
+```
+
+```json
+{
+  "assignedTo": "NEW_USER_ID"
+}
+```
+
+---
+
+## Step 13: Add Comment
+
+```http
+POST http://localhost:5000/api/todos/TODO_ID/comments
+```
+
+```json
+{
+  "comment": "This task is currently in progress."
+}
+```
+
+---
+
+## Step 14: Get Comments
+
+```http
+GET http://localhost:5000/api/todos/TODO_ID/comments
+```
+
+---
+
+## Step 15: Get Activity History
+
+```http
+GET http://localhost:5000/api/todos/TODO_ID/activities
+```
+
+You should see activities such as:
+
+```text
+created
+assigned
+status_changed
+priority_changed
+comment_added
+```
+
+---
+
+## Step 16: Upload Attachment
+
+Use:
+
+```http
+POST http://localhost:5000/api/todos/TODO_ID/attachment
+```
+
+In Postman:
+
+```text
+Body
+→ form-data
+
+file → File → Select File
+```
+
+Check that the returned URL is a Cloudinary URL.
+
+---
+
+## Step 17: Soft Delete Todo
+
+```http
+DELETE http://localhost:5000/api/todos/TODO_ID
+```
+
+---
+
+## Step 18: Verify Deleted Todo Is Hidden
+
+```http
+GET http://localhost:5000/api/todos
+```
+
+The deleted todo should not appear in the normal todo list.
+
+---
+
+## Step 19: Admin Trash
+
+Login using an admin account.
+
+```http
+GET http://localhost:5000/api/admin/todos/trash
+```
+
+The deleted todo should appear in the trash.
+
+---
+
+## Step 20: Restore Todo
+
+```http
+PATCH http://localhost:5000/api/admin/todos/TODO_ID/restore
+```
+
+The todo should become active again.
+
+---
+
+# ❌ Common Errors
+
+## MongoDB Connection Error
 
 Example:
 
 ```text
-baseUrl = http://localhost:5000
+connect ECONNREFUSED 127.0.0.1:27017
 ```
 
-Then use:
+Check whether MongoDB is running.
 
-```text
-{{baseUrl}}/api/todos
-```
+Also check:
 
-Instead of:
-
-```text
-http://localhost:5000/api/todos
+```env
+MONGO_URI=mongodb://127.0.0.1:27017/todo-api
 ```
 
 ---
 
-# 80. Recommended Authorization Setup
-
-For normal user requests:
-
-```text
-Bearer {{userToken}}
-```
-
-For admin requests:
-
-```text
-Bearer {{adminToken}}
-```
-
-This makes testing faster and easier.
-
----
-
-# 81. Example Postman Collection Structure
-
-```text
-Todo API
-│
-├── Auth
-│   ├── Register Admin
-│   ├── Register User
-│   ├── Login Admin
-│   ├── Login User
-│   ├── Profile
-│   └── Logout
-│
-├── Todos
-│   ├── Create Todo
-│   ├── Get Todos
-│   ├── Get Todo
-│   ├── Search Todo
-│   ├── Filter Todo
-│   ├── Pagination
-│   ├── Sort
-│   ├── Update Todo
-│   ├── Upload Attachment
-│   └── Delete Todo
-│
-├── Comments
-│   ├── Add Comment
-│   ├── Get Comments
-│   ├── Update Comment
-│   └── Delete Comment
-│
-├── Activity
-│   └── Get Activity
-│
-├── Notifications
-│   ├── Get Notifications
-│   ├── Get Unread Notifications
-│   ├── Mark Notification Read
-│   ├── Mark All Read
-│   └── Delete Notification
-│
-└── Admin
-    ├── Get Users
-    ├── Make Admin
-    ├── Remove Admin
-    ├── Trash
-    └── Restore Todo
-```
-
----
-
-# 82. Common Errors
-
-## Error: assignedTo is required
+## Invalid JWT Token
 
 Example:
 
 ```json
 {
   "success": false,
-  "message": "assignedTo is required"
+  "message": "Invalid token"
 }
 ```
 
-Solution:
+Login again and copy a new token.
 
-Add:
+Make sure Postman Authorization is:
+
+```text
+Bearer Token
+```
+
+Do not manually add an incorrect token format.
+
+---
+
+## No Token Provided
+
+Example:
 
 ```json
 {
-  "assignedTo": "USER_ID"
+  "success": false,
+  "message": "No token provided"
 }
+```
+
+Add the JWT token in:
+
+```text
+Authorization
+→ Bearer Token
 ```
 
 ---
 
-# 83. Error: Assigned User Not Found
+## Assigned User Not Found
 
 Example:
 
@@ -2147,73 +1614,34 @@ Example:
 }
 ```
 
-Solution:
-
-Check that the assigned user ID exists in MongoDB.
+Check that `assignedTo` contains a valid MongoDB user ID.
 
 ---
 
-# 84. Error: Unauthorized
+## assignedTo Is Required
 
 Example:
 
 ```json
 {
   "success": false,
-  "message": "Unauthorized"
+  "message": "assignedTo is required"
 }
 ```
 
-Check:
+Send a valid user ID:
 
-```text
-Authorization header
-JWT token
-Bearer prefix
-```
-
-Correct format:
-
-```text
-Authorization: Bearer YOUR_TOKEN
+```json
+{
+  "assignedTo": "USER_ID"
+}
 ```
 
 ---
 
-# 85. Error: Invalid Token
+## Invalid Priority
 
-Check that:
-
-* Token is copied correctly
-* Token has not expired
-* Bearer token is being sent
-* JWT_SECRET is correct
-
----
-
-# 86. Error: Admin Access Required
-
-If a normal user calls an admin endpoint, access should be rejected.
-
-Examples of admin endpoints:
-
-```text
-/api/admin/users
-/api/admin/todos/trash
-/api/admin/todos/:id/restore
-```
-
-Login as an admin and use:
-
-```text
-ADMIN_TOKEN
-```
-
----
-
-# 87. Error: Invalid Priority
-
-Only these are accepted:
+Allowed values:
 
 ```text
 low
@@ -2221,200 +1649,59 @@ medium
 high
 ```
 
-Do not use:
+Example invalid value:
 
-```text
-urgent
-normal
-important
+```json
+{
+  "priority": "urgent"
+}
 ```
+
+Use one of the supported priority values.
 
 ---
 
-# 88. MongoDB Connection Error
+# 🧪 Run Tests
+
+Run:
+
+```bash
+npm test
+```
+
+If your test script is configured differently, check `package.json`.
 
 Example:
 
-```text
-ECONNREFUSED 127.0.0.1:27017
-```
-
-This normally means MongoDB is not running or the connection string is incorrect.
-
-Check:
-
-```env
-MONGO_URI=mongodb://127.0.0.1:27017/todo-api
-```
-
-Then make sure MongoDB is running.
-
----
-
-# 89. Cloudinary Upload Error
-
-Check:
-
-```env
-CLOUDINARY_CLOUD_NAME=
-CLOUDINARY_API_KEY=
-CLOUDINARY_API_SECRET=
-```
-
-Also verify:
-
-* Internet connection
-* Cloudinary credentials
-* File field name
-* Postman uses `form-data`
-* File field type is `File`
-
----
-
-# 90. Notification Debugging
-
-When a notification is expected but is not created, check:
-
-```text
-1. Is the event controller being executed?
-2. Is the target user ID correct?
-3. Is Notification model imported?
-4. Is the notification saved to MongoDB?
-5. Is the notification endpoint protected correctly?
-6. Is the logged-in user the notification owner?
-7. Is isRead initially false?
-```
-
-For assignment notifications, especially check:
-
-```text
-assignedTo
-```
-
-For comment notifications, check:
-
-```text
-todo owner
-comment author
+```json
+{
+  "scripts": {
+    "test": "jest --runInBand --forceExit"
+  }
+}
 ```
 
 ---
 
-# 91. Notification Ownership
+# 🔒 Security Features
 
-Every notification should be associated with the user who should receive it.
+The project includes security-related functionality such as:
 
-Example:
-
-```text
-User A creates Todo
-User B is assigned
-```
-
-Notification:
-
-```text
-userId = User B
-```
-
-Not:
-
-```text
-userId = User A
-```
-
-This prevents notifications from being shown to the wrong user.
+* Password hashing
+* JWT authentication
+* Protected routes
+* Role-based authorization
+* Admin-only routes
+* User-based todo visibility
+* Assignment validation
+* Soft delete protection
+* File validation
+* Environment variables
+* Unauthorized access protection
 
 ---
 
-# 92. Data Relationships
-
-The main relationships are:
-
-```text
-User
- |
- +---- createdBy ----> Todo
- |
- +---- assignedTo ---> Todo
- |
- +---- userId -------> Comment
- |
- +---- userId -------> Activity
- |
- +---- userId -------> Notification
-```
-
-Todo relationships:
-
-```text
-Todo
- |
- +---- createdBy
- |
- +---- assignedTo
- |
- +---- comments
- |
- +---- activities
- |
- +---- notifications
- |
- +---- attachment
-```
-
----
-
-# 93. Security Rules
-
-The API should follow these rules:
-
-```text
-1. Passwords must be hashed.
-2. JWT is required for protected routes.
-3. Normal users cannot access admin routes.
-4. Users can only access allowed Todos.
-5. Users cannot read another user's private notifications.
-6. Assigned users must exist.
-7. Invalid priority values must be rejected.
-8. Soft-deleted Todos should not appear in normal lists.
-9. Admin-only restore operation must be protected.
-10. Uploaded files must be validated.
-```
-
----
-
-# 94. API Feature Summary
-
-| Feature               | Supported |
-| --------------------- | --------- |
-| User Registration     | Yes       |
-| User Login            | Yes       |
-| JWT Authentication    | Yes       |
-| Logout                | Yes       |
-| User Profile          | Yes       |
-| User Roles            | Yes       |
-| Admin Management      | Yes       |
-| Todo CRUD             | Yes       |
-| Todo Assignment       | Yes       |
-| Todo Search           | Yes       |
-| Todo Filter           | Yes       |
-| Pagination            | Yes       |
-| Sorting               | Yes       |
-| Due Date              | Yes       |
-| Priority              | Yes       |
-| Soft Delete           | Yes       |
-| Restore               | Yes       |
-| Cloudinary Attachment | Yes       |
-| Comments              | Yes       |
-| Activity History      | Yes       |
-| Notifications         | Yes       |
-| Read Notifications    | Yes       |
-| Unread Notifications  | Yes       |
-
----
-
-# 95. Complete API Endpoint Reference
+# 📊 Main API Endpoints
 
 ## Authentication
 
@@ -2422,7 +1709,7 @@ The API should follow these rules:
 POST   /api/auth/register
 POST   /api/auth/login
 POST   /api/auth/logout
-GET    /api/auth/profile
+GET    /api/profile
 ```
 
 ## Todos
@@ -2433,6 +1720,11 @@ GET    /api/todos
 GET    /api/todos/:id
 PUT    /api/todos/:id
 DELETE /api/todos/:id
+```
+
+## Attachments
+
+```text
 POST   /api/todos/:id/attachment
 ```
 
@@ -2441,24 +1733,20 @@ POST   /api/todos/:id/attachment
 ```text
 POST   /api/todos/:todoId/comments
 GET    /api/todos/:todoId/comments
-PUT    /api/todos/:todoId/comments/:commentId
-DELETE /api/todos/:todoId/comments/:commentId
 ```
 
-## Activity
+## Activities
 
 ```text
-GET    /api/todos/:todoId/activity
+GET    /api/todos/:todoId/activities
 ```
 
 ## Notifications
 
 ```text
 GET    /api/notifications
-GET    /api/notifications/unread
 PATCH  /api/notifications/:id/read
 PATCH  /api/notifications/read-all
-DELETE /api/notifications/:id
 ```
 
 ## Admin
@@ -2467,325 +1755,112 @@ DELETE /api/notifications/:id
 GET    /api/admin/users
 POST   /api/admin/users/:id/make-admin
 POST   /api/admin/users/:id/remove-admin
+
 GET    /api/admin/todos/trash
 PATCH  /api/admin/todos/:id/restore
 ```
 
 ---
 
-# 96. Testing Checklist
+# 🎯 Complete Feature Summary
 
-Use this checklist before considering the API complete.
+This Todo API includes:
 
-* [ ] MongoDB is running
-* [ ] `.env` is configured
-* [ ] Cloudinary credentials are configured
-* [ ] Dependencies are installed
-* [ ] Server starts successfully
-* [ ] User registration works
-* [ ] Login works
-* [ ] JWT authentication works
-* [ ] Profile API works
-* [ ] Logout works
-* [ ] Admin authorization works
-* [ ] Todo creation works
-* [ ] Todo assignment works
-* [ ] Assigned user validation works
-* [ ] Todo listing works
-* [ ] Todo search works
-* [ ] Todo filtering works
-* [ ] Pagination works
-* [ ] Sorting works
-* [ ] Due date works
-* [ ] Priority works
-* [ ] Invalid priority is rejected
-* [ ] Todo update works
-* [ ] Attachment upload works
-* [ ] Cloudinary URL is saved
-* [ ] Comment creation works
-* [ ] Comment listing works
-* [ ] Comment update works
-* [ ] Comment delete works
-* [ ] Activity history works
-* [ ] Soft delete works
-* [ ] Deleted Todo disappears from normal list
-* [ ] Admin trash works
-* [ ] Restore works
-* [ ] Assignment notification works
-* [ ] Update notification works
-* [ ] Comment notification works
-* [ ] Status notification works
-* [ ] Delete notification works
-* [ ] Restore notification works
-* [ ] Unread notifications work
-* [ ] Mark notification as read works
-* [ ] Mark all notifications as read works
-* [ ] Delete notification works
-* [ ] Notification ownership works
-
----
-
-# 97. Running Tests
-
-If Jest is configured in the project:
-
-```bash
-npm test
-```
-
-For Jest in-band:
-
-```bash
-npx jest --runInBand
-```
-
-For force exit:
-
-```bash
-npx jest --runInBand --forceExit
+```text
+✓ User Registration
+✓ User Login
+✓ JWT Authentication
+✓ Password Hashing
+✓ User Roles
+✓ Admin Authorization
+✓ Create Todo
+✓ Update Todo
+✓ Delete Todo
+✓ Todo Assignment
+✓ Todo Reassignment
+✓ User-based Todo Visibility
+✓ Todo Search
+✓ Todo Filtering
+✓ Pagination
+✓ Sorting
+✓ Due Dates
+✓ Priority Levels
+✓ Soft Delete
+✓ Trash System
+✓ Todo Restore
+✓ Cloudinary Attachments
+✓ Comments System
+✓ Notifications System
+✓ Mark Notification as Read
+✓ Todo Activity History
+✓ Complete Audit Logs
+✓ Created Activity
+✓ Updated Activity
+✓ Assigned Activity
+✓ Reassigned Activity
+✓ Status Changed Activity
+✓ Priority Changed Activity
+✓ Comment Added Activity
+✓ Admin User Management
+✓ API Testing
+✓ Jest Testing Support
 ```
 
 ---
 
-# 98. Development Commands
+# 👨‍💻 Development
 
-Install packages:
-
-```bash
-npm install
-```
-
-Start development server:
-
-```bash
-npm run dev
-```
-
-Start production-style server:
-
-```bash
-npm start
-```
-
-Run tests:
-
-```bash
-npm test
-```
-
----
-
-# 99. Git Ignore
-
-Recommended `.gitignore`:
+This project was created for learning and practicing backend development concepts using:
 
 ```text
-node_modules/
-.env
-coverage/
-uploads/
-```
-
-Never commit:
-
-```text
-.env
-```
-
-because it may contain:
-
-```text
-JWT_SECRET
-Cloudinary credentials
-MongoDB credentials
-```
-
----
-
-# 100. Complete System Flow
-
-The complete application can be understood with this flow:
-
-```text
-User
- |
- v
-Register
- |
- v
-Login
- |
- v
-JWT Token
- |
- v
-Protected API
- |
- +-----------------------------+
- |                             |
- v                             v
-Todo Management             Notification System
- |                             |
- +-- Create                    +-- Assignment
- +-- Update                    +-- Update
- +-- Assign                    +-- Status Change
- +-- Priority                  +-- Comment
- +-- Due Date                  +-- Delete
- +-- Attachment                +-- Restore
- +-- Comment                   +-- Due Reminder
- +-- Activity
- |
- v
+Node.js
+Express.js
 MongoDB
- |
- +---- Users
- +---- Todos
- +---- Comments
- +---- Activities
- +---- Notifications
+Mongoose
+JWT Authentication
+REST APIs
+Role-Based Access Control
+Cloudinary File Storage
+Activity/Audit Logging
+Notification Systems
 ```
 
 ---
 
-# 101. Example Real-World Workflow
+# 📝 License
 
-A complete example:
+This project is created for educational and learning purposes.
 
-```text
-1. Admin registers.
-2. Normal user registers.
-3. Admin logs in.
-4. Normal user logs in.
-5. Admin creates a Todo.
-6. Admin assigns Todo to normal user.
-7. Normal user receives assignment notification.
-8. Normal user opens notifications.
-9. Normal user marks notification as read.
-10. Normal user updates Todo status.
-11. Activity is created.
-12. Relevant notification is created.
-13. Normal user uploads an attachment.
-14. Cloudinary stores the attachment.
-15. Normal user adds a comment.
-16. Relevant user receives comment notification.
-17. Todo is completed.
-18. Activity is stored.
-19. Todo is soft deleted.
-20. Admin checks trash.
-21. Admin restores Todo.
-22. Restore activity is stored.
-23. Restore notification is generated.
-```
+You can modify and extend the project with additional features.
 
 ---
 
-# 102. Final Project Goal
+# ⭐ Future Improvements
 
-This project demonstrates a complete backend API with:
+Possible future features include:
 
-```text
-Authentication
-+
-Authorization
-+
-CRUD
-+
-User Assignment
-+
-Validation
-+
-Search
-+
-Filtering
-+
-Pagination
-+
-Sorting
-+
-Due Dates
-+
-Priority
-+
-Soft Delete
-+
-Restore
-+
-Cloudinary Uploads
-+
-Comments
-+
-Activity History
-+
-Notifications
-+
-Admin Management
-```
-
-The architecture is designed so that each feature is separated into:
-
-```text
-Models
-Controllers
-Routes
-Middleware
-Configuration
-```
-
-This keeps the API easier to maintain, test, and extend.
+* Email notifications
+* Password reset
+* Refresh tokens
+* Real-time notifications using Socket.IO
+* Todo labels and categories
+* Multiple file attachments
+* Permanent delete from trash
+* Admin dashboard
+* User profile image upload
+* Dashboard analytics
+* Rate limiting
+* Swagger API documentation
+* Docker support
+* CI/CD pipeline
+* Deployment
 
 ---
 
-# 103. Base URL
+# 🎉 Conclusion
 
-For local development:
+The Todo API is a complete backend project that demonstrates important backend development concepts.
 
-```text
-http://localhost:5000
-```
+It includes authentication, authorization, role management, todo assignment, priorities, due dates, comments, Cloudinary attachments, notifications, soft delete functionality, admin features, and a complete Todo Activity/Audit Log system.
 
-Example:
-
-```text
-http://localhost:5000/api/todos
-```
-
----
-
-# 104. Project Status
-
-```text
-Todo API
-Version: 1.0.0
-Environment: Development
-Database: MongoDB
-Authentication: JWT
-File Storage: Cloudinary
-API Testing: Postman
-Automated Testing: Jest + Supertest
-```
-
----
-
-# 105. Conclusion
-
-The Todo API provides a complete backend system for managing tasks and users.
-
-It supports secure authentication, role-based access, Todo management, assignment, deadlines, priorities, file attachments, comments, activity history, soft deletion, restoration, and notifications.
-
-The notification system makes the application more interactive by informing users about important Todo events such as assignments, comments, updates, status changes, deletions, restorations, and due-date reminders.
-
-The API can be extended in the future with features such as:
-
-```text
-Email Notifications
-Push Notifications
-WebSocket / Real-Time Notifications
-Notification Preferences
-Reminder Scheduler
-Recurring Todos
-Team Management
-Advanced Reporting
-Dashboard Statistics
-```
-
----
+The activity system makes it possible to track important actions performed on every todo, including who performed the action, what changed, the old value, the new value, and when the action occurred.

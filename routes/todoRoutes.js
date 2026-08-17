@@ -2,41 +2,61 @@ const express = require("express");
 
 const router = express.Router();
 
+// ==========================================
+// Todo Controller
+// ==========================================
+
 const {
   createTodo,
   getTodos,
+  getTodoStats,
   getTodoById,
   updateTodo,
   updateTodoStatus,
   deleteTodo,
+
   uploadTodoAttachment,
+
   addComment,
   getTodoComments,
   updateComment,
   deleteComment,
+
   getTodoActivity,
 } = require("../controllers/todoController");
+
+// ==========================================
+// Authentication Middleware
+// ==========================================
 
 const {
   protect,
 } = require("../middleware/authMiddleware");
+
+// ==========================================
+// Multer Upload Middleware
+// ==========================================
 
 const upload = require(
   "../middleware/uploadMiddleware"
 );
 
 // ==========================================
-// TODO CRUD
+// CREATE TODO
+// POST /api/todos
 // ==========================================
 
-// Create Todo
 router.post(
   "/",
   protect,
   createTodo
 );
 
-// Get All Todos
+// ==========================================
+// GET TODOS
+// GET /api/todos
+// ==========================================
+
 router.get(
   "/",
   protect,
@@ -44,10 +64,25 @@ router.get(
 );
 
 // ==========================================
-// STATUS
+// TODO STATISTICS
+// GET /api/todos/stats
+//
+// IMPORTANT:
+// This route must be BEFORE /:id
+// so "stats" is not treated as a Todo ID.
 // ==========================================
 
-// Update Todo Status
+router.get(
+  "/stats",
+  protect,
+  getTodoStats
+);
+
+// ==========================================
+// TODO STATUS
+// PATCH /api/todos/:id/status
+// ==========================================
+
 router.patch(
   "/:id/status",
   protect,
@@ -55,10 +90,10 @@ router.patch(
 );
 
 // ==========================================
-// ATTACHMENT
+// TODO ATTACHMENT
+// POST /api/todos/:id/attachment
 // ==========================================
 
-// Upload Attachment
 router.post(
   "/:id/attachment",
   protect,
@@ -67,31 +102,47 @@ router.post(
 );
 
 // ==========================================
-// COMMENTS
+// TODO COMMENTS
 // ==========================================
 
+// ------------------------------------------
 // Add Comment
+// POST /api/todos/:id/comments
+// ------------------------------------------
+
 router.post(
   "/:id/comments",
   protect,
   addComment
 );
 
+// ------------------------------------------
 // Get Comments
+// GET /api/todos/:id/comments
+// ------------------------------------------
+
 router.get(
   "/:id/comments",
   protect,
   getTodoComments
 );
 
+// ------------------------------------------
 // Update Comment
+// PATCH /api/todos/:todoId/comments/:commentId
+// ------------------------------------------
+
 router.patch(
   "/:todoId/comments/:commentId",
   protect,
   updateComment
 );
 
+// ------------------------------------------
 // Delete Comment
+// DELETE /api/todos/:todoId/comments/:commentId
+// ------------------------------------------
+
 router.delete(
   "/:todoId/comments/:commentId",
   protect,
@@ -99,8 +150,19 @@ router.delete(
 );
 
 // ==========================================
-// ACTIVITY
-// IMPORTANT: Before /:id
+// TODO ACTIVITY / AUDIT LOG
+// GET /api/todos/:id/activity
+// ==========================================
+//
+// Normal user:
+// - Todo creator
+// - Todo assigned user
+//
+// Admin:
+// - Any Todo
+//
+// Authorization is handled inside
+// getTodoActivity.
 // ==========================================
 
 router.get(
@@ -110,23 +172,31 @@ router.get(
 );
 
 // ==========================================
-// SINGLE TODO
-// IMPORTANT: Keep after specific routes
+// GET SINGLE TODO
+// GET /api/todos/:id
 // ==========================================
 
-// Get Single Todo
 router.get(
   "/:id",
   protect,
   getTodoById
 );
 
-// Update Todo
+// ==========================================
+// UPDATE TODO
+// PUT /api/todos/:id
+// ==========================================
+
 router.put(
   "/:id",
   protect,
   updateTodo
 );
+
+// ==========================================
+// UPDATE TODO
+// PATCH /api/todos/:id
+// ==========================================
 
 router.patch(
   "/:id",
@@ -134,11 +204,19 @@ router.patch(
   updateTodo
 );
 
-// Delete Todo
+// ==========================================
+// SOFT DELETE TODO
+// DELETE /api/todos/:id
+// ==========================================
+
 router.delete(
   "/:id",
   protect,
   deleteTodo
 );
+
+// ==========================================
+// EXPORT
+// ==========================================
 
 module.exports = router;

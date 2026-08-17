@@ -1,11 +1,17 @@
 module.exports = {
   testEnvironment: "node",
 
-  setupFilesAfterEnv: ["<rootDir>/tests/setup.js"],
+  rootDir: ".",
 
-  testTimeout: 15000,
+  setupFilesAfterEnv: [
+    "<rootDir>/tests/setup.js",
+  ],
+
+  testMatch: [
+    "<rootDir>/tests/**/*.test.js",
+  ],
 
   clearMocks: true,
 
-  forceExit: true,
+  verbose: true,
 };

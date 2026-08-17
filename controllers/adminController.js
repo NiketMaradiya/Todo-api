@@ -1,9 +1,18 @@
 const mongoose = require("mongoose");
+
 const User = require("../models/User");
 const Todo = require("../models/Todo");
-const { createActivity } = require("../utils/activityService");
 
-const isValidId = (id) => mongoose.Types.ObjectId.isValid(id);
+const {
+  createActivity,
+} = require("../utils/activityService");
+
+// ==========================================
+// Helpers
+// ==========================================
+
+const isValidId = (id) =>
+  mongoose.Types.ObjectId.isValid(id);
 
 const userResponse = (user) => ({
   _id: user._id.toString(),
@@ -24,13 +33,13 @@ const getAllUsers = async (req, res) => {
       createdAt: -1,
     });
 
-    res.status(200).json({
+    return res.status(200).json({
       success: true,
       count: users.length,
       data: users.map(userResponse),
     });
   } catch (error) {
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       message: error.message,
     });
@@ -57,6 +66,7 @@ const getAllTodos = async (req, res) => {
       isDeleted: false,
     };
 
+    // Search
     if (search) {
       filter.title = {
         $regex: search,
@@ -64,6 +74,7 @@ const getAllTodos = async (req, res) => {
       };
     }
 
+    // Status
     if (status) {
       if (
         ![
@@ -82,6 +93,7 @@ const getAllTodos = async (req, res) => {
       filter.status = status;
     }
 
+    // Created By
     if (createdBy !== undefined) {
       if (!isValidId(createdBy)) {
         return res.status(400).json({
@@ -94,6 +106,7 @@ const getAllTodos = async (req, res) => {
       filter.createdBy = createdBy;
     }
 
+    // Assigned To
     if (assignedTo !== undefined) {
       if (!isValidId(assignedTo)) {
         return res.status(400).json({
@@ -106,6 +119,7 @@ const getAllTodos = async (req, res) => {
       filter.assignedTo = assignedTo;
     }
 
+    // Pagination
     const pageNumber = Number(page);
     const limitNumber = Number(limit);
 
@@ -139,6 +153,7 @@ const getAllTodos = async (req, res) => {
       });
     }
 
+    // Sort
     if (
       ![
         "newest",
@@ -182,7 +197,7 @@ const getAllTodos = async (req, res) => {
         .skip(skip)
         .limit(limitNumber);
 
-    res.status(200).json({
+    return res.status(200).json({
       success: true,
       count: todos.length,
 
@@ -199,7 +214,7 @@ const getAllTodos = async (req, res) => {
       data: todos,
     });
   } catch (error) {
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       message: error.message,
     });
@@ -247,12 +262,12 @@ const getAdminTodoById = async (
       });
     }
 
-    res.status(200).json({
+    return res.status(200).json({
       success: true,
       data: todo,
     });
   } catch (error) {
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       message: error.message,
     });
@@ -261,6 +276,7 @@ const getAdminTodoById = async (
 
 // ==========================================
 // PUT /api/admin/todos/:id
+// PATCH /api/admin/todos/:id
 // ==========================================
 
 const updateAdminTodo = async (
@@ -268,8 +284,7 @@ const updateAdminTodo = async (
   res
 ) => {
   try {
-    const { id } =
-      req.params;
+    const { id } = req.params;
 
     const {
       title,
@@ -322,6 +337,16 @@ const updateAdminTodo = async (
       });
     }
 
+    // ==========================================
+    // Store old values BEFORE update
+    // ==========================================
+
+    const oldTitle =
+      todo.title;
+
+    const oldDescription =
+      todo.description;
+
     const oldStatus =
       todo.status;
 
@@ -333,15 +358,18 @@ const updateAdminTodo = async (
         ? todo.assignedTo.toString()
         : null;
 
-    const changes = {};
+    const oldDueDate =
+      todo.dueDate
+        ? todo.dueDate.toISOString()
+        : null;
 
+    // ==========================================
     // Update title
-    if (
-      title !== undefined
-    ) {
+    // ==========================================
+
+    if (title !== undefined) {
       if (
-        typeof title !==
-          "string" ||
+        typeof title !== "string" ||
         !title.trim()
       ) {
         return res.status(400).json({
@@ -351,26 +379,16 @@ const updateAdminTodo = async (
         });
       }
 
-      if (
-        todo.title !==
-        title.trim()
-      ) {
-        changes.title = {
-          from:
-            todo.title,
-          to:
-            title.trim(),
-        };
-      }
-
       todo.title =
         title.trim();
     }
 
+    // ==========================================
     // Update description
+    // ==========================================
+
     if (
-      description !==
-      undefined
+      description !== undefined
     ) {
       if (
         typeof description !==
@@ -383,26 +401,15 @@ const updateAdminTodo = async (
         });
       }
 
-      if (
-        todo.description !==
-        description.trim()
-      ) {
-        changes.description = {
-          from:
-            todo.description,
-          to:
-            description.trim(),
-        };
-      }
-
       todo.description =
         description.trim();
     }
 
+    // ==========================================
     // Update status
-    if (
-      status !== undefined
-    ) {
+    // ==========================================
+
+    if (status !== undefined) {
       if (
         ![
           "pending",
@@ -417,14 +424,14 @@ const updateAdminTodo = async (
         });
       }
 
-      todo.status =
-        status;
+      todo.status = status;
     }
 
+    // ==========================================
     // Update priority
-    if (
-      priority !== undefined
-    ) {
+    // ==========================================
+
+    if (priority !== undefined) {
       if (
         ![
           "low",
@@ -439,35 +446,20 @@ const updateAdminTodo = async (
         });
       }
 
-      if (
-        todo.priority !==
-        priority
-      ) {
-        changes.priority = {
-          from:
-            oldPriority,
-          to:
-            priority,
-        };
-      }
-
       todo.priority =
         priority;
     }
 
+    // ==========================================
     // Update due date
-    if (
-      dueDate !== undefined
-    ) {
-      const oldDueDate =
-        todo.dueDate;
+    // ==========================================
 
+    if (dueDate !== undefined) {
       if (
         dueDate === null ||
         dueDate === ""
       ) {
-        todo.dueDate =
-          null;
+        todo.dueDate = null;
       } else if (
         Number.isNaN(
           new Date(
@@ -484,25 +476,21 @@ const updateAdminTodo = async (
         todo.dueDate =
           new Date(dueDate);
       }
-
-      changes.dueDate = {
-        from:
-          oldDueDate,
-        to:
-          todo.dueDate,
-      };
     }
 
+    // ==========================================
     // Update assigned user
+    // ==========================================
+
     if (
       assignedTo !==
       undefined
     ) {
       if (
-        assignedTo === null
+        assignedTo === null ||
+        assignedTo === ""
       ) {
-        todo.assignedTo =
-          null;
+        todo.assignedTo = null;
       } else {
         if (
           !isValidId(
@@ -534,65 +522,10 @@ const updateAdminTodo = async (
       }
     }
 
-    // Admin cannot change createdBy.
-    // createdBy remains unchanged.
-
     await todo.save();
 
     // ==========================================
-    // Activity: Todo Updated
-    // ==========================================
-
-    await createActivity({
-      action:
-        "Todo Updated",
-
-      performedBy:
-        req.user._id,
-
-      todoId:
-        todo._id,
-
-      metadata: {
-        ...changes,
-        updatedByAdmin:
-          true,
-      },
-    });
-
-    // ==========================================
-    // Activity: Status Changed
-    // ==========================================
-
-    if (
-      status !== undefined &&
-      oldStatus !== status
-    ) {
-      await createActivity({
-        action:
-          "Todo Status Changed",
-
-        performedBy:
-          req.user._id,
-
-        todoId:
-          todo._id,
-
-        metadata: {
-          from:
-            oldStatus,
-
-          to:
-            status,
-
-          updatedByAdmin:
-            true,
-        },
-      });
-    }
-
-    // ==========================================
-    // Activity: Todo Assigned
+    // New values AFTER update
     // ==========================================
 
     const newAssignedTo =
@@ -600,30 +533,153 @@ const updateAdminTodo = async (
         ? todo.assignedTo.toString()
         : null;
 
+    const newDueDate =
+      todo.dueDate
+        ? todo.dueDate.toISOString()
+        : null;
+
+    // ==========================================
+    // AUDIT: General Update
+    // ==========================================
+
+    const updatedFieldsOld = {};
+    const updatedFieldsNew = {};
+
+    if (
+      oldTitle !==
+      todo.title
+    ) {
+      updatedFieldsOld.title =
+        oldTitle;
+
+      updatedFieldsNew.title =
+        todo.title;
+    }
+
+    if (
+      oldDescription !==
+      todo.description
+    ) {
+      updatedFieldsOld.description =
+        oldDescription;
+
+      updatedFieldsNew.description =
+        todo.description;
+    }
+
+    if (
+      oldDueDate !==
+      newDueDate
+    ) {
+      updatedFieldsOld.dueDate =
+        oldDueDate;
+
+      updatedFieldsNew.dueDate =
+        newDueDate;
+    }
+
+    if (
+      Object.keys(
+        updatedFieldsOld
+      ).length > 0
+    ) {
+      await createActivity({
+        todoId:
+          todo._id,
+
+        userId:
+          req.user._id,
+
+        action:
+          "updated",
+
+        oldValue:
+          updatedFieldsOld,
+
+        newValue:
+          updatedFieldsNew,
+      });
+    }
+
+    // ==========================================
+    // AUDIT: Status Changed
+    // ==========================================
+
+    if (
+      oldStatus !==
+      todo.status
+    ) {
+      await createActivity({
+        todoId:
+          todo._id,
+
+        userId:
+          req.user._id,
+
+        action:
+          "status_changed",
+
+        oldValue:
+          oldStatus,
+
+        newValue:
+          todo.status,
+      });
+    }
+
+    // ==========================================
+    // AUDIT: Priority Changed
+    // ==========================================
+
+    if (
+      oldPriority !==
+      todo.priority
+    ) {
+      await createActivity({
+        todoId:
+          todo._id,
+
+        userId:
+          req.user._id,
+
+        action:
+          "priority_changed",
+
+        oldValue:
+          oldPriority,
+
+        newValue:
+          todo.priority,
+      });
+    }
+
+    // ==========================================
+    // AUDIT: Assignment
+    // ==========================================
+
     if (
       oldAssignedTo !==
       newAssignedTo
     ) {
+      const action =
+        oldAssignedTo === null
+          ? "assigned"
+          : "reassigned";
+
       await createActivity({
-        action:
-          "Todo Assigned",
-
-        performedBy:
-          req.user._id,
-
         todoId:
           todo._id,
 
-        metadata: {
-          from:
-            oldAssignedTo,
+        userId:
+          req.user._id,
 
-          to:
-            newAssignedTo,
+        action,
 
-          updatedByAdmin:
-            true,
-        },
+        oldValue:
+          oldAssignedTo,
+
+        newValue:
+          newAssignedTo,
       });
     }
 
@@ -640,7 +696,7 @@ const updateAdminTodo = async (
           "name email role"
         );
 
-    res.status(200).json({
+    return res.status(200).json({
       success: true,
 
       message:
@@ -650,7 +706,7 @@ const updateAdminTodo = async (
         updatedTodo,
     });
   } catch (error) {
-    res.status(400).json({
+    return res.status(400).json({
       success: false,
       message:
         error.message,
@@ -692,43 +748,49 @@ const deleteAdminTodo = async (
       });
     }
 
-    // Soft delete
+    // ==========================================
+    // Soft Delete
+    // ==========================================
+
+    const oldDeletedValue =
+      todo.isDeleted;
+
     todo.isDeleted = true;
+
     todo.deletedAt =
       new Date();
 
     await todo.save();
 
     // ==========================================
-    // Activity: Todo Deleted
+    // AUDIT: Soft Deleted
     // ==========================================
 
     await createActivity({
-      action:
-        "Todo Deleted",
-
-      performedBy:
-        req.user._id,
-
       todoId:
         todo._id,
 
-      metadata: {
-        deletedAt:
-          todo.deletedAt,
+      userId:
+        req.user._id,
 
-        deletedByAdmin:
-          true,
-      },
+      action:
+        "soft_deleted",
+
+      oldValue:
+        oldDeletedValue,
+
+      newValue:
+        true,
     });
 
-    res.status(200).json({
+    return res.status(200).json({
       success: true,
+
       message:
         "Todo moved to trash successfully by admin",
     });
   } catch (error) {
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       message:
         error.message,
@@ -760,6 +822,10 @@ const getTrashTodos = async (
 
     const limitNumber =
       Number(limit);
+
+    // ==========================================
+    // Pagination Validation
+    // ==========================================
 
     if (
       !Number.isInteger(
@@ -797,6 +863,10 @@ const getTrashTodos = async (
       });
     }
 
+    // ==========================================
+    // Status Validation
+    // ==========================================
+
     if (
       status &&
       ![
@@ -811,6 +881,10 @@ const getTrashTodos = async (
           "Status must be pending, in-progress or completed",
       });
     }
+
+    // ==========================================
+    // Sort Validation
+    // ==========================================
 
     if (
       ![
@@ -829,6 +903,10 @@ const getTrashTodos = async (
       isDeleted: true,
     };
 
+    // ==========================================
+    // Search
+    // ==========================================
+
     if (
       search &&
       typeof search === "string" &&
@@ -837,14 +915,23 @@ const getTrashTodos = async (
       filter.title = {
         $regex:
           search.trim(),
+
         $options: "i",
       };
     }
+
+    // ==========================================
+    // Status
+    // ==========================================
 
     if (status) {
       filter.status =
         status;
     }
+
+    // ==========================================
+    // Created By
+    // ==========================================
 
     if (
       createdBy !== undefined
@@ -864,6 +951,10 @@ const getTrashTodos = async (
       filter.createdBy =
         createdBy;
     }
+
+    // ==========================================
+    // Assigned To
+    // ==========================================
 
     if (
       assignedTo !== undefined
@@ -916,8 +1007,9 @@ const getTrashTodos = async (
         .skip(skip)
         .limit(limitNumber);
 
-    res.status(200).json({
+    return res.status(200).json({
       success: true,
+
       count:
         todos.length,
 
@@ -925,8 +1017,10 @@ const getTrashTodos = async (
         total,
         page:
           pageNumber,
+
         limit:
           limitNumber,
+
         totalPages:
           Math.ceil(
             total /
@@ -938,10 +1032,9 @@ const getTrashTodos = async (
         todos,
     });
   } catch (error) {
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
-      message:
-        error.message,
+      message: error.message,
     });
   }
 };
@@ -980,33 +1073,42 @@ const restoreTodo = async (
       });
     }
 
+    // ==========================================
+    // Store old value
+    // ==========================================
+
+    const oldDeletedValue =
+      todo.isDeleted;
+
+    // ==========================================
+    // Restore
+    // ==========================================
+
     todo.isDeleted = false;
-    todo.deletedAt =
-      null;
+
+    todo.deletedAt = null;
 
     await todo.save();
 
     // ==========================================
-    // Activity: Todo Restored
+    // AUDIT: Restored
     // ==========================================
 
     await createActivity({
-      action:
-        "Todo Restored",
-
-      performedBy:
-        req.user._id,
-
       todoId:
         todo._id,
 
-      metadata: {
-        restoredAt:
-          new Date(),
+      userId:
+        req.user._id,
 
-        restoredByAdmin:
-          true,
-      },
+      action:
+        "restored",
+
+      oldValue:
+        oldDeletedValue,
+
+      newValue:
+        false,
     });
 
     const restoredTodo =
@@ -1022,7 +1124,7 @@ const restoreTodo = async (
           "name email role"
         );
 
-    res.status(200).json({
+    return res.status(200).json({
       success: true,
 
       message:
@@ -1032,7 +1134,7 @@ const restoreTodo = async (
         restoredTodo,
     });
   } catch (error) {
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       message:
         error.message,
@@ -1076,7 +1178,7 @@ const makeAdmin = async (
 
     await user.save();
 
-    res.status(200).json({
+    return res.status(200).json({
       success: true,
 
       message:
@@ -1086,7 +1188,7 @@ const makeAdmin = async (
         userResponse(user),
     });
   } catch (error) {
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       message:
         error.message,
@@ -1130,7 +1232,7 @@ const removeAdmin = async (
 
     await user.save();
 
-    res.status(200).json({
+    return res.status(200).json({
       success: true,
 
       message:
@@ -1140,7 +1242,7 @@ const removeAdmin = async (
         userResponse(user),
     });
   } catch (error) {
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       message:
         error.message,
@@ -1200,7 +1302,7 @@ const changeUserRole = async (
 
     await user.save();
 
-    res.status(200).json({
+    return res.status(200).json({
       success: true,
 
       message:
@@ -1210,7 +1312,7 @@ const changeUserRole = async (
         userResponse(user),
     });
   } catch (error) {
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       message:
         error.message,
@@ -1268,14 +1370,14 @@ const changeUserPassword = async (
 
     await user.save();
 
-    res.status(200).json({
+    return res.status(200).json({
       success: true,
 
       message:
         "User password changed successfully",
     });
   } catch (error) {
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       message:
         error.message,
@@ -1333,7 +1435,7 @@ const changeUserStatus = async (
 
     await user.save();
 
-    res.status(200).json({
+    return res.status(200).json({
       success: true,
 
       message: isActive
@@ -1344,7 +1446,7 @@ const changeUserStatus = async (
         userResponse(user),
     });
   } catch (error) {
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       message:
         error.message,
@@ -1385,14 +1487,14 @@ const deleteUser = async (
       });
     }
 
-    res.status(200).json({
+    return res.status(200).json({
       success: true,
 
       message:
         "User deleted successfully",
     });
   } catch (error) {
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       message:
         error.message,

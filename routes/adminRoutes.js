@@ -3,7 +3,9 @@ const express = require("express");
 const {
   getAllUsers,
 
+  // ==========================================
   // Admin Todo APIs
+  // ==========================================
   getAllTodos,
   getAdminTodoById,
   updateAdminTodo,
@@ -11,7 +13,9 @@ const {
   getTrashTodos,
   restoreTodo,
 
+  // ==========================================
   // Admin User APIs
+  // ==========================================
   makeAdmin,
   removeAdmin,
   changeUserRole,
@@ -31,7 +35,7 @@ const router = express.Router();
 // ALL ADMIN ROUTES
 // ==========================================
 
-// Authentication
+// JWT authentication
 router.use(protect);
 
 // Admin role required
@@ -41,51 +45,92 @@ router.use(authorize("admin"));
 // ADMIN TODO ROUTES
 // ==========================================
 
+// ------------------------------------------
 // GET /api/admin/todos
-// Admin can see ALL active users' todos
+//
+// Admin can see ALL active Todos
+// ------------------------------------------
+
 router.get(
   "/todos",
   getAllTodos
 );
 
+// ------------------------------------------
 // GET /api/admin/todos/trash
-// Admin can see all soft-deleted todos
-// IMPORTANT: This route must be before /todos/:id
+//
+// Admin can see all soft-deleted Todos
+//
+// IMPORTANT:
+// Keep this BEFORE /todos/:id
+// ------------------------------------------
+
 router.get(
   "/todos/trash",
   getTrashTodos
 );
 
+// ------------------------------------------
 // GET /api/admin/todos/:id
-// Admin can see ANY active todo
+//
+// Admin can see ANY active Todo
+// ------------------------------------------
+
 router.get(
   "/todos/:id",
   getAdminTodoById
 );
 
+// ------------------------------------------
 // PUT /api/admin/todos/:id
-// Admin can update ANY active todo
+//
+// Admin can update ANY active Todo
+// ------------------------------------------
+
 router.put(
   "/todos/:id",
   updateAdminTodo
 );
 
+// ------------------------------------------
 // PATCH /api/admin/todos/:id
-// Admin can update ANY active todo
+//
+// Admin can update ANY active Todo
+// ------------------------------------------
+
 router.patch(
   "/todos/:id",
   updateAdminTodo
 );
 
+// ------------------------------------------
 // DELETE /api/admin/todos/:id
-// Admin can soft-delete ANY active todo
+//
+// Admin can soft-delete ANY active Todo
+// ------------------------------------------
+
 router.delete(
   "/todos/:id",
   deleteAdminTodo
 );
 
+// ------------------------------------------
 // PATCH /api/admin/todos/:id/restore
-// Admin can restore a soft-deleted todo
+//
+// Admin can restore a soft-deleted Todo
+//
+// This controller must create:
+//
+// action:
+// "restored"
+//
+// oldValue:
+// true
+//
+// newValue:
+// false
+// ------------------------------------------
+
 router.patch(
   "/todos/:id/restore",
   restoreTodo
@@ -95,46 +140,71 @@ router.patch(
 // ADMIN USER ROUTES
 // ==========================================
 
+// ------------------------------------------
 // GET /api/admin/users
+// ------------------------------------------
+
 router.get(
   "/users",
   getAllUsers
 );
 
+// ------------------------------------------
 // POST /api/admin/users/:id/make-admin
+// ------------------------------------------
+
 router.post(
   "/users/:id/make-admin",
   makeAdmin
 );
 
+// ------------------------------------------
 // POST /api/admin/users/:id/remove-admin
+// ------------------------------------------
+
 router.post(
   "/users/:id/remove-admin",
   removeAdmin
 );
 
+// ------------------------------------------
 // PATCH /api/admin/users/:id/role
+// ------------------------------------------
+
 router.patch(
   "/users/:id/role",
   changeUserRole
 );
 
+// ------------------------------------------
 // PATCH /api/admin/users/:id/password
+// ------------------------------------------
+
 router.patch(
   "/users/:id/password",
   changeUserPassword
 );
 
+// ------------------------------------------
 // PATCH /api/admin/users/:id/status
+// ------------------------------------------
+
 router.patch(
   "/users/:id/status",
   changeUserStatus
 );
 
+// ------------------------------------------
 // DELETE /api/admin/users/:id
+// ------------------------------------------
+
 router.delete(
   "/users/:id",
   deleteUser
 );
+
+// ==========================================
+// EXPORT ROUTER
+// ==========================================
 
 module.exports = router;

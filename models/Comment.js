@@ -1,35 +1,62 @@
 const mongoose = require("mongoose");
 
-const commentSchema =
-  new mongoose.Schema(
-    {
-      todoId: {
-        type:
-          mongoose.Schema.Types.ObjectId,
-        ref: "Todo",
-        required: true,
-      },
+// ==========================================
+// Comment Schema
+// ==========================================
 
-      userId: {
-        type:
-          mongoose.Schema.Types.ObjectId,
-        ref: "User",
-        required: true,
-      },
+const commentSchema = new mongoose.Schema(
+  {
+    // ========================================
+    // Todo ID
+    // ========================================
 
-      comment: {
-        type: String,
-        required: true,
-        trim: true,
-      },
+    todoId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Todo",
+      required: true,
+      index: true,
     },
-    {
-      timestamps: true,
-    }
-  );
 
-module.exports =
-  mongoose.model(
-    "Comment",
-    commentSchema
-  );
+    // ========================================
+    // User who created the comment
+    // ========================================
+
+    userId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      required: true,
+      index: true,
+    },
+
+    // ========================================
+    // Comment text
+    // ========================================
+
+    comment: {
+      type: String,
+      required: true,
+      trim: true,
+    },
+  },
+  {
+    timestamps: true,
+  }
+);
+
+// ==========================================
+// Compound Index
+// ==========================================
+
+commentSchema.index({
+  todoId: 1,
+  createdAt: -1,
+});
+
+// ==========================================
+// Model
+// ==========================================
+
+module.exports = mongoose.model(
+  "Comment",
+  commentSchema
+);

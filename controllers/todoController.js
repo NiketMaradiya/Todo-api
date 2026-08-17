@@ -1,12 +1,8 @@
 const mongoose = require("mongoose");
 
 const Todo = require("../models/Todo");
-
 const User = require("../models/User");
-
 const Comment = require("../models/Comment");
-
-const Activity = require("../models/Activity");
 
 const {
   uploadAttachmentFile,
@@ -14,6 +10,7 @@ const {
 
 const {
   createActivity,
+  getTodoActivities,
 } = require("../utils/activityService");
 
 const {
@@ -45,13 +42,11 @@ const allowedPriorities = [
 // ==========================================
 
 const isValidId = (id) => {
-  return mongoose.Types.ObjectId.isValid(
-    id
-  );
+  return mongoose.Types.ObjectId.isValid(id);
 };
 
 // ==========================================
-// Validate Due Date
+// Validate Date
 // ==========================================
 
 const isValidDate = (value) => {
@@ -59,14 +54,12 @@ const isValidDate = (value) => {
     value !== undefined &&
     value !== null &&
     value !== "" &&
-    !Number.isNaN(
-      new Date(value).getTime()
-    )
+    !Number.isNaN(new Date(value).getTime())
   );
 };
 
 // ==========================================
-// Get Start and End of Due Date
+// Due Date Range
 // ==========================================
 
 const getDueDateRange = (value) => {
@@ -76,18 +69,11 @@ const getDueDateRange = (value) => {
 
   const start = new Date(value);
 
-  start.setHours(
-    0,
-    0,
-    0,
-    0
-  );
+  start.setHours(0, 0, 0, 0);
 
   const end = new Date(start);
 
-  end.setDate(
-    end.getDate() + 1
-  );
+  end.setDate(end.getDate() + 1);
 
   return {
     start,
@@ -96,14 +82,17 @@ const getDueDateRange = (value) => {
 };
 
 // ==========================================
-// Check Todo View Permission
+// Todo Permission
 //
-// Normal User:
-// - Creator
-// - Assigned User
+// Normal user:
+// - creator
+// - assigned user
 //
 // Admin:
-// - Any Todo
+// - every Todo
+//
+// This function includes deleted=false filtering
+// for normal Todo operations.
 // ==========================================
 
 const getAccessibleTodo = async (
@@ -115,24 +104,18 @@ const getAccessibleTodo = async (
     isDeleted: false,
   };
 
-  if (
-    user.role !== "admin"
-  ) {
+  if (user.role !== "admin") {
     filter.$or = [
       {
-        createdBy:
-          user._id,
+        createdBy: user._id,
       },
       {
-        assignedTo:
-          user._id,
+        assignedTo: user._id,
       },
     ];
   }
 
-  return await Todo.findOne(
-    filter
-  );
+  return Todo.findOne(filter);
 };
 
 // ==========================================
@@ -140,10 +123,7 @@ const getAccessibleTodo = async (
 // POST /api/todos
 // ==========================================
 
-const createTodo = async (
-  req,
-  res
-) => {
+const createTodo = async (req, res) => {
   try {
     const {
       title,
@@ -154,6 +134,10 @@ const createTodo = async (
       dueDate,
     } = req.body;
 
+    // ----------------------------------------
+    // Title validation
+    // ----------------------------------------
+
     if (
       !title ||
       typeof title !== "string" ||
@@ -161,14 +145,15 @@ const createTodo = async (
     ) {
       return res.status(400).json({
         success: false,
-        message:
-          "Title is required",
+        message: "Title is required",
       });
     }
 
-    if (
-      typeof description !== "string"
-    ) {
+    // ----------------------------------------
+    // Description validation
+    // ----------------------------------------
+
+    if (typeof description !== "string") {
       return res.status(400).json({
         success: false,
         message:
@@ -176,11 +161,11 @@ const createTodo = async (
       });
     }
 
-    if (
-      !allowedStatuses.includes(
-        status
-      )
-    ) {
+    // ----------------------------------------
+    // Status validation
+    // ----------------------------------------
+
+    if (!allowedStatuses.includes(status)) {
       return res.status(400).json({
         success: false,
         message:
@@ -188,17 +173,21 @@ const createTodo = async (
       });
     }
 
-    if (
-      !allowedPriorities.includes(
-        priority
-      )
-    ) {
+    // ----------------------------------------
+    // Priority validation
+    // ----------------------------------------
+
+    if (!allowedPriorities.includes(priority)) {
       return res.status(400).json({
         success: false,
         message:
           "Priority must be low, medium or high",
       });
     }
+
+    // ----------------------------------------
+    // Due date validation
+    // ----------------------------------------
 
     if (
       dueDate !== undefined &&
@@ -208,10 +197,13 @@ const createTodo = async (
     ) {
       return res.status(400).json({
         success: false,
-        message:
-          "Invalid due date",
+        message: "Invalid due date",
       });
     }
+
+    // ----------------------------------------
+    // Assignment validation
+    // ----------------------------------------
 
     if (!assignedTo) {
       return res.status(400).json({
@@ -221,9 +213,7 @@ const createTodo = async (
       });
     }
 
-    if (
-      !isValidId(assignedTo)
-    ) {
+    if (!isValidId(assignedTo)) {
       return res.status(400).json({
         success: false,
         message:
@@ -232,9 +222,7 @@ const createTodo = async (
     }
 
     const assignedUser =
-      await User.findById(
-        assignedTo
-      );
+      await User.findById(assignedTo);
 
     if (!assignedUser) {
       return res.status(404).json({
@@ -244,59 +232,93 @@ const createTodo = async (
       });
     }
 
-    const todo =
-      await Todo.create({
-        title: title.trim(),
+    // ----------------------------------------
+    // Create Todo
+    // ----------------------------------------
 
-        description:
-          description.trim(),
+    const todo = await Todo.create({
+      title: title.trim(),
 
-        createdBy:
-          req.user._id,
+      description:
+        description.trim(),
 
-        assignedTo,
-
-        status,
-
-        priority,
-
-        dueDate:
-          dueDate &&
-          dueDate !== ""
-            ? new Date(dueDate)
-            : null,
-      });
-
-    await createActivity({
-      action:
-        "Todo Created",
-
-      performedBy:
+      createdBy:
         req.user._id,
 
-      todoId:
-        todo._id,
+      assignedTo,
 
-      metadata: {
+      status,
+
+      priority,
+
+      dueDate:
+        dueDate &&
+        dueDate !== ""
+          ? new Date(dueDate)
+          : null,
+    });
+
+    // ==========================================
+    // AUDIT: CREATED
+    // ==========================================
+
+    await createActivity({
+      todoId: todo._id,
+
+      userId:
+        req.user._id,
+
+      action: "created",
+
+      oldValue: null,
+
+      newValue: {
         title:
           todo.title,
+
+        description:
+          todo.description,
+
+        assignedTo:
+          todo.assignedTo
+            ? todo.assignedTo.toString()
+            : null,
+
+        status:
+          todo.status,
+
+        priority:
+          todo.priority,
+
+        dueDate:
+          todo.dueDate
+            ? todo.dueDate.toISOString()
+            : null,
       },
     });
 
-    await createActivity({
-      action:
-        "Todo Assigned",
+    // ==========================================
+    // AUDIT: ASSIGNED
+    // ==========================================
+    //
+    // Creating a Todo with an assigned user
+    // is also an assignment action.
+    // ==========================================
 
-      performedBy:
+    await createActivity({
+      todoId: todo._id,
+
+      userId:
         req.user._id,
 
-      todoId:
-        todo._id,
+      action: "assigned",
 
-      metadata: {
-        assignedTo:
-          todo.assignedTo,
-      },
+      oldValue: null,
+
+      newValue:
+        todo.assignedTo
+          ? todo.assignedTo.toString()
+          : null,
     });
 
     // ==========================================
@@ -336,7 +358,7 @@ const createTodo = async (
           "name email role"
         );
 
-    res.status(201).json({
+    return res.status(201).json({
       success: true,
 
       message:
@@ -346,7 +368,7 @@ const createTodo = async (
         populatedTodo,
     });
   } catch (error) {
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       message:
         error.message,
@@ -359,10 +381,7 @@ const createTodo = async (
 // GET /api/todos
 // ==========================================
 
-const getTodos = async (
-  req,
-  res
-) => {
+const getTodos = async (req, res) => {
   try {
     const {
       search,
@@ -378,9 +397,11 @@ const getTodos = async (
       isDeleted: false,
     };
 
-    if (
-      req.user.role !== "admin"
-    ) {
+    // ----------------------------------------
+    // User visibility
+    // ----------------------------------------
+
+    if (req.user.role !== "admin") {
       filter.$or = [
         {
           createdBy:
@@ -393,23 +414,47 @@ const getTodos = async (
       ];
     }
 
-    if (
-      status &&
-      allowedStatuses.includes(
-        status
-      )
-    ) {
+    // ----------------------------------------
+    // Status
+    // ----------------------------------------
+
+    if (status) {
+      if (
+        !allowedStatuses.includes(status)
+      ) {
+        return res.status(400).json({
+          success: false,
+          message:
+            "Status must be pending, in-progress or completed",
+        });
+      }
+
       filter.status = status;
     }
 
-    if (
-      priority &&
-      allowedPriorities.includes(
-        priority
-      )
-    ) {
+    // ----------------------------------------
+    // Priority
+    // ----------------------------------------
+
+    if (priority) {
+      if (
+        !allowedPriorities.includes(
+          priority
+        )
+      ) {
+        return res.status(400).json({
+          success: false,
+          message:
+            "Priority must be low, medium or high",
+        });
+      }
+
       filter.priority = priority;
     }
+
+    // ----------------------------------------
+    // Search
+    // ----------------------------------------
 
     if (
       search &&
@@ -422,6 +467,7 @@ const getTodos = async (
               title: {
                 $regex:
                   search.trim(),
+
                 $options: "i",
               },
             },
@@ -429,6 +475,7 @@ const getTodos = async (
               description: {
                 $regex:
                   search.trim(),
+
                 $options: "i",
               },
             },
@@ -437,11 +484,13 @@ const getTodos = async (
       ];
     }
 
+    // ----------------------------------------
+    // Due Date
+    // ----------------------------------------
+
     if (dueDate) {
       const range =
-        getDueDateRange(
-          dueDate
-        );
+        getDueDateRange(dueDate);
 
       if (!range) {
         return res.status(400).json({
@@ -454,10 +503,15 @@ const getTodos = async (
       filter.dueDate = {
         $gte:
           range.start,
+
         $lt:
           range.end,
       };
     }
+
+    // ----------------------------------------
+    // Pagination
+    // ----------------------------------------
 
     const pageNumber =
       Math.max(
@@ -475,21 +529,21 @@ const getTodos = async (
       (pageNumber - 1) *
       limitNumber;
 
+    // ----------------------------------------
+    // Sorting
+    // ----------------------------------------
+
     let sortOption = {
       createdAt: -1,
     };
 
-    if (
-      sort === "oldest"
-    ) {
+    if (sort === "oldest") {
       sortOption = {
         createdAt: 1,
       };
     }
 
-    if (
-      sort === "dueDate"
-    ) {
+    if (sort === "dueDate") {
       sortOption = {
         dueDate: 1,
       };
@@ -514,7 +568,7 @@ const getTodos = async (
         filter
       );
 
-    res.status(200).json({
+    return res.status(200).json({
       success: true,
 
       total,
@@ -532,7 +586,121 @@ const getTodos = async (
         todos,
     });
   } catch (error) {
-    res.status(500).json({
+    return res.status(500).json({
+      success: false,
+      message:
+        error.message,
+    });
+  }
+};
+
+// ==========================================
+// Todo Statistics
+// GET /api/todos/stats
+// ==========================================
+
+const getTodoStats = async (
+  req,
+  res
+) => {
+  try {
+    const baseFilter = {
+      isDeleted: false,
+    };
+
+    // Normal users can only see their
+    // created/assigned Todo statistics.
+    if (req.user.role !== "admin") {
+      baseFilter.$or = [
+        {
+          createdBy:
+            req.user._id,
+        },
+        {
+          assignedTo:
+            req.user._id,
+        },
+      ];
+    }
+
+    const [
+      total,
+      pending,
+      inProgress,
+      completed,
+      highPriority,
+      mediumPriority,
+      lowPriority,
+    ] = await Promise.all([
+      Todo.countDocuments(
+        baseFilter
+      ),
+
+      Todo.countDocuments({
+        ...baseFilter,
+        status:
+          "pending",
+      }),
+
+      Todo.countDocuments({
+        ...baseFilter,
+        status:
+          "in-progress",
+      }),
+
+      Todo.countDocuments({
+        ...baseFilter,
+        status:
+          "completed",
+      }),
+
+      Todo.countDocuments({
+        ...baseFilter,
+        priority:
+          "high",
+      }),
+
+      Todo.countDocuments({
+        ...baseFilter,
+        priority:
+          "medium",
+      }),
+
+      Todo.countDocuments({
+        ...baseFilter,
+        priority:
+          "low",
+      }),
+    ]);
+
+    return res.status(200).json({
+      success: true,
+
+      data: {
+        total,
+
+        status: {
+          pending,
+
+          inProgress,
+
+          completed,
+        },
+
+        priority: {
+          low:
+            lowPriority,
+
+          medium:
+            mediumPriority,
+
+          high:
+            highPriority,
+        },
+      },
+    });
+  } catch (error) {
+    return res.status(500).json({
       success: false,
       message:
         error.message,
@@ -553,9 +721,7 @@ const getTodoById = async (
     const { id } =
       req.params;
 
-    if (
-      !isValidId(id)
-    ) {
+    if (!isValidId(id)) {
       return res.status(400).json({
         success: false,
         message:
@@ -590,13 +756,13 @@ const getTodoById = async (
           "name email role"
         );
 
-    res.status(200).json({
+    return res.status(200).json({
       success: true,
       data:
         populatedTodo,
     });
   } catch (error) {
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       message:
         error.message,
@@ -618,9 +784,7 @@ const updateTodo = async (
     const { id } =
       req.params;
 
-    if (
-      !isValidId(id)
-    ) {
+    if (!isValidId(id)) {
       return res.status(400).json({
         success: false,
         message:
@@ -651,6 +815,10 @@ const updateTodo = async (
       dueDate,
     } = req.body;
 
+    // ==========================================
+    // Store OLD values
+    // ==========================================
+
     const oldTitle =
       todo.title;
 
@@ -669,11 +837,15 @@ const updateTodo = async (
       todo.priority;
 
     const oldDueDate =
-      todo.dueDate;
+      todo.dueDate
+        ? todo.dueDate.toISOString()
+        : null;
 
-    if (
-      title !== undefined
-    ) {
+    // ==========================================
+    // Title
+    // ==========================================
+
+    if (title !== undefined) {
       if (
         typeof title !== "string" ||
         !title.trim()
@@ -689,8 +861,13 @@ const updateTodo = async (
         title.trim();
     }
 
+    // ==========================================
+    // Description
+    // ==========================================
+
     if (
-      description !== undefined
+      description !==
+      undefined
     ) {
       if (
         typeof description !==
@@ -707,9 +884,11 @@ const updateTodo = async (
         description.trim();
     }
 
-    if (
-      status !== undefined
-    ) {
+    // ==========================================
+    // Status
+    // ==========================================
+
+    if (status !== undefined) {
       if (
         !allowedStatuses.includes(
           status
@@ -725,6 +904,10 @@ const updateTodo = async (
       todo.status =
         status;
     }
+
+    // ==========================================
+    // Priority
+    // ==========================================
 
     if (
       priority !== undefined
@@ -744,6 +927,10 @@ const updateTodo = async (
       todo.priority =
         priority;
     }
+
+    // ==========================================
+    // Due Date
+    // ==========================================
 
     if (
       dueDate !== undefined
@@ -772,12 +959,15 @@ const updateTodo = async (
       }
     }
 
+    // ==========================================
+    // Assignment
+    // ==========================================
+
     if (
-      assignedTo !== undefined
+      assignedTo !==
+      undefined
     ) {
-      if (
-        !assignedTo
-      ) {
+      if (!assignedTo) {
         return res.status(400).json({
           success: false,
           message:
@@ -816,172 +1006,156 @@ const updateTodo = async (
 
     await todo.save();
 
+    // ==========================================
+    // Store NEW values
+    // ==========================================
+
     const newAssignedTo =
       todo.assignedTo
         ? todo.assignedTo.toString()
         : null;
 
+    const newDueDate =
+      todo.dueDate
+        ? todo.dueDate.toISOString()
+        : null;
+
+    // ==========================================
+    // AUDIT: General Updated
+    // ==========================================
+
+    const oldUpdateValues = {};
+    const newUpdateValues = {};
+
     if (
       oldTitle !==
       todo.title
     ) {
-      await createActivity({
-        action:
-          "Todo Title Updated",
+      oldUpdateValues.title =
+        oldTitle;
 
-        performedBy:
-          req.user._id,
-
-        todoId:
-          todo._id,
-
-        metadata: {
-          oldTitle,
-          newTitle:
-            todo.title,
-        },
-      });
+      newUpdateValues.title =
+        todo.title;
     }
 
     if (
       oldDescription !==
       todo.description
     ) {
-      await createActivity({
-        action:
-          "Todo Description Updated",
+      oldUpdateValues.description =
+        oldDescription;
 
-        performedBy:
-          req.user._id,
-
-        todoId:
-          todo._id,
-      });
+      newUpdateValues.description =
+        todo.description;
     }
 
     if (
-      oldAssignedTo !==
-      newAssignedTo
+      oldDueDate !==
+      newDueDate
     ) {
-      await createActivity({
-        action:
-          "Todo Assigned",
+      oldUpdateValues.dueDate =
+        oldDueDate;
 
-        performedBy:
-          req.user._id,
-
-        todoId:
-          todo._id,
-
-        metadata: {
-          oldAssignedTo,
-          newAssignedTo,
-        },
-      });
+      newUpdateValues.dueDate =
+        newDueDate;
     }
 
     if (
-      oldStatus !==
-      todo.status
+      Object.keys(
+        oldUpdateValues
+      ).length > 0
     ) {
       await createActivity({
-        action:
-          "Todo Status Changed",
-
-        performedBy:
-          req.user._id,
-
         todoId:
           todo._id,
 
-        metadata: {
-          oldStatus,
-          newStatus:
-            todo.status,
-        },
-      });
-    }
-
-    if (
-      oldPriority !==
-      todo.priority
-    ) {
-      await createActivity({
-        action:
-          "Todo Priority Changed",
-
-        performedBy:
-          req.user._id,
-
-        todoId:
-          todo._id,
-
-        metadata: {
-          oldPriority,
-          newPriority:
-            todo.priority,
-        },
-      });
-    }
-
-    if (
-      String(
-        oldDueDate
-      ) !==
-      String(
-        todo.dueDate
-      )
-    ) {
-      await createActivity({
-        action:
-          "Todo Due Date Updated",
-
-        performedBy:
-          req.user._id,
-
-        todoId:
-          todo._id,
-
-        metadata: {
-          oldDueDate,
-          newDueDate:
-            todo.dueDate,
-        },
-      });
-    }
-
-    // ==========================================
-    // Notification: Todo Assigned
-    // ==========================================
-
-    if (
-      oldAssignedTo !==
-        newAssignedTo &&
-      newAssignedTo
-    ) {
-      await createNotification({
         userId:
-          newAssignedTo,
+          req.user._id,
 
-        todoId:
-          todo._id,
+        action:
+          "updated",
 
-        type:
-          "todo_assigned",
+        oldValue:
+          oldUpdateValues,
 
-        message:
-          `Todo "${todo.title}" has been assigned to you`,
+        newValue:
+          newUpdateValues,
       });
     }
 
     // ==========================================
-    // Notification: Todo Status Changed
+    // AUDIT: Assignment
+    // ==========================================
+
+    if (
+      oldAssignedTo !==
+      newAssignedTo
+    ) {
+      const action =
+        oldAssignedTo
+          ? "reassigned"
+          : "assigned";
+
+      await createActivity({
+        todoId:
+          todo._id,
+
+        userId:
+          req.user._id,
+
+        action,
+
+        oldValue:
+          oldAssignedTo,
+
+        newValue:
+          newAssignedTo,
+      });
+
+      // Notification only when a user is assigned.
+      if (newAssignedTo) {
+        await createNotification({
+          userId:
+            newAssignedTo,
+
+          todoId:
+            todo._id,
+
+          type:
+            "todo_assigned",
+
+          message:
+            `Todo "${todo.title}" has been assigned to you`,
+        });
+      }
+    }
+
+    // ==========================================
+    // AUDIT: Status Changed
     // ==========================================
 
     if (
       oldStatus !==
       todo.status
     ) {
+      await createActivity({
+        todoId:
+          todo._id,
+
+        userId:
+          req.user._id,
+
+        action:
+          "status_changed",
+
+        oldValue:
+          oldStatus,
+
+        newValue:
+          todo.status,
+      });
+
+      // Notification
       const recipientIds = [
         todo.createdBy,
         todo.assignedTo,
@@ -1023,6 +1197,32 @@ const updateTodo = async (
       }
     }
 
+    // ==========================================
+    // AUDIT: Priority Changed
+    // ==========================================
+
+    if (
+      oldPriority !==
+      todo.priority
+    ) {
+      await createActivity({
+        todoId:
+          todo._id,
+
+        userId:
+          req.user._id,
+
+        action:
+          "priority_changed",
+
+        oldValue:
+          oldPriority,
+
+        newValue:
+          todo.priority,
+      });
+    }
+
     const updatedTodo =
       await Todo.findById(
         todo._id
@@ -1036,7 +1236,7 @@ const updateTodo = async (
           "name email role"
         );
 
-    res.status(200).json({
+    return res.status(200).json({
       success: true,
 
       message:
@@ -1046,7 +1246,7 @@ const updateTodo = async (
         updatedTodo,
     });
   } catch (error) {
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       message:
         error.message,
@@ -1059,154 +1259,159 @@ const updateTodo = async (
 // PATCH /api/todos/:id/status
 // ==========================================
 
-const updateTodoStatus =
-  async (
-    req,
-    res
-  ) => {
-    try {
-      const { id } =
-        req.params;
+const updateTodoStatus = async (
+  req,
+  res
+) => {
+  try {
+    const { id } =
+      req.params;
 
-      const { status } =
-        req.body;
+    const { status } =
+      req.body;
 
-      if (
-        !isValidId(id)
-      ) {
-        return res.status(400).json({
-          success: false,
-          message:
-            "Invalid Todo ID",
-        });
-      }
+    if (!isValidId(id)) {
+      return res.status(400).json({
+        success: false,
+        message:
+          "Invalid Todo ID",
+      });
+    }
 
-      if (
-        !allowedStatuses.includes(
-          status
+    if (
+      !allowedStatuses.includes(
+        status
+      )
+    ) {
+      return res.status(400).json({
+        success: false,
+        message:
+          "Status must be pending, in-progress or completed",
+      });
+    }
+
+    const todo =
+      await getAccessibleTodo(
+        id,
+        req.user
+      );
+
+    if (!todo) {
+      return res.status(404).json({
+        success: false,
+        message:
+          "Todo not found",
+      });
+    }
+
+    const oldStatus =
+      todo.status;
+
+    todo.status =
+      status;
+
+    await todo.save();
+
+    if (
+      oldStatus !==
+      status
+    ) {
+      // ========================================
+      // AUDIT
+      // ========================================
+
+      await createActivity({
+        todoId:
+          todo._id,
+
+        userId:
+          req.user._id,
+
+        action:
+          "status_changed",
+
+        oldValue:
+          oldStatus,
+
+        newValue:
+          status,
+      });
+
+      // ========================================
+      // Notification
+      // ========================================
+
+      const recipientIds = [
+        todo.createdBy,
+        todo.assignedTo,
+      ]
+        .filter(Boolean)
+        .map(
+          (userId) =>
+            userId.toString()
         )
-      ) {
-        return res.status(400).json({
-          success: false,
-          message:
-            "Status must be pending, in-progress or completed",
-        });
-      }
-
-      const todo =
-        await getAccessibleTodo(
-          id,
-          req.user
+        .filter(
+          (userId) =>
+            userId !==
+            req.user._id.toString()
         );
 
-      if (!todo) {
-        return res.status(404).json({
-          success: false,
-          message:
-            "Todo not found",
-        });
-      }
+      const uniqueRecipients =
+        [
+          ...new Set(
+            recipientIds
+          ),
+        ];
 
-      const oldStatus =
-        todo.status;
-
-      todo.status =
-        status;
-
-      await todo.save();
-
-      if (
-        oldStatus !==
-        status
+      for (
+        const userId of
+        uniqueRecipients
       ) {
-        await createActivity({
-          action:
-            "Todo Status Changed",
-
-          performedBy:
-            req.user._id,
+        await createNotification({
+          userId,
 
           todoId:
             todo._id,
 
-          metadata: {
-            oldStatus,
-            newStatus:
-              status,
-          },
+          type:
+            "todo_status_changed",
+
+          message:
+            `Todo "${todo.title}" status changed from ${oldStatus} to ${status}`,
         });
-
-        const recipientIds = [
-          todo.createdBy,
-          todo.assignedTo,
-        ]
-          .filter(Boolean)
-          .map(
-            (userId) =>
-              userId.toString()
-          )
-          .filter(
-            (userId) =>
-              userId !==
-              req.user._id.toString()
-          );
-
-        const uniqueRecipients =
-          [
-            ...new Set(
-              recipientIds
-            ),
-          ];
-
-        for (
-          const userId of
-          uniqueRecipients
-        ) {
-          await createNotification({
-            userId,
-
-            todoId:
-              todo._id,
-
-            type:
-              "todo_status_changed",
-
-            message:
-              `Todo "${todo.title}" status changed from ${oldStatus} to ${status}`,
-          });
-        }
       }
-
-      const updatedTodo =
-        await Todo.findById(
-          todo._id
-        )
-          .populate(
-            "createdBy",
-            "name email role"
-          )
-          .populate(
-            "assignedTo",
-            "name email role"
-          );
-
-      res.status(200).json({
-        success: true,
-
-        message:
-          "Todo status updated successfully",
-
-        data:
-          updatedTodo,
-      });
-    } catch (error) {
-      res.status(500).json({
-        success: false,
-        message:
-          error.message,
-      });
     }
-  };
+
+    const updatedTodo =
+      await Todo.findById(
+        todo._id
+      )
+        .populate(
+          "createdBy",
+          "name email role"
+        )
+        .populate(
+          "assignedTo",
+          "name email role"
+        );
+
+    return res.status(200).json({
+      success: true,
+
+      message:
+        "Todo status updated successfully",
+
+      data:
+        updatedTodo,
+    });
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      message:
+        error.message,
+    });
+  }
+};
 
 // ==========================================
 // Soft Delete Todo
@@ -1221,9 +1426,7 @@ const deleteTodo = async (
     const { id } =
       req.params;
 
-    if (
-      !isValidId(id)
-    ) {
+    if (!isValidId(id)) {
       return res.status(400).json({
         success: false,
         message:
@@ -1250,7 +1453,8 @@ const deleteTodo = async (
       req.user._id.toString();
 
     const isAdmin =
-      req.user.role === "admin";
+      req.user.role ===
+      "admin";
 
     if (
       !isOwner &&
@@ -1263,6 +1467,9 @@ const deleteTodo = async (
       });
     }
 
+    const oldDeletedValue =
+      todo.isDeleted;
+
     todo.isDeleted =
       true;
 
@@ -1271,30 +1478,35 @@ const deleteTodo = async (
 
     await todo.save();
 
+    // ==========================================
+    // AUDIT: Soft Deleted
+    // ==========================================
+
     await createActivity({
-      action:
-        "Todo Deleted",
-
-      performedBy:
-        req.user._id,
-
       todoId:
         todo._id,
 
-      metadata: {
-        title:
-          todo.title,
-      },
+      userId:
+        req.user._id,
+
+      action:
+        "soft_deleted",
+
+      oldValue:
+        oldDeletedValue,
+
+      newValue:
+        true,
     });
 
-    res.status(200).json({
+    return res.status(200).json({
       success: true,
 
       message:
         "Todo moved to trash successfully",
     });
   } catch (error) {
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       message:
         error.message,
@@ -1308,17 +1520,12 @@ const deleteTodo = async (
 // ==========================================
 
 const uploadTodoAttachment =
-  async (
-    req,
-    res
-  ) => {
+  async (req, res) => {
     try {
       const { id } =
         req.params;
 
-      if (
-        !isValidId(id)
-      ) {
+      if (!isValidId(id)) {
         return res.status(400).json({
           success: false,
           message:
@@ -1348,6 +1555,10 @@ const uploadTodoAttachment =
         });
       }
 
+      const oldAttachmentUrl =
+        todo.attachmentUrl ||
+        null;
+
       const uploadResult =
         await uploadAttachmentFile(
           req.file
@@ -1362,23 +1573,28 @@ const uploadTodoAttachment =
 
       await todo.save();
 
+      // ==========================================
+      // AUDIT: Attachment Added
+      // ==========================================
+
       await createActivity({
-        action:
-          "Attachment Added",
-
-        performedBy:
-          req.user._id,
-
         todoId:
           todo._id,
 
-        metadata: {
-          attachmentUrl:
-            todo.attachmentUrl,
-        },
+        userId:
+          req.user._id,
+
+        action:
+          "attachment_added",
+
+        oldValue:
+          oldAttachmentUrl,
+
+        newValue:
+          todo.attachmentUrl,
       });
 
-      res.status(200).json({
+      return res.status(200).json({
         success: true,
 
         message:
@@ -1387,10 +1603,13 @@ const uploadTodoAttachment =
         data: {
           attachmentUrl:
             todo.attachmentUrl,
+
+          attachmentPublicId:
+            todo.attachmentPublicId,
         },
       });
     } catch (error) {
-      res.status(500).json({
+      return res.status(500).json({
         success: false,
         message:
           error.message,
@@ -1414,9 +1633,7 @@ const addComment = async (
     const { comment } =
       req.body;
 
-    if (
-      !isValidId(id)
-    ) {
+    if (!isValidId(id)) {
       return res.status(400).json({
         success: false,
         message:
@@ -1426,7 +1643,8 @@ const addComment = async (
 
     if (
       !comment ||
-      typeof comment !== "string" ||
+      typeof comment !==
+        "string" ||
       !comment.trim()
     ) {
       return res.status(400).json({
@@ -1462,17 +1680,24 @@ const addComment = async (
           comment.trim(),
       });
 
+    // ==========================================
+    // AUDIT: Comment Added
+    // ==========================================
+
     await createActivity({
-      action:
-        "Comment Added",
-
-      performedBy:
-        req.user._id,
-
       todoId:
         todo._id,
 
-      metadata: {
+      userId:
+        req.user._id,
+
+      action:
+        "comment_added",
+
+      oldValue:
+        null,
+
+      newValue: {
         commentId:
           newComment._id,
 
@@ -1482,7 +1707,7 @@ const addComment = async (
     });
 
     // ==========================================
-    // Notification: Comment Added
+    // Notification
     // ==========================================
 
     const recipientIds = [
@@ -1533,7 +1758,7 @@ const addComment = async (
         "name email"
       );
 
-    res.status(201).json({
+    return res.status(201).json({
       success: true,
 
       message:
@@ -1543,7 +1768,7 @@ const addComment = async (
         populatedComment,
     });
   } catch (error) {
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       message:
         error.message,
@@ -1557,17 +1782,12 @@ const addComment = async (
 // ==========================================
 
 const getTodoComments =
-  async (
-    req,
-    res
-  ) => {
+  async (req, res) => {
     try {
       const { id } =
         req.params;
 
-      if (
-        !isValidId(id)
-      ) {
+      if (!isValidId(id)) {
         return res.status(400).json({
           success: false,
           message:
@@ -1602,7 +1822,7 @@ const getTodoComments =
             createdAt: -1,
           });
 
-      res.status(200).json({
+      return res.status(200).json({
         success: true,
 
         total:
@@ -1612,7 +1832,7 @@ const getTodoComments =
           comments,
       });
     } catch (error) {
-      res.status(500).json({
+      return res.status(500).json({
         success: false,
         message:
           error.message,
@@ -1626,23 +1846,23 @@ const getTodoComments =
 // ==========================================
 
 const updateComment =
-  async (
-    req,
-    res
-  ) => {
+  async (req, res) => {
     try {
       const {
         todoId,
         commentId,
-      } =
-        req.params;
+      } = req.params;
 
       const { comment } =
         req.body;
 
       if (
-        !isValidId(todoId) ||
-        !isValidId(commentId)
+        !isValidId(
+          todoId
+        ) ||
+        !isValidId(
+          commentId
+        )
       ) {
         return res.status(400).json({
           success: false,
@@ -1653,7 +1873,8 @@ const updateComment =
 
       if (
         !comment ||
-        typeof comment !== "string" ||
+        typeof comment !==
+          "string" ||
         !comment.trim()
       ) {
         return res.status(400).json({
@@ -1728,7 +1949,7 @@ const updateComment =
           "name email"
         );
 
-      res.status(200).json({
+      return res.status(200).json({
         success: true,
 
         message:
@@ -1738,7 +1959,7 @@ const updateComment =
           updatedComment,
       });
     } catch (error) {
-      res.status(500).json({
+      return res.status(500).json({
         success: false,
         message:
           error.message,
@@ -1752,20 +1973,20 @@ const updateComment =
 // ==========================================
 
 const deleteComment =
-  async (
-    req,
-    res
-  ) => {
+  async (req, res) => {
     try {
       const {
         todoId,
         commentId,
-      } =
-        req.params;
+      } = req.params;
 
       if (
-        !isValidId(todoId) ||
-        !isValidId(commentId)
+        !isValidId(
+          todoId
+        ) ||
+        !isValidId(
+          commentId
+        )
       ) {
         return res.status(400).json({
           success: false,
@@ -1828,30 +2049,14 @@ const deleteComment =
         comment._id
       );
 
-      await createActivity({
-        action:
-          "Comment Deleted",
-
-        performedBy:
-          req.user._id,
-
-        todoId:
-          todo._id,
-
-        metadata: {
-          commentId:
-            comment._id,
-        },
-      });
-
-      res.status(200).json({
+      return res.status(200).json({
         success: true,
 
         message:
           "Comment deleted successfully",
       });
     } catch (error) {
-      res.status(500).json({
+      return res.status(500).json({
         success: false,
         message:
           error.message,
@@ -1865,17 +2070,12 @@ const deleteComment =
 // ==========================================
 
 const getTodoActivity =
-  async (
-    req,
-    res
-  ) => {
+  async (req, res) => {
     try {
       const { id } =
         req.params;
 
-      if (
-        !isValidId(id)
-      ) {
+      if (!isValidId(id)) {
         return res.status(400).json({
           success: false,
           message:
@@ -1883,10 +2083,18 @@ const getTodoActivity =
         });
       }
 
+      // ========================================
+      // IMPORTANT:
+      // Do NOT use getAccessibleTodo() here.
+      //
+      // A soft-deleted Todo must still have
+      // accessible audit history for its creator,
+      // assigned user, and admin.
+      // ========================================
+
       const todo =
-        await getAccessibleTodo(
-          id,
-          req.user
+        await Todo.findById(
+          id
         );
 
       if (!todo) {
@@ -1897,20 +2105,38 @@ const getTodoActivity =
         });
       }
 
-      const activities =
-        await Activity.find({
-          todoId:
-            todo._id,
-        })
-          .populate(
-            "performedBy",
-            "name email role"
-          )
-          .sort({
-            createdAt: -1,
-          });
+      const isAdmin =
+        req.user.role ===
+        "admin";
 
-      res.status(200).json({
+      const isCreator =
+        todo.createdBy &&
+        todo.createdBy.toString() ===
+          req.user._id.toString();
+
+      const isAssigned =
+        todo.assignedTo &&
+        todo.assignedTo.toString() ===
+          req.user._id.toString();
+
+      if (
+        !isAdmin &&
+        !isCreator &&
+        !isAssigned
+      ) {
+        return res.status(403).json({
+          success: false,
+          message:
+            "You are not authorized to view this Todo activity",
+        });
+      }
+
+      const activities =
+        await getTodoActivities(
+          todo._id
+        );
+
+      return res.status(200).json({
         success: true,
 
         total:
@@ -1920,7 +2146,7 @@ const getTodoActivity =
           activities,
       });
     } catch (error) {
-      res.status(500).json({
+      return res.status(500).json({
         success: false,
         message:
           error.message,
@@ -1933,32 +2159,67 @@ const getTodoActivity =
 // ==========================================
 
 module.exports = {
+  // ========================================
   // Todo CRUD
+  // ========================================
+
   createTodo,
+
   getTodos,
+
+  getTodoStats,
+
   getTodoById,
+
   updateTodo,
+
   updateTodoStatus,
+
   deleteTodo,
 
+  // ========================================
   // Attachment
+  // ========================================
+
   uploadTodoAttachment,
 
+  // ========================================
   // Comments
+  // ========================================
+
   addComment,
+
   getTodoComments,
+
   updateComment,
+
   deleteComment,
 
+  // ========================================
   // Activity
+  // ========================================
+
   getTodoActivity,
 
-  // Common aliases for route compatibility
-  getTodo: getTodoById,
-  getSingleTodo: getTodoById,
+  // ========================================
+  // Compatibility aliases
+  // ========================================
 
-  getActivityHistory: getTodoActivity,
-  getTodoActivityHistory: getTodoActivity,
+  getTodo:
+    getTodoById,
 
-  getComments: getTodoComments,
+  getSingleTodo:
+    getTodoById,
+
+  getActivityHistory:
+    getTodoActivity,
+
+  getTodoActivityHistory:
+    getTodoActivity,
+
+  getComments:
+    getTodoComments,
+
+  getStats:
+    getTodoStats,
 };

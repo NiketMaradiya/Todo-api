@@ -1,64 +1,54 @@
 # Todo API
 
-A RESTful Todo API built with **Node.js, Express, MongoDB, Mongoose and JWT Authentication**.
+A RESTful Todo API built using **Node.js, Express.js, MongoDB, and Mongoose**.
 
-The API supports user authentication, role-based access, Todo CRUD operations, Todo assignment, status management, soft delete, pagination, searching, sorting, rate limiting, and file attachments.
-
-Images are uploaded to **Cloudinary**, while documents are stored locally inside `public/uploads/`.
+This project supports user authentication, JWT authorization, user roles, Todo assignment, due dates, priorities, status validation, soft delete, trash management, admin features, pagination, search, filtering, sorting, and file attachments.
 
 ---
 
-# Features
+## Features
 
-* User registration
-* User login
-* JWT authentication
-* User logout
-* User profile
-* User and Admin roles
-* Admin authorization
+* User Registration
+* User Login
+* JWT Authentication
+* Protected Routes
+* User Roles
+* Admin Authorization
 * Create Todo
-* Read Todos
-* Get Todo by ID
+* Get All Todos
+* Get Single Todo
 * Update Todo
-* Update Todo status
-* Delete Todo using soft delete
-* Assign Todo to another user
-* Todo ownership protection
-* Admin Todo access
-* Search Todos
-* Filter Todos by status
+* Delete Todo
+* Soft Delete
+* Restore Deleted Todo
+* Trash Management
+* Assign Todo to Users
+* Todo Visibility Based on User Role
+* Due Date Support
+* Priority Support
+* Status Validation
+* File Attachments
+* Cloudinary File Storage
 * Pagination
+* Search
+* Filtering
 * Sorting
-* Todo statistics
-* Rate limiting
-* File attachment support
-* Multer file upload
-* Cloudinary image upload
-* Local document storage
-* File type validation
-* Maximum file size validation
-* Multipart/form-data support
 
 ---
 
 # Technology Stack
 
-| Technology | Purpose               |
-| ---------- | --------------------- |
-| Node.js    | Backend runtime       |
-| Express.js | REST API framework    |
-| MongoDB    | Database              |
-| Mongoose   | MongoDB ODM           |
-| JWT        | Authentication        |
-| bcryptjs   | Password hashing      |
-| Multer     | File upload handling  |
-| Cloudinary | Image storage         |
-| dotenv     | Environment variables |
-| CORS       | Cross-origin requests |
-| Jest       | Testing               |
-| Supertest  | API testing           |
-| Nodemon    | Development server    |
+* Node.js
+* Express.js
+* MongoDB
+* Mongoose
+* JWT
+* bcryptjs
+* Multer
+* Cloudinary
+* dotenv
+* cors
+* Nodemon
 
 ---
 
@@ -68,32 +58,27 @@ Images are uploaded to **Cloudinary**, while documents are stored locally inside
 todo-api/
 │
 ├── config/
-│   ├── cloudinary.js
-│   └── db.js
+│   ├── db.js
+│   └── cloudinary.js
 │
 ├── controllers/
-│   ├── adminController.js
 │   ├── authController.js
-│   └── todoController.js
+│   ├── todoController.js
+│   └── adminController.js
 │
 ├── middleware/
-│   ├── adminMiddleware.js
 │   ├── authMiddleware.js
-│   ├── errorMiddleware.js
-│   ├── logger.js
+│   ├── adminMiddleware.js
 │   └── uploadMiddleware.js
 │
 ├── models/
-│   ├── Todo.js
-│   └── User.js
+│   ├── User.js
+│   └── Todo.js
 │
 ├── routes/
-│   ├── adminRoutes.js
 │   ├── authRoutes.js
-│   └── todoRoutes.js
-│
-├── utils/
-│   └── attachmentService.js
+│   ├── todoRoutes.js
+│   └── adminRoutes.js
 │
 ├── public/
 │   └── uploads/
@@ -101,25 +86,11 @@ todo-api/
 ├── tests/
 │
 ├── .env
-├── .env.example
 ├── .gitignore
 ├── package.json
-├── package-lock.json
-├── README.md
-└── server.js
+├── server.js
+└── README.md
 ```
-
----
-
-# Requirements
-
-Before running the project, install:
-
-* Node.js
-* npm
-* MongoDB
-* Cloudinary account
-* Postman
 
 ---
 
@@ -127,11 +98,7 @@ Before running the project, install:
 
 Clone or download the project.
 
-Open the project folder:
-
-```bash
-cd todo-api
-```
+Open the project folder in VS Code.
 
 Install dependencies:
 
@@ -143,286 +110,153 @@ npm install
 
 # Environment Variables
 
-Create a `.env` file in the project root.
+Create a `.env` file in the root folder.
 
 ```env
 PORT=5000
 
 MONGO_URI=mongodb://127.0.0.1:27017/todo-api
 
-JWT_SECRET=your_super_secret_jwt_key
-JWT_EXPIRES_IN=1d
+JWT_SECRET=your_secret_key
 
 CLOUDINARY_CLOUD_NAME=your_cloud_name
 CLOUDINARY_API_KEY=your_api_key
 CLOUDINARY_API_SECRET=your_api_secret
 ```
 
-## Environment Variable Explanation
-
-| Variable                | Description                               |
-| ----------------------- | ----------------------------------------- |
-| `PORT`                  | Server port                               |
-| `MONGO_URI`             | MongoDB connection URL                    |
-| `JWT_SECRET`            | Secret used to sign JWT tokens            |
-| `JWT_EXPIRES_IN`        | JWT expiration time                       |
-| `CLOUDINARY_CLOUD_NAME` | Cloudinary Product Environment cloud name |
-| `CLOUDINARY_API_KEY`    | Cloudinary API key                        |
-| `CLOUDINARY_API_SECRET` | Cloudinary API secret                     |
-
-Never commit `.env` to GitHub.
+Replace the Cloudinary values with your own Cloudinary credentials.
 
 ---
 
-# Cloudinary Setup
+# Start the Project
 
-The project uses Cloudinary for image attachments.
-
-## Step 1: Create Account
-
-Create a Cloudinary account and open the Cloudinary Dashboard.
-
-## Step 2: Get Cloud Name
-
-In the Cloudinary Dashboard, open the Product Environment section.
-
-Copy:
-
-```text
-Cloud name
-```
-
-Example:
-
-```text
-dliotdri
-```
-
-Do not confuse:
-
-```text
-Cloud Name
-```
-
-with:
-
-```text
-Key Name
-```
-
-A Key Name is only the name of an API key.
-
-## Step 3: Get API Key
-
-Go to:
-
-```text
-Settings
-→ API Keys
-```
-
-Copy the API Key.
-
-## Step 4: Get API Secret
-
-Use the API Secret belonging to the same API key.
-
-Do not share the API Secret publicly.
-
-## Step 5: Add Credentials
-
-Add the values to `.env`.
-
-Example:
-
-```env
-CLOUDINARY_CLOUD_NAME=dliotdri
-CLOUDINARY_API_KEY=YOUR_API_KEY
-CLOUDINARY_API_SECRET=YOUR_API_SECRET
-```
-
----
-
-# Start the Server
-
-Development mode:
+For development:
 
 ```bash
 npm run dev
 ```
 
-Production mode:
+For production:
 
 ```bash
 npm start
 ```
 
-The API will run at:
+The server will run on:
 
 ```text
 http://localhost:5000
-```
-
-Health check:
-
-```http
-GET http://localhost:5000/
-```
-
-Expected response:
-
-```json
-{
-  "success": true,
-  "message": "Todo API is running"
-}
-```
-
----
-
-# Authentication
-
-All protected Todo APIs require a JWT token.
-
-The token is returned after successful login.
-
-Use the token in Postman:
-
-```text
-Authorization
-→ Bearer Token
-→ YOUR_JWT_TOKEN
 ```
 
 ---
 
 # Authentication APIs
 
-## Register
+## Register User
 
-```http
+### Request
+
+```text
 POST /api/auth/register
 ```
 
-Example:
-
-```http
-POST http://localhost:5000/api/auth/register
-```
-
-Body:
+### Body
 
 ```json
 {
-  "name": "User One",
-  "email": "user1@test.com",
+  "name": "Test User",
+  "email": "testuser@gmail.com",
   "password": "123456"
 }
 ```
 
 ---
 
-## Login
+## Login User
 
-```http
+### Request
+
+```text
 POST /api/auth/login
 ```
 
-Example:
-
-```http
-POST http://localhost:5000/api/auth/login
-```
-
-Body:
+### Body
 
 ```json
 {
-  "email": "user1@test.com",
+  "email": "testuser@gmail.com",
   "password": "123456"
 }
 ```
 
-Copy the JWT token from the response.
+### Example Response
+
+```json
+{
+  "success": true,
+  "message": "Login successful",
+  "token": "YOUR_JWT_TOKEN",
+  "user": {
+    "_id": "USER_ID",
+    "name": "Test User",
+    "email": "testuser@gmail.com",
+    "role": "user"
+  }
+}
+```
+
+Copy the JWT token and use it for protected routes.
 
 ---
 
-## Logout
+# Authorization
 
-```http
-POST /api/auth/logout
-```
+For protected APIs, add the token in Postman.
 
-Authorization:
+Go to:
 
 ```text
-Bearer YOUR_JWT_TOKEN
+Authorization
 ```
 
----
-
-## Profile
-
-```http
-GET /api/profile
-```
-
-Authorization:
+Select:
 
 ```text
-Bearer YOUR_JWT_TOKEN
+Bearer Token
 ```
 
----
-
-# User Roles
-
-The API supports two roles:
+Paste:
 
 ```text
-user
-admin
+YOUR_JWT_TOKEN
 ```
-
-A normal user:
-
-* Can access permitted Todos
-* Can create Todos
-* Can update their own created Todos
-* Can update allowed Todo information
-* Cannot access protected admin operations
-
-An admin:
-
-* Can access admin APIs
-* Can access Todos according to admin permissions
-* Can manage users
-* Can update Todos according to admin rules
 
 ---
 
 # Todo Model
 
-A Todo contains:
+A Todo contains the following fields:
 
-```json
-{
-  "title": "Todo title",
-  "description": "Todo description",
-  "createdBy": "USER_ID",
-  "assignedTo": "USER_ID",
-  "attachmentUrl": "FILE_URL",
-  "status": "pending",
-  "isDeleted": false,
-  "deletedAt": null
-}
+```text
+title
+description
+status
+createdBy
+assignedTo
+dueDate
+priority
+attachmentUrl
+isDeleted
+deletedAt
+createdAt
+updatedAt
 ```
 
 ---
 
 # Todo Status
 
-Supported statuses:
+The Todo API supports these status values:
 
 ```text
 pending
@@ -438,326 +272,452 @@ Example:
 }
 ```
 
----
+Invalid status values should not be accepted.
 
-# Todo APIs
+Example invalid value:
 
-All Todo APIs require authentication.
+```json
+{
+  "status": "todo"
+}
+```
 
-Base URL:
+Expected result:
 
 ```text
-http://localhost:5000/api/todos
+400 Bad Request
 ```
 
 ---
 
-## Create Todo
+# Todo Priority
 
-```http
-POST /api/todos
-```
-
-Authorization:
+The API supports three priority values:
 
 ```text
-Bearer YOUR_JWT_TOKEN
-```
-
-The API supports:
-
-```text
-application/json
-```
-
-and:
-
-```text
-multipart/form-data
-```
-
-For an attachment, use:
-
-```text
-multipart/form-data
+low
+medium
+high
 ```
 
 Example:
 
-```text
-title       = My Todo
-description = My Todo description
-assignedTo  = USER_ID
-status      = pending
-```
-
----
-
-# Create Todo With Image
-
-### Postman
-
-Request:
-
-```http
-POST http://localhost:5000/api/todos
-```
-
-Authorization:
-
-```text
-Bearer YOUR_JWT_TOKEN
-```
-
-Body:
-
-```text
-form-data
-```
-
-| Key         | Type | Value                    |
-| ----------- | ---- | ------------------------ |
-| title       | Text | Cloudinary Test          |
-| description | Text | Testing image attachment |
-| assignedTo  | Text | USER_ID                  |
-| status      | Text | pending                  |
-| attachment  | File | attachment.jpg           |
-
-The file field name must be exactly:
-
-```text
-attachment
-```
-
-Expected response:
-
 ```json
 {
-  "success": true,
-  "message": "Todo created successfully",
-  "data": {
-    "_id": "TODO_ID",
-    "title": "Cloudinary Test",
-    "attachmentUrl": "https://res.cloudinary.com/...",
-    "status": "pending"
-  }
+  "priority": "high"
 }
 ```
 
----
+Invalid priority values should not be stored.
 
-# File Attachment Flow
+Example invalid value:
 
-For images:
-
-```text
-Postman
-   ↓
-multipart/form-data
-   ↓
-Multer
-   ↓
-Cloudinary
-   ↓
-Cloudinary URL
-   ↓
-Todo.attachmentUrl
-   ↓
-MongoDB
+```json
+{
+  "priority": "urgent"
+}
 ```
 
-For documents:
+Expected result:
 
 ```text
-Postman
-   ↓
-multipart/form-data
-   ↓
-Multer
-   ↓
-public/uploads/
-   ↓
-Local file URL
-   ↓
-Todo.attachmentUrl
-   ↓
-MongoDB
+400 Bad Request
 ```
 
 ---
 
-# Supported File Types
+# Create Todo
 
-## Images
-
-Supported:
+## Request
 
 ```text
-.jpg
-.jpeg
-.png
-.webp
+POST /api/todos
 ```
 
-Images are uploaded to:
+This route requires authentication.
 
-```text
-Cloudinary
+## Body
+
+```json
+{
+  "title": "Learn Express Middleware",
+  "description": "Practice authentication and middleware",
+  "status": "pending",
+  "assignedTo": "REAL_USER_ID",
+  "dueDate": "2026-08-30",
+  "priority": "high"
+}
 ```
 
----
+Important:
 
-## Documents
+`assignedTo` must contain a real user ID from the MongoDB users collection.
 
-Supported:
-
-```text
-.pdf
-.doc
-.docx
-```
-
-Documents are stored in:
-
-```text
-public/uploads/
-```
-
----
-
-# File Size Limit
-
-Maximum attachment size:
-
-```text
-5 MB
-```
-
-Files larger than 5 MB are rejected.
-
-Expected response:
+Example error if the field is missing:
 
 ```json
 {
   "success": false,
-  "message": "File too large. Maximum file size is 5 MB"
+  "message": "assignedTo is required"
 }
 ```
 
----
-
-# Invalid File Type
-
-Unsupported files are rejected.
-
-Examples:
-
-```text
-.exe
-.zip
-.js
-.html
-.mp4
-```
-
-Expected response:
+Example error if the user does not exist:
 
 ```json
 {
   "success": false,
-  "message": "Unsupported file type. Allowed: JPG, JPEG, PNG, WEBP, PDF, DOC and DOCX"
+  "message": "Assigned user not found"
 }
 ```
-
----
-
-# File Field Name
-
-The API accepts the uploaded file using:
-
-```text
-attachment
-```
-
-Correct:
-
-```text
-attachment → File → image.jpg
-```
-
-Incorrect:
-
-```text
-file → image.jpg
-```
-
-```text
-image → image.jpg
-```
-
-```text
-photo → image.jpg
-```
-
-Using the wrong field name results in a Multer error.
 
 ---
 
 # Get All Todos
 
-```http
+## Request
+
+```text
 GET /api/todos
 ```
 
 Example:
 
-```http
-GET http://localhost:5000/api/todos
+```text
+http://localhost:5000/api/todos
 ```
 
-Authorization:
+The user must provide a valid JWT token.
+
+Depending on the user role:
+
+## Normal User
+
+A normal user can see:
+
+* Todos created by the user
+* Todos assigned to the user
+
+## Admin
+
+An admin can see all Todos.
+
+---
+
+# Get Single Todo
+
+## Request
 
 ```text
-Bearer YOUR_JWT_TOKEN
+GET /api/todos/:id
+```
+
+Example:
+
+```text
+GET http://localhost:5000/api/todos/TODO_ID
+```
+
+Replace `TODO_ID` with the actual Todo `_id`.
+
+---
+
+# Update Todo
+
+## Request
+
+```text
+PUT /api/todos/:id
+```
+
+Example:
+
+```text
+PUT http://localhost:5000/api/todos/TODO_ID
+```
+
+## Body
+
+```json
+{
+  "title": "Learn Express Middleware",
+  "description": "Updated Todo description",
+  "status": "in-progress",
+  "assignedTo": "REAL_USER_ID",
+  "dueDate": "2026-10-01",
+  "priority": "medium"
+}
+```
+
+The Todo can be updated with:
+
+* New title
+* New description
+* New status
+* New assigned user
+* New due date
+* New priority
+
+---
+
+# Update Due Date
+
+Example:
+
+```json
+{
+  "title": "Learn Express Middleware",
+  "description": "Practice authentication and middleware",
+  "status": "pending",
+  "assignedTo": "REAL_USER_ID",
+  "dueDate": "2026-10-01",
+  "priority": "high"
+}
 ```
 
 ---
 
-# Search Todos
+# Update Priority
 
 Example:
 
-```http
-GET /api/todos?search=Node
+```json
+{
+  "title": "Learn Express Middleware",
+  "description": "Practice authentication and middleware",
+  "status": "in-progress",
+  "assignedTo": "REAL_USER_ID",
+  "dueDate": "2026-10-01",
+  "priority": "medium"
+}
 ```
-
-Searches Todo title and description.
 
 ---
 
-# Filter Todos By Status
+# Invalid Priority Testing
+
+Use:
+
+```text
+PUT /api/todos/:id
+```
+
+Body:
+
+```json
+{
+  "title": "Invalid Priority Test",
+  "description": "Testing priority validation",
+  "status": "pending",
+  "assignedTo": "REAL_USER_ID",
+  "dueDate": "2026-10-10",
+  "priority": "urgent"
+}
+```
+
+Expected:
+
+```text
+400 Bad Request
+```
+
+Only these values are valid:
+
+```text
+low
+medium
+high
+```
+
+---
+
+# Invalid Status Testing
 
 Example:
 
-```http
-GET /api/todos?status=pending
+```json
+{
+  "title": "Invalid Status Test",
+  "description": "Testing status validation",
+  "status": "todo",
+  "assignedTo": "REAL_USER_ID",
+  "dueDate": "2026-10-10",
+  "priority": "high"
+}
 ```
 
-Supported:
+Expected response:
+
+```json
+{
+  "success": false,
+  "message": "Status must be pending, in-progress or completed"
+}
+```
+
+---
+
+# Delete Todo
+
+## Request
 
 ```text
-pending
-in-progress
-completed
+DELETE /api/todos/:id
+```
+
+Example:
+
+```text
+DELETE http://localhost:5000/api/todos/TODO_ID
+```
+
+This route requires authentication.
+
+The Todo is soft deleted.
+
+Instead of permanently removing the Todo, the API updates:
+
+```text
+isDeleted = true
+deletedAt = current date
+```
+
+Soft-deleted Todos should not appear in the normal Todo list.
+
+---
+
+# Admin APIs
+
+Admin routes require:
+
+* Valid JWT token
+* User role set to `admin`
+
+---
+
+# Get All Users
+
+```text
+GET /api/admin/users
+```
+
+The admin can view all users.
+
+This API can be used to get a real user `_id` for the `assignedTo` field.
+
+Example user:
+
+```json
+{
+  "_id": "USER_ID",
+  "name": "Test User",
+  "email": "testuser@gmail.com",
+  "role": "user"
+}
+```
+
+Copy the real `_id` and use it as:
+
+```json
+{
+  "assignedTo": "USER_ID"
+}
+```
+
+---
+
+# Make User Admin
+
+```text
+POST /api/admin/users/:id/make-admin
+```
+
+Example:
+
+```text
+POST http://localhost:5000/api/admin/users/USER_ID/make-admin
+```
+
+---
+
+# Remove Admin Role
+
+```text
+POST /api/admin/users/:id/remove-admin
+```
+
+Example:
+
+```text
+POST http://localhost:5000/api/admin/users/USER_ID/remove-admin
+```
+
+---
+
+# Trash APIs
+
+## View Deleted Todos
+
+```text
+GET /api/admin/todos/trash
+```
+
+Only an admin can access this route.
+
+This API returns soft-deleted Todos.
+
+---
+
+# Restore Todo
+
+```text
+PATCH /api/admin/todos/:id/restore
+```
+
+Example:
+
+```text
+PATCH http://localhost:5000/api/admin/todos/TODO_ID/restore
+```
+
+The Todo will be restored by changing:
+
+```text
+isDeleted = false
+deletedAt = null
+```
+
+---
+
+# File Attachments
+
+The Todo API supports file attachments.
+
+Files are uploaded using:
+
+```text
+multipart/form-data
+```
+
+The uploaded file can be stored using Cloudinary.
+
+The Todo stores the uploaded file URL.
+
+Example field:
+
+```text
+attachmentUrl
 ```
 
 ---
 
 # Pagination
 
+The Todo API supports pagination.
+
 Example:
 
-```http
+```text
 GET /api/todos?page=1&limit=10
 ```
 
@@ -771,569 +731,176 @@ limit
 Example:
 
 ```text
-page=1
-limit=10
+http://localhost:5000/api/todos?page=1&limit=10
+```
+
+---
+
+# Search
+
+Search Todos using:
+
+```text
+search
+```
+
+Example:
+
+```text
+GET /api/todos?search=Express
+```
+
+---
+
+# Filter by Status
+
+Example:
+
+```text
+GET /api/todos?status=pending
+```
+
+Other valid values:
+
+```text
+pending
+in-progress
+completed
 ```
 
 ---
 
 # Sorting
 
-Newest first:
+Example:
 
-```http
+```text
 GET /api/todos?sort=newest
 ```
 
-Oldest first:
-
-```http
-GET /api/todos?sort=oldest
-```
-
----
-
-# Combined Filters
-
-Example:
-
-```http
-GET /api/todos?search=Node&status=pending&page=1&limit=10&sort=newest
-```
-
----
-
-# Get Todo By ID
-
-```http
-GET /api/todos/:id
-```
-
-Example:
-
-```http
-GET http://localhost:5000/api/todos/TODO_ID
-```
-
-Authorization:
+Depending on the API implementation, sorting can be used to display:
 
 ```text
-Bearer YOUR_JWT_TOKEN
+newest
+oldest
 ```
 
-Example response:
+---
+
+# Complete Postman Testing Flow
+
+## 1. Register User
+
+```text
+POST /api/auth/register
+```
 
 ```json
 {
-  "success": true,
-  "data": {
-    "_id": "TODO_ID",
-    "title": "Cloudinary Test",
-    "description": "Testing image attachment",
-    "attachmentUrl": "https://res.cloudinary.com/..."
-  }
+  "name": "Test User",
+  "email": "testuser@gmail.com",
+  "password": "123456"
 }
 ```
 
----
-
-# Update Todo
-
-```http
-PUT /api/todos/:id
-```
-
-or:
-
-```http
-PATCH /api/todos/:id
-```
-
-Example:
-
-```http
-PUT http://localhost:5000/api/todos/TODO_ID
-```
-
-Authorization:
+## 2. Login User
 
 ```text
-Bearer YOUR_JWT_TOKEN
+POST /api/auth/login
 ```
-
----
-
-# Update Todo With Image
-
-Body:
-
-```text
-form-data
-```
-
-Example:
-
-| Key        | Type | Value         |
-| ---------- | ---- | ------------- |
-| title      | Text | Updated Todo  |
-| attachment | File | new-image.jpg |
-
-The new image is uploaded to Cloudinary.
-
-The Todo's `attachmentUrl` is updated with the new Cloudinary URL.
-
----
-
-# Update Attachment Only
-
-Example:
-
-```http
-PATCH http://localhost:5000/api/todos/TODO_ID
-```
-
-Body:
-
-```text
-form-data
-```
-
-```text
-attachment → File → new-image.jpg
-```
-
-No other Todo fields are required.
-
----
-
-# Update Todo Status
-
-```http
-PATCH /api/todos/:id/status
-```
-
-Example:
-
-```http
-PATCH http://localhost:5000/api/todos/TODO_ID/status
-```
-
-Body:
 
 ```json
 {
-  "status": "completed"
-}
-```
-
----
-
-# Delete Todo
-
-```http
-DELETE /api/todos/:id
-```
-
-Authorization:
-
-```text
-Bearer YOUR_JWT_TOKEN
-```
-
-The Todo uses **soft delete**.
-
-Instead of permanently removing the Todo, the API changes:
-
-```json
-{
-  "isDeleted": true,
-  "deletedAt": "DATE"
-}
-```
-
-Deleted Todos are excluded from normal Todo queries.
-
----
-
-# Todo Statistics
-
-```http
-GET /api/todos/stats
-```
-
-Example:
-
-```http
-GET http://localhost:5000/api/todos/stats
-```
-
-Returns Todo statistics such as:
-
-```json
-{
-  "success": true,
-  "data": {
-    "total": 10,
-    "pending": 3,
-    "inProgress": 4,
-    "completed": 3
-  }
-}
-```
-
----
-
-# Document Upload
-
-PDF, DOC and DOCX files are stored inside:
-
-```text
-public/uploads/
-```
-
-Example:
-
-```text
-public/
-└── uploads/
-    └── 1750000000000-abcdef123456.pdf
-```
-
-The Todo stores:
-
-```text
-/uploads/1750000000000-abcdef123456.pdf
-```
-
----
-
-# Access Uploaded Documents
-
-The server exposes:
-
-```text
-/uploads
-```
-
-Example:
-
-```text
-http://localhost:5000/uploads/example.pdf
-```
-
-If the Todo response contains:
-
-```json
-{
-  "attachmentUrl": "/uploads/example.pdf"
-}
-```
-
-open:
-
-```text
-http://localhost:5000/uploads/example.pdf
-```
-
----
-
-# Image URL
-
-Cloudinary image URLs look similar to:
-
-```text
-https://res.cloudinary.com/dliotdri/image/upload/...
-```
-
-Copy the URL from:
-
-```text
-attachmentUrl
-```
-
-and open it in the browser.
-
----
-
-# Admin APIs
-
-Admin routes are protected by authentication and admin authorization.
-
-Base URL:
-
-```text
-http://localhost:5000/api/admin
-```
-
-Example:
-
-```http
-GET /api/admin/users
-```
-
-Authorization:
-
-```text
-Bearer ADMIN_JWT_TOKEN
-```
-
-Only users with:
-
-```text
-role = admin
-```
-
-should access protected admin APIs.
-
----
-
-# Rate Limiting
-
-The API protects endpoints against excessive requests.
-
-The configured limit is:
-
-```text
-20 requests / 1 minute / IP
-```
-
-When the limit is exceeded, the API returns a rate-limit error.
-
-Example:
-
-```json
-{
-  "success": false,
-  "message": "Too many requests. Please try again later."
-}
-```
-
----
-
-# Error Handling
-
-The API returns consistent JSON error responses.
-
-Example:
-
-```json
-{
-  "success": false,
-  "message": "Todo not found"
-}
-```
-
-Common errors include:
-
-```text
-400 Bad Request
-401 Unauthorized
-403 Forbidden
-404 Not Found
-413 Payload Too Large
-429 Too Many Requests
-500 Internal Server Error
-```
-
----
-
-# Common Attachment Errors
-
-## Unexpected field
-
-```json
-{
-  "success": false,
-  "message": "Unexpected file field. Use the field name \"attachment\""
-}
-```
-
-Check that Postman uses:
-
-```text
-attachment
-```
-
-as the file key.
-
----
-
-## Invalid file type
-
-```json
-{
-  "success": false,
-  "message": "Unsupported file type. Allowed: JPG, JPEG, PNG, WEBP, PDF, DOC and DOCX"
-}
-```
-
-Use only supported formats.
-
----
-
-## File too large
-
-```json
-{
-  "success": false,
-  "message": "File too large. Maximum file size is 5 MB"
-}
-```
-
-Use a file smaller than 5 MB.
-
----
-
-# Postman Testing
-
-## 1. Login
-
-```http
-POST http://localhost:5000/api/auth/login
-```
-
-Body:
-
-```json
-{
-  "email": "user1@test.com",
+  "email": "testuser@gmail.com",
   "password": "123456"
 }
 ```
 
 Copy the JWT token.
 
----
+## 3. Add JWT Token
 
-## 2. Create Todo With Image
-
-```http
-POST http://localhost:5000/api/todos
-```
-
-Authorization:
+In Postman:
 
 ```text
-Bearer YOUR_JWT_TOKEN
+Authorization
+→ Bearer Token
+→ Paste JWT Token
 ```
 
-Body:
+## 4. Get a Real User ID
+
+If you have admin access:
 
 ```text
-form-data
+GET /api/admin/users
 ```
+
+Copy an existing user's `_id`.
+
+## 5. Create Todo
 
 ```text
-title        = Cloudinary Test
-description  = Testing image attachment
-assignedTo   = USER_ID
-status       = pending
-attachment   = image.jpg
+POST /api/todos
 ```
 
-Expected:
+```json
+{
+  "title": "Learn Express Middleware",
+  "description": "Practice authentication and middleware",
+  "status": "pending",
+  "assignedTo": "REAL_USER_ID",
+  "dueDate": "2026-08-30",
+  "priority": "high"
+}
+```
+
+Copy the created Todo `_id`.
+
+## 6. Get All Todos
 
 ```text
-201 Created
+GET /api/todos
 ```
 
-and:
+## 7. Get Single Todo
 
 ```text
-attachmentUrl = https://res.cloudinary.com/...
+GET /api/todos/TODO_ID
 ```
 
----
-
-## 3. Get Todo
-
-```http
-GET http://localhost:5000/api/todos/TODO_ID
-```
-
-Check:
+## 8. Update Todo
 
 ```text
-attachmentUrl
+PUT /api/todos/TODO_ID
 ```
 
----
+```json
+{
+  "title": "Learn Express Middleware",
+  "description": "Updated description",
+  "status": "in-progress",
+  "assignedTo": "REAL_USER_ID",
+  "dueDate": "2026-10-01",
+  "priority": "medium"
+}
+```
 
-## 4. Open Image
-
-Copy:
+## 9. Test Invalid Priority
 
 ```text
-attachmentUrl
+PUT /api/todos/TODO_ID
 ```
 
-into the browser.
-
----
-
-## 5. Update Todo
-
-```http
-PUT http://localhost:5000/api/todos/TODO_ID
-```
-
-Body:
-
-```text
-form-data
-```
-
-```text
-title      = Updated Todo
-attachment = new-image.jpg
-```
-
----
-
-## 6. Upload PDF
-
-```http
-POST http://localhost:5000/api/todos
-```
-
-Body:
-
-```text
-form-data
-```
-
-```text
-title       = PDF Test
-description = Testing PDF
-assignedTo  = USER_ID
-status      = pending
-attachment  = test.pdf
-```
-
-Expected:
-
-```text
-attachmentUrl = /uploads/filename.pdf
-```
-
----
-
-## 7. Open PDF
-
-Example:
-
-```text
-http://localhost:5000/uploads/filename.pdf
-```
-
----
-
-## 8. Test Invalid File
-
-Try:
-
-```text
-test.exe
+```json
+{
+  "title": "Invalid Priority Test",
+  "description": "Testing validation",
+  "status": "pending",
+  "assignedTo": "REAL_USER_ID",
+  "dueDate": "2026-10-10",
+  "priority": "urgent"
+}
 ```
 
 Expected:
@@ -1342,239 +909,156 @@ Expected:
 400 Bad Request
 ```
 
----
+## 10. Test Invalid Status
 
-## 9. Test Large File
-
-Use a file larger than:
-
-```text
-5 MB
+```json
+{
+  "title": "Invalid Status Test",
+  "description": "Testing validation",
+  "status": "todo",
+  "assignedTo": "REAL_USER_ID",
+  "dueDate": "2026-10-10",
+  "priority": "high"
+}
 ```
 
 Expected:
 
 ```text
-413 Payload Too Large
+400 Bad Request
+```
+
+## 11. Delete Todo
+
+```text
+DELETE /api/todos/TODO_ID
+```
+
+## 12. Check Normal Todo List
+
+```text
+GET /api/todos
+```
+
+The deleted Todo should not appear.
+
+---
+
+# Error Handling
+
+## No Token
+
+```text
+401 Unauthorized
+```
+
+## Invalid Token
+
+```text
+401 Unauthorized
+```
+
+## Missing assignedTo
+
+```json
+{
+  "success": false,
+  "message": "assignedTo is required"
+}
+```
+
+## Assigned User Not Found
+
+```json
+{
+  "success": false,
+  "message": "Assigned user not found"
+}
+```
+
+## Invalid Status
+
+```json
+{
+  "success": false,
+  "message": "Status must be pending, in-progress or completed"
+}
+```
+
+## Invalid Priority
+
+```text
+400 Bad Request
+```
+
+Valid priorities:
+
+```text
+low
+medium
+high
 ```
 
 ---
 
-# Complete Attachment Test Flow
+# Todo Testing Checklist
 
-```text
-User
-  ↓
-JWT Authentication
-  ↓
-POST /api/todos
-  ↓
-multipart/form-data
-  ↓
-Multer
-  ↓
-Check file type
-  ↓
-Check file size
-  ↓
- ┌───────────────────────┐
- │                       │
-Image                  Document
- │                       │
- ↓                       ↓
-Cloudinary          public/uploads
- │                       │
- ↓                       ↓
-Cloudinary URL       Local URL
- │                       │
- └───────────┬───────────┘
-             ↓
-      attachmentUrl
-             ↓
-          MongoDB
-             ↓
-       GET Todo API
-             ↓
-       Access attachment
-```
+* [ ] User registration
+* [ ] User login
+* [ ] JWT authentication
+* [ ] Create Todo
+* [ ] Assign Todo to user
+* [ ] Get all Todos
+* [ ] Get single Todo
+* [ ] Update Todo
+* [ ] Update due date
+* [ ] Update priority
+* [ ] Test low priority
+* [ ] Test medium priority
+* [ ] Test high priority
+* [ ] Test invalid priority
+* [ ] Test invalid status
+* [ ] Soft delete Todo
+* [ ] View deleted Todos
+* [ ] Restore Todo
+* [ ] Admin authorization
+* [ ] File attachment testing
 
 ---
 
-# Security Notes
+# API Summary
 
-Never commit:
-
-```text
-.env
-```
-
-Never publish:
-
-```text
-CLOUDINARY_API_SECRET
-JWT_SECRET
-```
-
-Use `.env.example` for sharing configuration structure.
-
-Example:
-
-```env
-CLOUDINARY_CLOUD_NAME=your_cloud_name
-CLOUDINARY_API_KEY=your_api_key
-CLOUDINARY_API_SECRET=your_api_secret
-```
+| Feature         | Method | Endpoint                            |
+| --------------- | ------ | ----------------------------------- |
+| Register User   | POST   | `/api/auth/register`                |
+| Login User      | POST   | `/api/auth/login`                   |
+| Create Todo     | POST   | `/api/todos`                        |
+| Get All Todos   | GET    | `/api/todos`                        |
+| Get Single Todo | GET    | `/api/todos/:id`                    |
+| Update Todo     | PUT    | `/api/todos/:id`                    |
+| Delete Todo     | DELETE | `/api/todos/:id`                    |
+| Get Users       | GET    | `/api/admin/users`                  |
+| Make Admin      | POST   | `/api/admin/users/:id/make-admin`   |
+| Remove Admin    | POST   | `/api/admin/users/:id/remove-admin` |
+| View Trash      | GET    | `/api/admin/todos/trash`            |
+| Restore Todo    | PATCH  | `/api/admin/todos/:id/restore`      |
 
 ---
 
-# Git Ignore
+# Author
 
-The project should ignore:
+Todo API Project
 
-```text
-node_modules/
-.env
-public/uploads/*
-```
+Built for learning and practicing:
 
-while keeping:
-
-```text
-public/uploads/.gitkeep
-```
-
----
-
-# Development Commands
-
-Install dependencies:
-
-```bash
-npm install
-```
-
-Run development server:
-
-```bash
-npm run dev
-```
-
-Run production server:
-
-```bash
-npm start
-```
-
-Run tests:
-
-```bash
-npm test
-```
-
----
-
-# API Base URL
-
-Local development:
-
-```text
-http://localhost:5000
-```
-
-API:
-
-```text
-http://localhost:5000/api
-```
-
-Todos:
-
-```text
-http://localhost:5000/api/todos
-```
-
-Authentication:
-
-```text
-http://localhost:5000/api/auth
-```
-
-Admin:
-
-```text
-http://localhost:5000/api/admin
-```
-
----
-
-# Summary
-
-This Todo API provides:
-
-```text
-Authentication
-     +
-Authorization
-     +
-Todo Management
-     +
-User Assignment
-     +
-Search
-     +
-Filtering
-     +
-Pagination
-     +
-Sorting
-     +
-Statistics
-     +
-Soft Delete
-     +
-Rate Limiting
-     +
-Multer File Upload
-     +
-Cloudinary Image Storage
-     +
-Local Document Storage
-```
-
-The attachment system supports:
-
-```text
-JPG
-JPEG
-PNG
-WEBP
-PDF
-DOC
-DOCX
-```
-
-Maximum file size:
-
-```text
-5 MB
-```
-
-Images are stored in:
-
-```text
-Cloudinary
-```
-
-Documents are stored in:
-
-```text
-public/uploads/
-```
-
-The final file location is stored in:
-
-```text
-Todo.attachmentUrl
-```
-
-and returned by the Todo APIs.
+* REST APIs
+* Express.js
+* MongoDB
+* Mongoose
+* JWT Authentication
+* Role-Based Authorization
+* Todo Assignment
+* Soft Delete
+* File Uploads
+* Due Date Management
+* Priority Management

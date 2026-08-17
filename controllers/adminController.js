@@ -1,25 +1,21 @@
 const mongoose = require("mongoose");
 const User = require("../models/User");
 const Todo = require("../models/Todo");
+const { createActivity } = require("../utils/activityService");
 
-const isValidId = (id) => {
-  return mongoose.Types.ObjectId.isValid(id);
-};
+const isValidId = (id) => mongoose.Types.ObjectId.isValid(id);
 
-const userResponse = (user) => {
-  return {
-    _id: user._id.toString(),
-    name: user.name,
-    email: user.email,
-    role: user.role,
-    isActive: user.isActive,
-    createdAt: user.createdAt,
-  };
-};
+const userResponse = (user) => ({
+  _id: user._id.toString(),
+  name: user.name,
+  email: user.email,
+  role: user.role,
+  isActive: user.isActive,
+  createdAt: user.createdAt,
+});
 
 // ==========================================
 // GET /api/admin/users
-// Get all users
 // ==========================================
 
 const getAllUsers = async (req, res) => {
@@ -43,14 +39,6 @@ const getAllUsers = async (req, res) => {
 
 // ==========================================
 // GET /api/admin/todos
-// Get ALL todos
-//
-// Admin can see:
-// - Who created the todo
-// - Who is assigned
-// - Status
-// - Created date
-// - Updated date
 // ==========================================
 
 const getAllTodos = async (req, res) => {
@@ -65,12 +53,10 @@ const getAllTodos = async (req, res) => {
       sort = "newest",
     } = req.query;
 
-    // Normal admin Todo list excludes soft-deleted todos.
     const filter = {
       isDeleted: false,
     };
 
-    // Search by title
     if (search) {
       filter.title = {
         $regex: search,
@@ -78,14 +64,13 @@ const getAllTodos = async (req, res) => {
       };
     }
 
-    // Filter by status
     if (status) {
       if (
-        [
+        ![
           "pending",
           "in-progress",
           "completed",
-        ].includes(status) === false
+        ].includes(status)
       ) {
         return res.status(400).json({
           success: false,
@@ -97,63 +82,105 @@ const getAllTodos = async (req, res) => {
       filter.status = status;
     }
 
-    // Filter by creator
     if (createdBy !== undefined) {
       if (!isValidId(createdBy)) {
         return res.status(400).json({
           success: false,
-          message: "Invalid createdBy user ID",
+          message:
+            "Invalid createdBy user ID",
         });
       }
 
       filter.createdBy = createdBy;
     }
 
-    // Filter by assigned user
     if (assignedTo !== undefined) {
       if (!isValidId(assignedTo)) {
         return res.status(400).json({
           success: false,
-          message: "Invalid assignedTo user ID",
+          message:
+            "Invalid assignedTo user ID",
         });
       }
 
       filter.assignedTo = assignedTo;
     }
 
-    const pageNumber = Math.max(
-      Number(page),
-      1
-    );
+    const pageNumber = Number(page);
+    const limitNumber = Number(limit);
 
-    const limitNumber = Math.max(
-      Number(limit),
-      1
-    );
+    if (
+      !Number.isInteger(pageNumber) ||
+      pageNumber < 1
+    ) {
+      return res.status(400).json({
+        success: false,
+        message:
+          "Page must be a positive integer",
+      });
+    }
+
+    if (
+      !Number.isInteger(limitNumber) ||
+      limitNumber < 1
+    ) {
+      return res.status(400).json({
+        success: false,
+        message:
+          "Limit must be a positive integer",
+      });
+    }
+
+    if (limitNumber > 100) {
+      return res.status(400).json({
+        success: false,
+        message:
+          "Limit cannot be greater than 100",
+      });
+    }
+
+    if (
+      ![
+        "newest",
+        "oldest",
+      ].includes(sort)
+    ) {
+      return res.status(400).json({
+        success: false,
+        message:
+          "Sort must be newest or oldest",
+      });
+    }
 
     const skip =
-      (pageNumber - 1) * limitNumber;
+      (pageNumber - 1) *
+      limitNumber;
 
     const sortOption =
       sort === "oldest"
-        ? { createdAt: 1 }
-        : { createdAt: -1 };
+        ? {
+            createdAt: 1,
+          }
+        : {
+            createdAt: -1,
+          };
 
     const total =
       await Todo.countDocuments(filter);
 
-    const todos = await Todo.find(filter)
-      .populate(
-        "createdBy",
-        "name email role"
-      )
-      .populate(
-        "assignedTo",
-        "name email role"
-      )
-      .sort(sortOption)
-      .skip(skip)
-      .limit(limitNumber);
+    const todos =
+      await Todo.find(filter)
+        .populate(
+          "createdBy",
+          "name email role"
+        )
+        .populate(
+          "assignedTo",
+          "name email role"
+        )
+        .sort(sortOption)
+        .skip(skip)
+        .limit(limitNumber);
 
     res.status(200).json({
       success: true,
@@ -163,9 +190,10 @@ const getAllTodos = async (req, res) => {
         total,
         page: pageNumber,
         limit: limitNumber,
-        totalPages: Math.ceil(
-          total / limitNumber
-        ),
+        totalPages:
+          Math.ceil(
+            total / limitNumber
+          ),
       },
 
       data: todos,
@@ -180,7 +208,6 @@ const getAllTodos = async (req, res) => {
 
 // ==========================================
 // GET /api/admin/todos/:id
-// Get any Todo by ID
 // ==========================================
 
 const getAdminTodoById = async (
@@ -193,27 +220,30 @@ const getAdminTodoById = async (
     if (!isValidId(id)) {
       return res.status(400).json({
         success: false,
-        message: "Invalid Todo ID",
+        message:
+          "Invalid Todo ID",
       });
     }
 
-    const todo = await Todo.findOne({
-      _id: id,
-      isDeleted: false,
-    })
-      .populate(
-        "createdBy",
-        "name email role"
-      )
-      .populate(
-        "assignedTo",
-        "name email role"
-      );
+    const todo =
+      await Todo.findOne({
+        _id: id,
+        isDeleted: false,
+      })
+        .populate(
+          "createdBy",
+          "name email role"
+        )
+        .populate(
+          "assignedTo",
+          "name email role"
+        );
 
     if (!todo) {
       return res.status(404).json({
         success: false,
-        message: "Todo not found",
+        message:
+          "Todo not found",
       });
     }
 
@@ -231,15 +261,6 @@ const getAdminTodoById = async (
 
 // ==========================================
 // PUT /api/admin/todos/:id
-// Admin can update ANY todo
-//
-// Admin can change:
-// - title
-// - description
-// - status
-// - assignedTo
-//
-// createdBy cannot be changed
 // ==========================================
 
 const updateAdminTodo = async (
@@ -259,9 +280,7 @@ const updateAdminTodo = async (
       assignedTo,
     } = req.body;
 
-    if (
-      !isValidId(id)
-    ) {
+    if (!isValidId(id)) {
       return res.status(400).json({
         success: false,
         message:
@@ -270,12 +289,17 @@ const updateAdminTodo = async (
     }
 
     if (
-      title === undefined &&
-      description === undefined &&
-      status === undefined &&
-      priority === undefined &&
-      dueDate === undefined &&
-      assignedTo === undefined
+      [
+        title,
+        description,
+        status,
+        priority,
+        dueDate,
+        assignedTo,
+      ].every(
+        (value) =>
+          value === undefined
+      )
     ) {
       return res.status(400).json({
         success: false,
@@ -298,6 +322,19 @@ const updateAdminTodo = async (
       });
     }
 
+    const oldStatus =
+      todo.status;
+
+    const oldPriority =
+      todo.priority;
+
+    const oldAssignedTo =
+      todo.assignedTo
+        ? todo.assignedTo.toString()
+        : null;
+
+    const changes = {};
+
     // Update title
     if (
       title !== undefined
@@ -314,23 +351,48 @@ const updateAdminTodo = async (
         });
       }
 
+      if (
+        todo.title !==
+        title.trim()
+      ) {
+        changes.title = {
+          from:
+            todo.title,
+          to:
+            title.trim(),
+        };
+      }
+
       todo.title =
         title.trim();
     }
 
     // Update description
     if (
-      description !== undefined
+      description !==
+      undefined
     ) {
       if (
         typeof description !==
-          "string"
+        "string"
       ) {
         return res.status(400).json({
           success: false,
           message:
             "Description must be a string",
         });
+      }
+
+      if (
+        todo.description !==
+        description.trim()
+      ) {
+        changes.description = {
+          from:
+            todo.description,
+          to:
+            description.trim(),
+        };
       }
 
       todo.description =
@@ -342,12 +404,11 @@ const updateAdminTodo = async (
       status !== undefined
     ) {
       if (
-        [
+        ![
           "pending",
           "in-progress",
           "completed",
-        ].includes(status) ===
-        false
+        ].includes(status)
       ) {
         return res.status(400).json({
           success: false,
@@ -378,6 +439,18 @@ const updateAdminTodo = async (
         });
       }
 
+      if (
+        todo.priority !==
+        priority
+      ) {
+        changes.priority = {
+          from:
+            oldPriority,
+          to:
+            priority,
+        };
+      }
+
       todo.priority =
         priority;
     }
@@ -386,6 +459,9 @@ const updateAdminTodo = async (
     if (
       dueDate !== undefined
     ) {
+      const oldDueDate =
+        todo.dueDate;
+
       if (
         dueDate === null ||
         dueDate === ""
@@ -408,11 +484,19 @@ const updateAdminTodo = async (
         todo.dueDate =
           new Date(dueDate);
       }
+
+      changes.dueDate = {
+        from:
+          oldDueDate,
+        to:
+          todo.dueDate,
+      };
     }
 
     // Update assigned user
     if (
-      assignedTo !== undefined
+      assignedTo !==
+      undefined
     ) {
       if (
         assignedTo === null
@@ -450,11 +534,98 @@ const updateAdminTodo = async (
       }
     }
 
-    // IMPORTANT:
     // Admin cannot change createdBy.
-    // createdBy remains the original creator.
+    // createdBy remains unchanged.
 
     await todo.save();
+
+    // ==========================================
+    // Activity: Todo Updated
+    // ==========================================
+
+    await createActivity({
+      action:
+        "Todo Updated",
+
+      performedBy:
+        req.user._id,
+
+      todoId:
+        todo._id,
+
+      metadata: {
+        ...changes,
+        updatedByAdmin:
+          true,
+      },
+    });
+
+    // ==========================================
+    // Activity: Status Changed
+    // ==========================================
+
+    if (
+      status !== undefined &&
+      oldStatus !== status
+    ) {
+      await createActivity({
+        action:
+          "Todo Status Changed",
+
+        performedBy:
+          req.user._id,
+
+        todoId:
+          todo._id,
+
+        metadata: {
+          from:
+            oldStatus,
+
+          to:
+            status,
+
+          updatedByAdmin:
+            true,
+        },
+      });
+    }
+
+    // ==========================================
+    // Activity: Todo Assigned
+    // ==========================================
+
+    const newAssignedTo =
+      todo.assignedTo
+        ? todo.assignedTo.toString()
+        : null;
+
+    if (
+      oldAssignedTo !==
+      newAssignedTo
+    ) {
+      await createActivity({
+        action:
+          "Todo Assigned",
+
+        performedBy:
+          req.user._id,
+
+        todoId:
+          todo._id,
+
+        metadata: {
+          from:
+            oldAssignedTo,
+
+          to:
+            newAssignedTo,
+
+          updatedByAdmin:
+            true,
+        },
+      });
+    }
 
     const updatedTodo =
       await Todo.findById(
@@ -471,8 +642,10 @@ const updateAdminTodo = async (
 
     res.status(200).json({
       success: true,
+
       message:
         "Todo updated successfully by admin",
+
       data:
         updatedTodo,
     });
@@ -487,7 +660,6 @@ const updateAdminTodo = async (
 
 // ==========================================
 // DELETE /api/admin/todos/:id
-// Admin can delete ANY Todo
 // ==========================================
 
 const deleteAdminTodo = async (
@@ -495,12 +667,14 @@ const deleteAdminTodo = async (
   res
 ) => {
   try {
-    const { id } = req.params;
+    const { id } =
+      req.params;
 
     if (!isValidId(id)) {
       return res.status(400).json({
         success: false,
-        message: "Invalid Todo ID",
+        message:
+          "Invalid Todo ID",
       });
     }
 
@@ -513,15 +687,40 @@ const deleteAdminTodo = async (
     if (!todo) {
       return res.status(404).json({
         success: false,
-        message: "Todo not found",
+        message:
+          "Todo not found",
       });
     }
 
-    // Soft Delete
+    // Soft delete
     todo.isDeleted = true;
-    todo.deletedAt = new Date();
+    todo.deletedAt =
+      new Date();
 
     await todo.save();
+
+    // ==========================================
+    // Activity: Todo Deleted
+    // ==========================================
+
+    await createActivity({
+      action:
+        "Todo Deleted",
+
+      performedBy:
+        req.user._id,
+
+      todoId:
+        todo._id,
+
+      metadata: {
+        deletedAt:
+          todo.deletedAt,
+
+        deletedByAdmin:
+          true,
+      },
+    });
 
     res.status(200).json({
       success: true,
@@ -531,17 +730,20 @@ const deleteAdminTodo = async (
   } catch (error) {
     res.status(500).json({
       success: false,
-      message: error.message,
+      message:
+        error.message,
     });
   }
 };
 
 // ==========================================
 // GET /api/admin/todos/trash
-// Get all soft-deleted todos
 // ==========================================
 
-const getTrashTodos = async (req, res) => {
+const getTrashTodos = async (
+  req,
+  res
+) => {
   try {
     const {
       search,
@@ -553,11 +755,16 @@ const getTrashTodos = async (req, res) => {
       sort = "newest",
     } = req.query;
 
-    const pageNumber = Number(page);
-    const limitNumber = Number(limit);
+    const pageNumber =
+      Number(page);
+
+    const limitNumber =
+      Number(limit);
 
     if (
-      !Number.isInteger(pageNumber) ||
+      !Number.isInteger(
+        pageNumber
+      ) ||
       pageNumber < 1
     ) {
       return res.status(400).json({
@@ -568,7 +775,9 @@ const getTrashTodos = async (req, res) => {
     }
 
     if (
-      !Number.isInteger(limitNumber) ||
+      !Number.isInteger(
+        limitNumber
+      ) ||
       limitNumber < 1
     ) {
       return res.status(400).json({
@@ -578,7 +787,9 @@ const getTrashTodos = async (req, res) => {
       });
     }
 
-    if (limitNumber > 100) {
+    if (
+      limitNumber > 100
+    ) {
       return res.status(400).json({
         success: false,
         message:
@@ -602,8 +813,10 @@ const getTrashTodos = async (req, res) => {
     }
 
     if (
-      sort !== "newest" &&
-      sort !== "oldest"
+      ![
+        "newest",
+        "oldest",
+      ].includes(sort)
     ) {
       return res.status(400).json({
         success: false,
@@ -622,35 +835,53 @@ const getTrashTodos = async (req, res) => {
       search.trim()
     ) {
       filter.title = {
-        $regex: search.trim(),
+        $regex:
+          search.trim(),
         $options: "i",
       };
     }
 
     if (status) {
-      filter.status = status;
+      filter.status =
+        status;
     }
 
-    if (createdBy !== undefined) {
-      if (!isValidId(createdBy)) {
+    if (
+      createdBy !== undefined
+    ) {
+      if (
+        !isValidId(
+          createdBy
+        )
+      ) {
         return res.status(400).json({
           success: false,
-          message: "Invalid createdBy user ID",
+          message:
+            "Invalid createdBy user ID",
         });
       }
 
-      filter.createdBy = createdBy;
+      filter.createdBy =
+        createdBy;
     }
 
-    if (assignedTo !== undefined) {
-      if (!isValidId(assignedTo)) {
+    if (
+      assignedTo !== undefined
+    ) {
+      if (
+        !isValidId(
+          assignedTo
+        )
+      ) {
         return res.status(400).json({
           success: false,
-          message: "Invalid assignedTo user ID",
+          message:
+            "Invalid assignedTo user ID",
         });
       }
 
-      filter.assignedTo = assignedTo;
+      filter.assignedTo =
+        assignedTo;
     }
 
     const skip =
@@ -659,68 +890,87 @@ const getTrashTodos = async (req, res) => {
 
     const sortOption =
       sort === "oldest"
-        ? { deletedAt: 1 }
-        : { deletedAt: -1 };
+        ? {
+            deletedAt: 1,
+          }
+        : {
+            deletedAt: -1,
+          };
 
     const total =
-      await Todo.countDocuments(filter);
+      await Todo.countDocuments(
+        filter
+      );
 
-    const todos = await Todo.find(filter)
-      .populate(
-        "createdBy",
-        "name email role"
-      )
-      .populate(
-        "assignedTo",
-        "name email role"
-      )
-      .sort(sortOption)
-      .skip(skip)
-      .limit(limitNumber);
+    const todos =
+      await Todo.find(filter)
+        .populate(
+          "createdBy",
+          "name email role"
+        )
+        .populate(
+          "assignedTo",
+          "name email role"
+        )
+        .sort(sortOption)
+        .skip(skip)
+        .limit(limitNumber);
 
     res.status(200).json({
       success: true,
-      count: todos.length,
+      count:
+        todos.length,
 
       pagination: {
         total,
-        page: pageNumber,
-        limit: limitNumber,
-        totalPages: Math.ceil(
-          total / limitNumber
-        ),
+        page:
+          pageNumber,
+        limit:
+          limitNumber,
+        totalPages:
+          Math.ceil(
+            total /
+              limitNumber
+          ),
       },
 
-      data: todos,
+      data:
+        todos,
     });
   } catch (error) {
     res.status(500).json({
       success: false,
-      message: error.message,
+      message:
+        error.message,
     });
   }
 };
 
 // ==========================================
 // PATCH /api/admin/todos/:id/restore
-// Restore a soft-deleted Todo
 // ==========================================
 
-const restoreTodo = async (req, res) => {
+const restoreTodo = async (
+  req,
+  res
+) => {
   try {
-    const { id } = req.params;
+    const { id } =
+      req.params;
 
     if (!isValidId(id)) {
       return res.status(400).json({
         success: false,
-        message: "Invalid Todo ID",
+        message:
+          "Invalid Todo ID",
       });
     }
 
-    const todo = await Todo.findOne({
-      _id: id,
-      isDeleted: true,
-    });
+    const todo =
+      await Todo.findOne({
+        _id: id,
+        isDeleted: true,
+      });
 
     if (!todo) {
       return res.status(404).json({
@@ -730,14 +980,39 @@ const restoreTodo = async (req, res) => {
       });
     }
 
-    // Restore Todo
     todo.isDeleted = false;
-    todo.deletedAt = null;
+    todo.deletedAt =
+      null;
 
     await todo.save();
 
+    // ==========================================
+    // Activity: Todo Restored
+    // ==========================================
+
+    await createActivity({
+      action:
+        "Todo Restored",
+
+      performedBy:
+        req.user._id,
+
+      todoId:
+        todo._id,
+
+      metadata: {
+        restoredAt:
+          new Date(),
+
+        restoredByAdmin:
+          true,
+      },
+    });
+
     const restoredTodo =
-      await Todo.findById(todo._id)
+      await Todo.findById(
+        todo._id
+      )
         .populate(
           "createdBy",
           "name email role"
@@ -749,14 +1024,18 @@ const restoreTodo = async (req, res) => {
 
     res.status(200).json({
       success: true,
+
       message:
         "Todo restored successfully",
-      data: restoredTodo,
+
+      data:
+        restoredTodo,
     });
   } catch (error) {
     res.status(500).json({
       success: false,
-      message: error.message,
+      message:
+        error.message,
     });
   }
 };
@@ -765,14 +1044,19 @@ const restoreTodo = async (req, res) => {
 // POST /api/admin/users/:id/make-admin
 // ==========================================
 
-const makeAdmin = async (req, res) => {
+const makeAdmin = async (
+  req,
+  res
+) => {
   try {
-    const { id } = req.params;
+    const { id } =
+      req.params;
 
     if (!isValidId(id)) {
       return res.status(400).json({
         success: false,
-        message: "Invalid user ID",
+        message:
+          "Invalid user ID",
       });
     }
 
@@ -782,24 +1066,30 @@ const makeAdmin = async (req, res) => {
     if (!user) {
       return res.status(404).json({
         success: false,
-        message: "User not found",
+        message:
+          "User not found",
       });
     }
 
-    user.role = "admin";
+    user.role =
+      "admin";
 
     await user.save();
 
     res.status(200).json({
       success: true,
+
       message:
         "User promoted to admin successfully",
-      data: userResponse(user),
+
+      data:
+        userResponse(user),
     });
   } catch (error) {
     res.status(500).json({
       success: false,
-      message: error.message,
+      message:
+        error.message,
     });
   }
 };
@@ -813,12 +1103,14 @@ const removeAdmin = async (
   res
 ) => {
   try {
-    const { id } = req.params;
+    const { id } =
+      req.params;
 
     if (!isValidId(id)) {
       return res.status(400).json({
         success: false,
-        message: "Invalid user ID",
+        message:
+          "Invalid user ID",
       });
     }
 
@@ -828,24 +1120,30 @@ const removeAdmin = async (
     if (!user) {
       return res.status(404).json({
         success: false,
-        message: "User not found",
+        message:
+          "User not found",
       });
     }
 
-    user.role = "user";
+    user.role =
+      "user";
 
     await user.save();
 
     res.status(200).json({
       success: true,
+
       message:
         "Admin privileges removed successfully",
-      data: userResponse(user),
+
+      data:
+        userResponse(user),
     });
   } catch (error) {
     res.status(500).json({
       success: false,
-      message: error.message,
+      message:
+        error.message,
     });
   }
 };
@@ -859,18 +1157,25 @@ const changeUserRole = async (
   res
 ) => {
   try {
-    const { id } = req.params;
-    const { role } = req.body;
+    const { id } =
+      req.params;
+
+    const { role } =
+      req.body;
 
     if (!isValidId(id)) {
       return res.status(400).json({
         success: false,
-        message: "Invalid user ID",
+        message:
+          "Invalid user ID",
       });
     }
 
     if (
-      !["user", "admin"].includes(role)
+      ![
+        "user",
+        "admin",
+      ].includes(role)
     ) {
       return res.status(400).json({
         success: false,
@@ -885,24 +1190,30 @@ const changeUserRole = async (
     if (!user) {
       return res.status(404).json({
         success: false,
-        message: "User not found",
+        message:
+          "User not found",
       });
     }
 
-    user.role = role;
+    user.role =
+      role;
 
     await user.save();
 
     res.status(200).json({
       success: true,
+
       message:
         "User role updated successfully",
-      data: userResponse(user),
+
+      data:
+        userResponse(user),
     });
   } catch (error) {
     res.status(500).json({
       success: false,
-      message: error.message,
+      message:
+        error.message,
     });
   }
 };
@@ -916,13 +1227,17 @@ const changeUserPassword = async (
   res
 ) => {
   try {
-    const { id } = req.params;
-    const { password } = req.body;
+    const { id } =
+      req.params;
+
+    const { password } =
+      req.body;
 
     if (!isValidId(id)) {
       return res.status(400).json({
         success: false,
-        message: "Invalid user ID",
+        message:
+          "Invalid user ID",
       });
     }
 
@@ -943,23 +1258,27 @@ const changeUserPassword = async (
     if (!user) {
       return res.status(404).json({
         success: false,
-        message: "User not found",
+        message:
+          "User not found",
       });
     }
 
-    user.password = password;
+    user.password =
+      password;
 
     await user.save();
 
     res.status(200).json({
       success: true,
+
       message:
         "User password changed successfully",
     });
   } catch (error) {
     res.status(500).json({
       success: false,
-      message: error.message,
+      message:
+        error.message,
     });
   }
 };
@@ -973,18 +1292,23 @@ const changeUserStatus = async (
   res
 ) => {
   try {
-    const { id } = req.params;
-    const { isActive } = req.body;
+    const { id } =
+      req.params;
+
+    const { isActive } =
+      req.body;
 
     if (!isValidId(id)) {
       return res.status(400).json({
         success: false,
-        message: "Invalid user ID",
+        message:
+          "Invalid user ID",
       });
     }
 
     if (
-      typeof isActive !== "boolean"
+      typeof isActive !==
+      "boolean"
     ) {
       return res.status(400).json({
         success: false,
@@ -999,25 +1323,31 @@ const changeUserStatus = async (
     if (!user) {
       return res.status(404).json({
         success: false,
-        message: "User not found",
+        message:
+          "User not found",
       });
     }
 
-    user.isActive = isActive;
+    user.isActive =
+      isActive;
 
     await user.save();
 
     res.status(200).json({
       success: true,
+
       message: isActive
         ? "User enabled successfully"
         : "User disabled successfully",
-      data: userResponse(user),
+
+      data:
+        userResponse(user),
     });
   } catch (error) {
     res.status(500).json({
       success: false,
-      message: error.message,
+      message:
+        error.message,
     });
   }
 };
@@ -1026,36 +1356,46 @@ const changeUserStatus = async (
 // DELETE /api/admin/users/:id
 // ==========================================
 
-const deleteUser = async (req, res) => {
+const deleteUser = async (
+  req,
+  res
+) => {
   try {
-    const { id } = req.params;
+    const { id } =
+      req.params;
 
     if (!isValidId(id)) {
       return res.status(400).json({
         success: false,
-        message: "Invalid user ID",
+        message:
+          "Invalid user ID",
       });
     }
 
     const user =
-      await User.findByIdAndDelete(id);
+      await User.findByIdAndDelete(
+        id
+      );
 
     if (!user) {
       return res.status(404).json({
         success: false,
-        message: "User not found",
+        message:
+          "User not found",
       });
     }
 
     res.status(200).json({
       success: true,
+
       message:
         "User deleted successfully",
     });
   } catch (error) {
     res.status(500).json({
       success: false,
-      message: error.message,
+      message:
+        error.message,
     });
   }
 };

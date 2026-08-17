@@ -1,54 +1,208 @@
 # Todo API
 
-A RESTful Todo API built using **Node.js, Express.js, MongoDB, and Mongoose**.
-
-This project supports user authentication, JWT authorization, user roles, Todo assignment, due dates, priorities, status validation, soft delete, trash management, admin features, pagination, search, filtering, sorting, and file attachments.
-
----
+A REST API for managing Todo tasks with JWT authentication, user assignment, role-based access, priority, due dates, attachments, soft delete, comments, and activity history.
 
 ## Features
 
-* User Registration
-* User Login
-* JWT Authentication
-* Protected Routes
-* User Roles
-* Admin Authorization
+### Authentication
+
+* User registration
+* User login
+* JWT authentication
+* User logout
+* Get logged-in user profile
+* Password hashing with bcrypt
+
+### User Roles
+
+* `user`
+* `admin`
+
+### Todo Management
+
 * Create Todo
-* Get All Todos
-* Get Single Todo
+* Get Todo list
+* Get Todo by ID
 * Update Todo
-* Delete Todo
-* Soft Delete
-* Restore Deleted Todo
-* Trash Management
-* Assign Todo to Users
-* Todo Visibility Based on User Role
-* Due Date Support
-* Priority Support
-* Status Validation
-* File Attachments
-* Cloudinary File Storage
-* Pagination
-* Search
-* Filtering
-* Sorting
+* Update Todo status
+* Delete Todo using soft delete
+* Admin can view all Todos
+* Admin can update any Todo
+* Admin can delete any Todo
+* Admin can view trash
+* Admin can restore deleted Todos
+
+### Todo Fields
+
+* `title`
+* `description`
+* `createdBy`
+* `assignedTo`
+* `status`
+* `priority`
+* `dueDate`
+* `attachmentUrl`
+* `isDeleted`
+* `deletedAt`
+* `createdAt`
+* `updatedAt`
+
+### Priority
+
+Allowed values:
+
+```text
+low
+medium
+high
+```
+
+### Status
+
+Allowed values:
+
+```text
+pending
+in-progress
+completed
+```
+
+### Todo Assignment
+
+A Todo stores:
+
+```text
+createdBy
+assignedTo
+```
+
+Normal users can see Todos:
+
+* Created by themselves
+* Assigned to themselves
+
+Admins can see all active Todos.
+
+### Attachments
+
+Todo attachments are supported using:
+
+* Multer
+* Cloudinary
+
+The attachment field name is:
+
+```text
+attachment
+```
+
+### Soft Delete
+
+Todos are not permanently removed when deleted.
+
+Instead:
+
+```text
+isDeleted = true
+deletedAt = current date
+```
+
+Deleted Todos can be viewed by admins in the trash and restored later.
+
+### Comments
+
+Users can add comments to Todos they are allowed to view.
+
+Comment fields:
+
+```text
+todoId
+userId
+comment
+createdAt
+updatedAt
+```
+
+Comment APIs:
+
+```text
+POST /api/todos/:id/comments
+GET  /api/todos/:id/comments
+```
+
+Normal users can comment when they are:
+
+* The Todo creator
+* The assigned user
+
+Admins can view and manage comments for all Todos.
+
+### Activity History
+
+The API records important Todo actions automatically.
+
+Supported actions:
+
+```text
+Todo Created
+Todo Updated
+Todo Assigned
+Todo Status Changed
+Todo Deleted
+Todo Restored
+Comment Added
+```
+
+Each activity contains:
+
+```text
+action
+performedBy
+todoId
+createdAt
+updatedAt
+metadata
+```
+
+Activity API:
+
+```text
+GET /api/todos/:id/activity
+```
+
+Example:
+
+```text
+Todo #123
+│
+├── Todo Created
+├── Todo Assigned
+├── Todo Updated
+├── Todo Status Changed
+├── Comment Added
+├── Todo Deleted
+└── Todo Restored
+```
 
 ---
 
-# Technology Stack
+# Tech Stack
 
-* Node.js
-* Express.js
-* MongoDB
-* Mongoose
-* JWT
-* bcryptjs
-* Multer
-* Cloudinary
-* dotenv
-* cors
-* Nodemon
+```text
+Node.js
+Express.js
+MongoDB
+Mongoose
+JWT
+bcryptjs
+Multer
+Cloudinary
+Jest
+Supertest
+Nodemon
+CORS
+dotenv
+```
 
 ---
 
@@ -58,8 +212,8 @@ This project supports user authentication, JWT authorization, user roles, Todo a
 todo-api/
 │
 ├── config/
-│   ├── db.js
-│   └── cloudinary.js
+│   ├── cloudinary.js
+│   └── db.js
 │
 ├── controllers/
 │   ├── authController.js
@@ -68,485 +222,813 @@ todo-api/
 │
 ├── middleware/
 │   ├── authMiddleware.js
-│   ├── adminMiddleware.js
+│   ├── errorMiddleware.js
+│   ├── logger.js
 │   └── uploadMiddleware.js
 │
 ├── models/
 │   ├── User.js
-│   └── Todo.js
+│   ├── Todo.js
+│   ├── Comment.js
+│   └── Activity.js
 │
 ├── routes/
 │   ├── authRoutes.js
 │   ├── todoRoutes.js
 │   └── adminRoutes.js
 │
-├── public/
-│   └── uploads/
+├── utils/
+│   ├── attachmentService.js
+│   └── activityService.js
 │
 ├── tests/
+│   ├── auth.test.js
+│   ├── todo.test.js
+│   ├── admin.test.js
+│   └── setup.js
 │
 ├── .env
 ├── .gitignore
+├── jest.config.js
 ├── package.json
-├── server.js
-└── README.md
+├── package-lock.json
+└── server.js
 ```
 
 ---
 
 # Installation
 
-Clone or download the project.
+## 1. Clone or copy the project
 
-Open the project folder in VS Code.
+Open the project folder:
 
-Install dependencies:
+```powershell
+cd todo-api
+```
 
-```bash
+## 2. Install dependencies
+
+```powershell
 npm install
 ```
 
----
+## 3. Create `.env`
 
-# Environment Variables
+Create a file named:
 
-Create a `.env` file in the root folder.
+```text
+.env
+```
+
+Add:
 
 ```env
 PORT=5000
 
 MONGO_URI=mongodb://127.0.0.1:27017/todo-api
 
-JWT_SECRET=your_secret_key
+JWT_SECRET=your_jwt_secret_key
 
-CLOUDINARY_CLOUD_NAME=your_cloud_name
-CLOUDINARY_API_KEY=your_api_key
-CLOUDINARY_API_SECRET=your_api_secret
+CLOUDINARY_CLOUD_NAME=your_cloudinary_cloud_name
+CLOUDINARY_API_KEY=your_cloudinary_api_key
+CLOUDINARY_API_SECRET=your_cloudinary_api_secret
 ```
 
-Replace the Cloudinary values with your own Cloudinary credentials.
+Do not commit `.env` to GitHub.
 
 ---
 
-# Start the Project
+# Start MongoDB
 
-For development:
+Make sure MongoDB is running before starting the API.
 
-```bash
+For local MongoDB, your connection is:
+
+```text
+mongodb://127.0.0.1:27017/todo-api
+```
+
+---
+
+# Run the Project
+
+## Development
+
+```powershell
 npm run dev
 ```
 
-For production:
+## Production
 
-```bash
+```powershell
 npm start
 ```
 
-The server will run on:
+The API runs on:
 
 ```text
 http://localhost:5000
+```
+
+Health check:
+
+```text
+GET http://localhost:5000/
+```
+
+Expected:
+
+```json
+{
+  "success": true,
+  "message": "Todo API is running"
+}
 ```
 
 ---
 
 # Authentication APIs
 
-## Register User
+## Register
 
-### Request
-
-```text
+```http
 POST /api/auth/register
-```
-
-### Body
-
-```json
-{
-  "name": "Test User",
-  "email": "testuser@gmail.com",
-  "password": "123456"
-}
-```
-
----
-
-## Login User
-
-### Request
-
-```text
-POST /api/auth/login
-```
-
-### Body
-
-```json
-{
-  "email": "testuser@gmail.com",
-  "password": "123456"
-}
-```
-
-### Example Response
-
-```json
-{
-  "success": true,
-  "message": "Login successful",
-  "token": "YOUR_JWT_TOKEN",
-  "user": {
-    "_id": "USER_ID",
-    "name": "Test User",
-    "email": "testuser@gmail.com",
-    "role": "user"
-  }
-}
-```
-
-Copy the JWT token and use it for protected routes.
-
----
-
-# Authorization
-
-For protected APIs, add the token in Postman.
-
-Go to:
-
-```text
-Authorization
-```
-
-Select:
-
-```text
-Bearer Token
-```
-
-Paste:
-
-```text
-YOUR_JWT_TOKEN
-```
-
----
-
-# Todo Model
-
-A Todo contains the following fields:
-
-```text
-title
-description
-status
-createdBy
-assignedTo
-dueDate
-priority
-attachmentUrl
-isDeleted
-deletedAt
-createdAt
-updatedAt
-```
-
----
-
-# Todo Status
-
-The Todo API supports these status values:
-
-```text
-pending
-in-progress
-completed
-```
-
-Example:
-
-```json
-{
-  "status": "pending"
-}
-```
-
-Invalid status values should not be accepted.
-
-Example invalid value:
-
-```json
-{
-  "status": "todo"
-}
-```
-
-Expected result:
-
-```text
-400 Bad Request
-```
-
----
-
-# Todo Priority
-
-The API supports three priority values:
-
-```text
-low
-medium
-high
-```
-
-Example:
-
-```json
-{
-  "priority": "high"
-}
-```
-
-Invalid priority values should not be stored.
-
-Example invalid value:
-
-```json
-{
-  "priority": "urgent"
-}
-```
-
-Expected result:
-
-```text
-400 Bad Request
-```
-
----
-
-# Create Todo
-
-## Request
-
-```text
-POST /api/todos
-```
-
-This route requires authentication.
-
-## Body
-
-```json
-{
-  "title": "Learn Express Middleware",
-  "description": "Practice authentication and middleware",
-  "status": "pending",
-  "assignedTo": "REAL_USER_ID",
-  "dueDate": "2026-08-30",
-  "priority": "high"
-}
-```
-
-Important:
-
-`assignedTo` must contain a real user ID from the MongoDB users collection.
-
-Example error if the field is missing:
-
-```json
-{
-  "success": false,
-  "message": "assignedTo is required"
-}
-```
-
-Example error if the user does not exist:
-
-```json
-{
-  "success": false,
-  "message": "Assigned user not found"
-}
-```
-
----
-
-# Get All Todos
-
-## Request
-
-```text
-GET /api/todos
-```
-
-Example:
-
-```text
-http://localhost:5000/api/todos
-```
-
-The user must provide a valid JWT token.
-
-Depending on the user role:
-
-## Normal User
-
-A normal user can see:
-
-* Todos created by the user
-* Todos assigned to the user
-
-## Admin
-
-An admin can see all Todos.
-
----
-
-# Get Single Todo
-
-## Request
-
-```text
-GET /api/todos/:id
-```
-
-Example:
-
-```text
-GET http://localhost:5000/api/todos/TODO_ID
-```
-
-Replace `TODO_ID` with the actual Todo `_id`.
-
----
-
-# Update Todo
-
-## Request
-
-```text
-PUT /api/todos/:id
-```
-
-Example:
-
-```text
-PUT http://localhost:5000/api/todos/TODO_ID
-```
-
-## Body
-
-```json
-{
-  "title": "Learn Express Middleware",
-  "description": "Updated Todo description",
-  "status": "in-progress",
-  "assignedTo": "REAL_USER_ID",
-  "dueDate": "2026-10-01",
-  "priority": "medium"
-}
-```
-
-The Todo can be updated with:
-
-* New title
-* New description
-* New status
-* New assigned user
-* New due date
-* New priority
-
----
-
-# Update Due Date
-
-Example:
-
-```json
-{
-  "title": "Learn Express Middleware",
-  "description": "Practice authentication and middleware",
-  "status": "pending",
-  "assignedTo": "REAL_USER_ID",
-  "dueDate": "2026-10-01",
-  "priority": "high"
-}
-```
-
----
-
-# Update Priority
-
-Example:
-
-```json
-{
-  "title": "Learn Express Middleware",
-  "description": "Practice authentication and middleware",
-  "status": "in-progress",
-  "assignedTo": "REAL_USER_ID",
-  "dueDate": "2026-10-01",
-  "priority": "medium"
-}
-```
-
----
-
-# Invalid Priority Testing
-
-Use:
-
-```text
-PUT /api/todos/:id
 ```
 
 Body:
 
 ```json
 {
-  "title": "Invalid Priority Test",
-  "description": "Testing priority validation",
-  "status": "pending",
-  "assignedTo": "REAL_USER_ID",
-  "dueDate": "2026-10-10",
-  "priority": "urgent"
+  "name": "User A",
+  "email": "usera@gmail.com",
+  "password": "123456"
 }
-```
-
-Expected:
-
-```text
-400 Bad Request
-```
-
-Only these values are valid:
-
-```text
-low
-medium
-high
 ```
 
 ---
 
-# Invalid Status Testing
+## Login
+
+```http
+POST /api/auth/login
+```
+
+Body:
+
+```json
+{
+  "email": "usera@gmail.com",
+  "password": "123456"
+}
+```
+
+The login response returns a JWT token.
+
+Use it in protected requests:
+
+```text
+Authorization: Bearer YOUR_TOKEN
+```
+
+---
+
+## Logout
+
+```http
+POST /api/auth/logout
+```
+
+Header:
+
+```text
+Authorization: Bearer YOUR_TOKEN
+```
+
+---
+
+## Get Profile
+
+```http
+GET /api/auth/profile
+```
+
+Header:
+
+```text
+Authorization: Bearer YOUR_TOKEN
+```
+
+---
+
+# Todo APIs
+
+All Todo APIs require:
+
+```text
+Authorization: Bearer YOUR_TOKEN
+```
+
+## Create Todo
+
+```http
+POST /api/todos
+```
+
+JSON example:
+
+```json
+{
+  "title": "Complete API",
+  "description": "Finish Todo API work",
+  "assignedTo": "USER_ID",
+  "status": "pending",
+  "priority": "high",
+  "dueDate": "2026-08-20"
+}
+```
+
+For attachment upload use:
+
+```text
+multipart/form-data
+```
+
+Field:
+
+```text
+attachment
+```
+
+---
+
+## Get Todos
+
+```http
+GET /api/todos
+```
+
+Examples:
+
+```text
+GET /api/todos
+GET /api/todos?page=1&limit=10
+GET /api/todos?search=API
+GET /api/todos?status=in-progress
+GET /api/todos?priority=high
+GET /api/todos?sort=newest
+```
+
+---
+
+## Get Todo Statistics
+
+```http
+GET /api/todos/stats
+```
+
+---
+
+## Get Todo By ID
+
+```http
+GET /api/todos/:id
+```
+
+Example:
+
+```text
+GET /api/todos/64f123456789abcdef123456
+```
+
+---
+
+## Update Todo
+
+```http
+PUT /api/todos/:id
+```
+
+or:
+
+```http
+PATCH /api/todos/:id
+```
 
 Example:
 
 ```json
 {
-  "title": "Invalid Status Test",
-  "description": "Testing status validation",
-  "status": "todo",
-  "assignedTo": "REAL_USER_ID",
-  "dueDate": "2026-10-10",
-  "priority": "high"
+  "title": "Updated Todo",
+  "description": "Updated description",
+  "priority": "medium",
+  "dueDate": "2026-08-25"
 }
 ```
 
-Expected response:
+---
+
+## Update Todo Status
+
+```http
+PATCH /api/todos/:id/status
+```
+
+Body:
+
+```json
+{
+  "status": "in-progress"
+}
+```
+
+---
+
+## Delete Todo
+
+```http
+DELETE /api/todos/:id
+```
+
+This performs a soft delete.
+
+---
+
+# Comments APIs
+
+## Add Comment
+
+```http
+POST /api/todos/:id/comments
+```
+
+Header:
+
+```text
+Authorization: Bearer YOUR_TOKEN
+```
+
+Body:
+
+```json
+{
+  "comment": "I have started working on this task."
+}
+```
+
+---
+
+## Get Comments
+
+```http
+GET /api/todos/:id/comments
+```
+
+Header:
+
+```text
+Authorization: Bearer YOUR_TOKEN
+```
+
+Example response:
+
+```json
+{
+  "success": true,
+  "count": 2,
+  "data": [
+    {
+      "comment": "I have started working on this task."
+    },
+    {
+      "comment": "I have received the assigned task."
+    }
+  ]
+}
+```
+
+---
+
+# Activity History API
+
+## Get Todo Activity
+
+```http
+GET /api/todos/:id/activity
+```
+
+Header:
+
+```text
+Authorization: Bearer YOUR_TOKEN
+```
+
+Example:
+
+```json
+{
+  "success": true,
+  "count": 5,
+  "data": [
+    {
+      "action": "Todo Created",
+      "performedBy": "USER_ID",
+      "todoId": "TODO_ID",
+      "metadata": {
+        "title": "Complete API"
+      }
+    },
+    {
+      "action": "Todo Assigned",
+      "performedBy": "USER_ID",
+      "todoId": "TODO_ID",
+      "metadata": {
+        "assignedTo": "ASSIGNED_USER_ID"
+      }
+    },
+    {
+      "action": "Todo Status Changed",
+      "performedBy": "USER_ID",
+      "todoId": "TODO_ID",
+      "metadata": {
+        "from": "pending",
+        "to": "in-progress"
+      }
+    },
+    {
+      "action": "Comment Added",
+      "performedBy": "USER_ID",
+      "todoId": "TODO_ID",
+      "metadata": {
+        "commentId": "COMMENT_ID"
+      }
+    }
+  ]
+}
+```
+
+---
+
+# Admin APIs
+
+All admin APIs require:
+
+```text
+Authorization: Bearer ADMIN_TOKEN
+```
+
+The logged-in user must have:
+
+```text
+role = admin
+```
+
+---
+
+## Get All Users
+
+```http
+GET /api/admin/users
+```
+
+---
+
+## Make User Admin
+
+```http
+POST /api/admin/users/:id/make-admin
+```
+
+---
+
+## Remove Admin
+
+```http
+POST /api/admin/users/:id/remove-admin
+```
+
+---
+
+## Change User Role
+
+```http
+PATCH /api/admin/users/:id/role
+```
+
+Body:
+
+```json
+{
+  "role": "admin"
+}
+```
+
+or:
+
+```json
+{
+  "role": "user"
+}
+```
+
+---
+
+## Change User Password
+
+```http
+PATCH /api/admin/users/:id/password
+```
+
+Body:
+
+```json
+{
+  "password": "newpassword123"
+}
+```
+
+---
+
+## Enable / Disable User
+
+```http
+PATCH /api/admin/users/:id/status
+```
+
+Body:
+
+```json
+{
+  "isActive": false
+}
+```
+
+---
+
+## Delete User
+
+```http
+DELETE /api/admin/users/:id
+```
+
+---
+
+# Admin Todo APIs
+
+## Get All Active Todos
+
+```http
+GET /api/admin/todos
+```
+
+Admin can see all active Todos.
+
+---
+
+## Get Any Todo
+
+```http
+GET /api/admin/todos/:id
+```
+
+---
+
+## Update Any Todo
+
+```http
+PUT /api/admin/todos/:id
+```
+
+or:
+
+```http
+PATCH /api/admin/todos/:id
+```
+
+---
+
+## Delete Any Todo
+
+```http
+DELETE /api/admin/todos/:id
+```
+
+This uses soft delete.
+
+---
+
+## View Trash
+
+```http
+GET /api/admin/todos/trash
+```
+
+---
+
+## Restore Todo
+
+```http
+PATCH /api/admin/todos/:id/restore
+```
+
+---
+
+# Permission Rules
+
+## Normal User
+
+A normal user can:
+
+```text
+View Todo if:
+- createdBy = logged-in user
+OR
+- assignedTo = logged-in user
+```
+
+A normal user can comment if:
+
+```text
+- createdBy = logged-in user
+OR
+- assignedTo = logged-in user
+```
+
+A normal user cannot access another user's unrelated Todo.
+
+---
+
+## Admin
+
+Admin can:
+
+```text
+View all Todos
+Update all Todos
+Delete all Todos
+Restore deleted Todos
+View all users
+Manage user roles
+Manage user status
+Manage user passwords
+View comments on all accessible Todos
+View activity history for all Todos
+```
+
+---
+
+# Activity Recording
+
+The system automatically creates activity records when these events happen:
+
+## Todo Created
+
+```text
+Todo Created
+```
+
+## Todo Updated
+
+```text
+Todo Updated
+```
+
+Metadata can contain fields changed, for example:
+
+```json
+{
+  "priority": {
+    "from": "low",
+    "to": "high"
+  }
+}
+```
+
+## Todo Assigned
+
+```text
+Todo Assigned
+```
+
+Example metadata:
+
+```json
+{
+  "from": "OLD_USER_ID",
+  "to": "NEW_USER_ID"
+}
+```
+
+## Todo Status Changed
+
+```text
+Todo Status Changed
+```
+
+Example:
+
+```json
+{
+  "from": "pending",
+  "to": "in-progress"
+}
+```
+
+## Todo Deleted
+
+```text
+Todo Deleted
+```
+
+## Todo Restored
+
+```text
+Todo Restored
+```
+
+## Comment Added
+
+```text
+Comment Added
+```
+
+---
+
+# Postman Testing Flow
+
+Recommended testing order:
+
+```text
+1. Register User A
+2. Login User A
+3. Register User B
+4. Login User B
+5. Make User A Admin
+6. Create Todo as User A
+7. Get Todo Activity
+8. Add Comment as User A
+9. Get Comments
+10. Add Comment as User B
+11. Change Todo Status
+12. Update Todo
+13. Get Activity History
+14. Delete Todo
+15. Admin View Trash
+16. Admin Restore Todo
+17. Get Activity History Again
+```
+
+---
+
+# Example Activity Flow
+
+After testing, a Todo history can look like:
+
+```text
+Todo #123
+│
+├── Todo Created
+│
+├── Todo Assigned
+│
+├── Todo Updated
+│
+├── Todo Status Changed
+│
+├── Comment Added
+│
+├── Comment Added
+│
+├── Todo Deleted
+│
+└── Todo Restored
+```
+
+---
+
+# Error Handling
+
+Examples of validation errors:
+
+### Missing title
+
+```json
+{
+  "success": false,
+  "message": "Title is required"
+}
+```
+
+### Invalid priority
+
+```json
+{
+  "success": false,
+  "message": "Priority must be low, medium or high"
+}
+```
+
+### Invalid status
 
 ```json
 {
@@ -555,410 +1037,7 @@ Expected response:
 }
 ```
 
----
-
-# Delete Todo
-
-## Request
-
-```text
-DELETE /api/todos/:id
-```
-
-Example:
-
-```text
-DELETE http://localhost:5000/api/todos/TODO_ID
-```
-
-This route requires authentication.
-
-The Todo is soft deleted.
-
-Instead of permanently removing the Todo, the API updates:
-
-```text
-isDeleted = true
-deletedAt = current date
-```
-
-Soft-deleted Todos should not appear in the normal Todo list.
-
----
-
-# Admin APIs
-
-Admin routes require:
-
-* Valid JWT token
-* User role set to `admin`
-
----
-
-# Get All Users
-
-```text
-GET /api/admin/users
-```
-
-The admin can view all users.
-
-This API can be used to get a real user `_id` for the `assignedTo` field.
-
-Example user:
-
-```json
-{
-  "_id": "USER_ID",
-  "name": "Test User",
-  "email": "testuser@gmail.com",
-  "role": "user"
-}
-```
-
-Copy the real `_id` and use it as:
-
-```json
-{
-  "assignedTo": "USER_ID"
-}
-```
-
----
-
-# Make User Admin
-
-```text
-POST /api/admin/users/:id/make-admin
-```
-
-Example:
-
-```text
-POST http://localhost:5000/api/admin/users/USER_ID/make-admin
-```
-
----
-
-# Remove Admin Role
-
-```text
-POST /api/admin/users/:id/remove-admin
-```
-
-Example:
-
-```text
-POST http://localhost:5000/api/admin/users/USER_ID/remove-admin
-```
-
----
-
-# Trash APIs
-
-## View Deleted Todos
-
-```text
-GET /api/admin/todos/trash
-```
-
-Only an admin can access this route.
-
-This API returns soft-deleted Todos.
-
----
-
-# Restore Todo
-
-```text
-PATCH /api/admin/todos/:id/restore
-```
-
-Example:
-
-```text
-PATCH http://localhost:5000/api/admin/todos/TODO_ID/restore
-```
-
-The Todo will be restored by changing:
-
-```text
-isDeleted = false
-deletedAt = null
-```
-
----
-
-# File Attachments
-
-The Todo API supports file attachments.
-
-Files are uploaded using:
-
-```text
-multipart/form-data
-```
-
-The uploaded file can be stored using Cloudinary.
-
-The Todo stores the uploaded file URL.
-
-Example field:
-
-```text
-attachmentUrl
-```
-
----
-
-# Pagination
-
-The Todo API supports pagination.
-
-Example:
-
-```text
-GET /api/todos?page=1&limit=10
-```
-
-Parameters:
-
-```text
-page
-limit
-```
-
-Example:
-
-```text
-http://localhost:5000/api/todos?page=1&limit=10
-```
-
----
-
-# Search
-
-Search Todos using:
-
-```text
-search
-```
-
-Example:
-
-```text
-GET /api/todos?search=Express
-```
-
----
-
-# Filter by Status
-
-Example:
-
-```text
-GET /api/todos?status=pending
-```
-
-Other valid values:
-
-```text
-pending
-in-progress
-completed
-```
-
----
-
-# Sorting
-
-Example:
-
-```text
-GET /api/todos?sort=newest
-```
-
-Depending on the API implementation, sorting can be used to display:
-
-```text
-newest
-oldest
-```
-
----
-
-# Complete Postman Testing Flow
-
-## 1. Register User
-
-```text
-POST /api/auth/register
-```
-
-```json
-{
-  "name": "Test User",
-  "email": "testuser@gmail.com",
-  "password": "123456"
-}
-```
-
-## 2. Login User
-
-```text
-POST /api/auth/login
-```
-
-```json
-{
-  "email": "testuser@gmail.com",
-  "password": "123456"
-}
-```
-
-Copy the JWT token.
-
-## 3. Add JWT Token
-
-In Postman:
-
-```text
-Authorization
-→ Bearer Token
-→ Paste JWT Token
-```
-
-## 4. Get a Real User ID
-
-If you have admin access:
-
-```text
-GET /api/admin/users
-```
-
-Copy an existing user's `_id`.
-
-## 5. Create Todo
-
-```text
-POST /api/todos
-```
-
-```json
-{
-  "title": "Learn Express Middleware",
-  "description": "Practice authentication and middleware",
-  "status": "pending",
-  "assignedTo": "REAL_USER_ID",
-  "dueDate": "2026-08-30",
-  "priority": "high"
-}
-```
-
-Copy the created Todo `_id`.
-
-## 6. Get All Todos
-
-```text
-GET /api/todos
-```
-
-## 7. Get Single Todo
-
-```text
-GET /api/todos/TODO_ID
-```
-
-## 8. Update Todo
-
-```text
-PUT /api/todos/TODO_ID
-```
-
-```json
-{
-  "title": "Learn Express Middleware",
-  "description": "Updated description",
-  "status": "in-progress",
-  "assignedTo": "REAL_USER_ID",
-  "dueDate": "2026-10-01",
-  "priority": "medium"
-}
-```
-
-## 9. Test Invalid Priority
-
-```text
-PUT /api/todos/TODO_ID
-```
-
-```json
-{
-  "title": "Invalid Priority Test",
-  "description": "Testing validation",
-  "status": "pending",
-  "assignedTo": "REAL_USER_ID",
-  "dueDate": "2026-10-10",
-  "priority": "urgent"
-}
-```
-
-Expected:
-
-```text
-400 Bad Request
-```
-
-## 10. Test Invalid Status
-
-```json
-{
-  "title": "Invalid Status Test",
-  "description": "Testing validation",
-  "status": "todo",
-  "assignedTo": "REAL_USER_ID",
-  "dueDate": "2026-10-10",
-  "priority": "high"
-}
-```
-
-Expected:
-
-```text
-400 Bad Request
-```
-
-## 11. Delete Todo
-
-```text
-DELETE /api/todos/TODO_ID
-```
-
-## 12. Check Normal Todo List
-
-```text
-GET /api/todos
-```
-
-The deleted Todo should not appear.
-
----
-
-# Error Handling
-
-## No Token
-
-```text
-401 Unauthorized
-```
-
-## Invalid Token
-
-```text
-401 Unauthorized
-```
-
-## Missing assignedTo
+### Missing assigned user
 
 ```json
 {
@@ -967,7 +1046,7 @@ The deleted Todo should not appear.
 }
 ```
 
-## Assigned User Not Found
+### Assigned user not found
 
 ```json
 {
@@ -976,89 +1055,240 @@ The deleted Todo should not appear.
 }
 ```
 
-## Invalid Status
+### Unauthorized access
 
 ```json
 {
   "success": false,
-  "message": "Status must be pending, in-progress or completed"
+  "message": "Not authorized"
 }
 ```
 
-## Invalid Priority
+---
 
-```text
-400 Bad Request
+# Testing
+
+Run all Jest tests:
+
+```powershell
+npm test
 ```
 
-Valid priorities:
+Run Jest directly:
 
-```text
-low
-medium
-high
+```powershell
+npx jest --runInBand --forceExit
 ```
 
 ---
 
-# Todo Testing Checklist
+# Important Files for Comments and Activity
 
-* [ ] User registration
-* [ ] User login
-* [ ] JWT authentication
-* [ ] Create Todo
-* [ ] Assign Todo to user
-* [ ] Get all Todos
-* [ ] Get single Todo
-* [ ] Update Todo
-* [ ] Update due date
-* [ ] Update priority
-* [ ] Test low priority
-* [ ] Test medium priority
-* [ ] Test high priority
-* [ ] Test invalid priority
-* [ ] Test invalid status
-* [ ] Soft delete Todo
-* [ ] View deleted Todos
-* [ ] Restore Todo
-* [ ] Admin authorization
-* [ ] File attachment testing
+The Comments and Activity feature uses:
+
+```text
+models/Comment.js
+models/Activity.js
+utils/activityService.js
+controllers/todoController.js
+controllers/adminController.js
+routes/todoRoutes.js
+```
 
 ---
 
-# API Summary
+# MongoDB Collections
 
-| Feature         | Method | Endpoint                            |
-| --------------- | ------ | ----------------------------------- |
-| Register User   | POST   | `/api/auth/register`                |
-| Login User      | POST   | `/api/auth/login`                   |
-| Create Todo     | POST   | `/api/todos`                        |
-| Get All Todos   | GET    | `/api/todos`                        |
-| Get Single Todo | GET    | `/api/todos/:id`                    |
-| Update Todo     | PUT    | `/api/todos/:id`                    |
-| Delete Todo     | DELETE | `/api/todos/:id`                    |
-| Get Users       | GET    | `/api/admin/users`                  |
-| Make Admin      | POST   | `/api/admin/users/:id/make-admin`   |
-| Remove Admin    | POST   | `/api/admin/users/:id/remove-admin` |
-| View Trash      | GET    | `/api/admin/todos/trash`            |
-| Restore Todo    | PATCH  | `/api/admin/todos/:id/restore`      |
+The application uses these main collections:
+
+```text
+users
+todos
+comments
+activities
+```
 
 ---
 
-# Author
+# Security
 
-Todo API Project
+The API uses:
 
-Built for learning and practicing:
+```text
+JWT authentication
+bcrypt password hashing
+Role-based authorization
+Todo ownership checks
+Todo assignment checks
+Admin authorization
+Input validation
+Soft delete
+```
 
-* REST APIs
-* Express.js
-* MongoDB
-* Mongoose
-* JWT Authentication
-* Role-Based Authorization
-* Todo Assignment
-* Soft Delete
-* File Uploads
-* Due Date Management
-* Priority Management
+Never store the JWT secret or Cloudinary credentials directly inside source code.
+
+Use `.env`.
+
+---
+
+# Environment Variables
+
+```env
+PORT=5000
+
+MONGO_URI=mongodb://127.0.0.1:27017/todo-api
+
+JWT_SECRET=your_jwt_secret_key
+
+CLOUDINARY_CLOUD_NAME=your_cloudinary_cloud_name
+
+CLOUDINARY_API_KEY=your_cloudinary_api_key
+
+CLOUDINARY_API_SECRET=your_cloudinary_api_secret
+```
+
+---
+
+# Useful Commands
+
+Install packages:
+
+```powershell
+npm install
+```
+
+Start development server:
+
+```powershell
+npm run dev
+```
+
+Start server:
+
+```powershell
+npm start
+```
+
+Run tests:
+
+```powershell
+npm test
+```
+
+Check Git status:
+
+```powershell
+git status
+```
+
+Add files:
+
+```powershell
+git add .
+```
+
+Commit:
+
+```powershell
+git commit -m "Add comments and activity history"
+```
+
+Push:
+
+```powershell
+git push
+```
+
+---
+
+# API Base URL
+
+Local development:
+
+```text
+http://localhost:5000
+```
+
+Authentication:
+
+```text
+http://localhost:5000/api/auth
+```
+
+Todos:
+
+```text
+http://localhost:5000/api/todos
+```
+
+Admin:
+
+```text
+http://localhost:5000/api/admin
+```
+
+---
+
+# Notes
+
+Before testing Comments and Activity History, make sure these files exist:
+
+```text
+models/Comment.js
+models/Activity.js
+utils/activityService.js
+```
+
+Also make sure `todoRoutes.js` exports and registers:
+
+```text
+POST /api/todos/:id/comments
+GET /api/todos/:id/comments
+GET /api/todos/:id/activity
+```
+
+And make sure `todoController.js` contains:
+
+```text
+addComment
+getTodoComments
+getTodoActivity
+```
+
+The activity service is responsible for creating activity records throughout the Todo lifecycle.
+
+---
+
+# Summary
+
+This Todo API currently supports:
+
+```text
+Authentication
+        ↓
+JWT Login / Register
+        ↓
+User Roles
+        ↓
+Todo CRUD
+        ↓
+Todo Assignment
+        ↓
+Priority
+        ↓
+Due Date
+        ↓
+Attachments
+        ↓
+Cloudinary Storage
+        ↓
+Soft Delete
+        ↓
+Admin Trash / Restore
+        ↓
+Comments
+        ↓
+Activity History
+        ↓
+Jest / Supertest Testing
+```

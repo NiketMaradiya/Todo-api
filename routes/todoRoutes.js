@@ -1,4 +1,5 @@
-const express = require("express");
+const express =
+  require("express");
 
 const {
   createTodo,
@@ -8,25 +9,43 @@ const {
   updateTodo,
   updateTodoStatus,
   deleteTodo,
-} = require("../controllers/todoController");
+
+  // Comments
+  addComment,
+  getTodoComments,
+
+  // Activity
+  getTodoActivity,
+} = require(
+  "../controllers/todoController"
+);
 
 const {
   protect,
-} = require("../middleware/authMiddleware");
+} = require(
+  "../middleware/authMiddleware"
+);
 
 const {
   uploadAttachment,
-} = require("../middleware/uploadMiddleware");
+} = require(
+  "../middleware/uploadMiddleware"
+);
 
 const router =
   express.Router();
 
-router.use(protect);
+// ==========================================
+// Authentication Required
+// ==========================================
+
+router.use(
+  protect
+);
 
 // ==========================================
 // Create Todo
-// Optional attachment
-// Field name: attachment
+// POST /api/todos
 // ==========================================
 
 router.post(
@@ -39,6 +58,7 @@ router.post(
 
 // ==========================================
 // Get Todos
+// GET /api/todos
 // ==========================================
 
 router.get(
@@ -48,6 +68,7 @@ router.get(
 
 // ==========================================
 // Todo Statistics
+// GET /api/todos/stats
 // ==========================================
 
 router.get(
@@ -56,7 +77,37 @@ router.get(
 );
 
 // ==========================================
+// Comments
+//
+// IMPORTANT:
+// These routes must come before /:id
+// ==========================================
+
+// POST /api/todos/:id/comments
+router.post(
+  "/:id/comments",
+  addComment
+);
+
+// GET /api/todos/:id/comments
+router.get(
+  "/:id/comments",
+  getTodoComments
+);
+
+// ==========================================
+// Activity History
+// GET /api/todos/:id/activity
+// ==========================================
+
+router.get(
+  "/:id/activity",
+  getTodoActivity
+);
+
+// ==========================================
 // Get Todo By ID
+// GET /api/todos/:id
 // ==========================================
 
 router.get(
@@ -66,7 +117,7 @@ router.get(
 
 // ==========================================
 // Update Todo
-// Optional attachment
+// PUT/PATCH /api/todos/:id
 // ==========================================
 
 router.put(
@@ -87,6 +138,7 @@ router.patch(
 
 // ==========================================
 // Update Todo Status
+// PATCH /api/todos/:id/status
 // ==========================================
 
 router.patch(
@@ -96,6 +148,7 @@ router.patch(
 
 // ==========================================
 // Delete Todo
+// DELETE /api/todos/:id
 // ==========================================
 
 router.delete(
@@ -103,4 +156,5 @@ router.delete(
   deleteTodo
 );
 
-module.exports = router;
+module.exports =
+  router;

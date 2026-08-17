@@ -1,160 +1,144 @@
-const express =
-  require("express");
+const express = require("express");
+
+const router = express.Router();
 
 const {
   createTodo,
   getTodos,
-  getTodoStats,
   getTodoById,
   updateTodo,
   updateTodoStatus,
   deleteTodo,
-
-  // Comments
+  uploadTodoAttachment,
   addComment,
   getTodoComments,
-
-  // Activity
+  updateComment,
+  deleteComment,
   getTodoActivity,
-} = require(
-  "../controllers/todoController"
-);
+} = require("../controllers/todoController");
 
 const {
   protect,
-} = require(
-  "../middleware/authMiddleware"
-);
+} = require("../middleware/authMiddleware");
 
-const {
-  uploadAttachment,
-} = require(
+const upload = require(
   "../middleware/uploadMiddleware"
 );
 
-const router =
-  express.Router();
-
 // ==========================================
-// Authentication Required
+// TODO CRUD
 // ==========================================
 
-router.use(
-  protect
-);
-
-// ==========================================
 // Create Todo
-// POST /api/todos
-// ==========================================
-
 router.post(
   "/",
-  uploadAttachment.single(
-    "attachment"
-  ),
+  protect,
   createTodo
 );
 
-// ==========================================
-// Get Todos
-// GET /api/todos
-// ==========================================
-
+// Get All Todos
 router.get(
   "/",
+  protect,
   getTodos
 );
 
 // ==========================================
-// Todo Statistics
-// GET /api/todos/stats
+// STATUS
 // ==========================================
 
-router.get(
-  "/stats",
-  getTodoStats
-);
-
-// ==========================================
-// Comments
-//
-// IMPORTANT:
-// These routes must come before /:id
-// ==========================================
-
-// POST /api/todos/:id/comments
-router.post(
-  "/:id/comments",
-  addComment
-);
-
-// GET /api/todos/:id/comments
-router.get(
-  "/:id/comments",
-  getTodoComments
-);
-
-// ==========================================
-// Activity History
-// GET /api/todos/:id/activity
-// ==========================================
-
-router.get(
-  "/:id/activity",
-  getTodoActivity
-);
-
-// ==========================================
-// Get Todo By ID
-// GET /api/todos/:id
-// ==========================================
-
-router.get(
-  "/:id",
-  getTodoById
-);
-
-// ==========================================
-// Update Todo
-// PUT/PATCH /api/todos/:id
-// ==========================================
-
-router.put(
-  "/:id",
-  uploadAttachment.single(
-    "attachment"
-  ),
-  updateTodo
-);
-
-router.patch(
-  "/:id",
-  uploadAttachment.single(
-    "attachment"
-  ),
-  updateTodo
-);
-
-// ==========================================
 // Update Todo Status
-// PATCH /api/todos/:id/status
-// ==========================================
-
 router.patch(
   "/:id/status",
+  protect,
   updateTodoStatus
 );
 
 // ==========================================
-// Delete Todo
-// DELETE /api/todos/:id
+// ATTACHMENT
 // ==========================================
 
+// Upload Attachment
+router.post(
+  "/:id/attachment",
+  protect,
+  upload.single("attachment"),
+  uploadTodoAttachment
+);
+
+// ==========================================
+// COMMENTS
+// ==========================================
+
+// Add Comment
+router.post(
+  "/:id/comments",
+  protect,
+  addComment
+);
+
+// Get Comments
+router.get(
+  "/:id/comments",
+  protect,
+  getTodoComments
+);
+
+// Update Comment
+router.patch(
+  "/:todoId/comments/:commentId",
+  protect,
+  updateComment
+);
+
+// Delete Comment
+router.delete(
+  "/:todoId/comments/:commentId",
+  protect,
+  deleteComment
+);
+
+// ==========================================
+// ACTIVITY
+// IMPORTANT: Before /:id
+// ==========================================
+
+router.get(
+  "/:id/activity",
+  protect,
+  getTodoActivity
+);
+
+// ==========================================
+// SINGLE TODO
+// IMPORTANT: Keep after specific routes
+// ==========================================
+
+// Get Single Todo
+router.get(
+  "/:id",
+  protect,
+  getTodoById
+);
+
+// Update Todo
+router.put(
+  "/:id",
+  protect,
+  updateTodo
+);
+
+router.patch(
+  "/:id",
+  protect,
+  updateTodo
+);
+
+// Delete Todo
 router.delete(
   "/:id",
+  protect,
   deleteTodo
 );
 
-module.exports =
-  router;
+module.exports = router;

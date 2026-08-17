@@ -1,18 +1,35 @@
 require("dotenv").config();
 
-const express = require("express");
-const cors = require("cors");
+const express =
+  require("express");
 
-const connectDB = require("./config/db");
+const cors =
+  require("cors");
 
-const authRoutes = require("./routes/authRoutes");
-const todoRoutes = require("./routes/todoRoutes");
-const adminRoutes = require("./routes/adminRoutes");
+const connectDB =
+  require("./config/db");
+
+const authRoutes =
+  require("./routes/authRoutes");
+
+const todoRoutes =
+  require("./routes/todoRoutes");
+
+const adminRoutes =
+  require("./routes/adminRoutes");
+
+const notificationRoutes =
+  require(
+    "./routes/notificationRoutes"
+  );
 
 const {
   notFound,
+
   errorHandler,
-} = require("./middleware/errorMiddleware");
+} = require(
+  "./middleware/errorMiddleware"
+);
 
 const app =
   express();
@@ -49,6 +66,15 @@ app.use(
 );
 
 // ==========================================
+// Notification Routes
+// ==========================================
+
+app.use(
+  "/api/notifications",
+  notificationRoutes
+);
+
+// ==========================================
 // Health Check
 // ==========================================
 
@@ -57,6 +83,7 @@ app.get(
   (req, res) => {
     res.status(200).json({
       success: true,
+
       message:
         "Todo API is running",
     });
@@ -112,4 +139,5 @@ if (
     );
 }
 
-module.exports = app;
+module.exports =
+  app;

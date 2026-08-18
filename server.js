@@ -4,20 +4,17 @@ const express = require("express");
 const cors = require("cors");
 
 const connectDB = require("./config/db");
+const { setupSwagger } = require("./config/swagger");
 
 const authRoutes = require("./routes/authRoutes");
 const todoRoutes = require("./routes/todoRoutes");
 const adminRoutes = require("./routes/adminRoutes");
-const notificationRoutes = require(
-  "./routes/notificationRoutes"
-);
+const notificationRoutes = require("./routes/notificationRoutes");
 
 const {
   notFound,
   errorHandler,
-} = require(
-  "./middleware/errorMiddleware"
-);
+} = require("./middleware/errorMiddleware");
 
 const app = express();
 
@@ -27,9 +24,13 @@ const app = express();
 
 app.use(cors());
 
-app.use(
-  express.json()
-);
+app.use(express.json());
+
+// ==========================================
+// Swagger API Documentation
+// ==========================================
+
+setupSwagger(app);
 
 // ==========================================
 // Routes

@@ -1,7 +1,7 @@
 {
   "name": "todo-api",
   "version": "1.0.0",
-  "description": "Todo API with authentication, email integration, password reset, assignments, comments, notifications, attachments, soft delete, restore and audit logs",
+  "description": "Todo API with authentication, email integration, password reset, assignments, comments, notifications, attachments, soft delete, restore, audit logs, database indexing, query optimization and Swagger API documentation",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
@@ -24,7 +24,8 @@
     "jsonwebtoken": "^9.0.2",
     "mongoose": "^8.18.0",
     "multer": "^2.2.0",
-    "nodemailer": "^7.0.6"
+    "nodemailer": "^7.0.6",
+    "swagger-ui-express": "^5.0.1"
   },
   "devDependencies": {
     "jest": "^30.0.0",

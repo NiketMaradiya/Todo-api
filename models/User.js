@@ -119,32 +119,33 @@ const userSchema = new mongoose.Schema(
 );
 
 // ==========================================
-// Email Index
+// DATABASE INDEXING
 // ==========================================
 
-userSchema.index(
-  {
-    email: 1,
-  },
-  {
-    unique: true,
-  }
-);
+// `unique: true` on the schema field already
+// creates the unique email index.
+userSchema.index({
+  createdAt: -1,
+});
 
 // ==========================================
 // Hash Password Before Saving
 // ==========================================
 
-userSchema.pre("save", async function () {
-  if (!this.isModified("password")) {
-    return;
-  }
+userSchema.pre(
+  "save",
+  async function () {
+    if (!this.isModified("password")) {
+      return;
+    }
 
-  this.password = await bcrypt.hash(
-    this.password,
-    10
-  );
-});
+    this.password =
+      await bcrypt.hash(
+        this.password,
+        10
+      );
+  }
+);
 
 // ==========================================
 // Compare Password

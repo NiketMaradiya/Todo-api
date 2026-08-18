@@ -1,10 +1,6 @@
 const mongoose =
   require("mongoose");
 
-// ==========================================
-// Notification Schema
-// ==========================================
-
 const notificationSchema =
   new mongoose.Schema(
     {
@@ -56,6 +52,7 @@ const notificationSchema =
         default: false,
       },
     },
+
     {
       timestamps: {
         createdAt: true,
@@ -64,6 +61,30 @@ const notificationSchema =
       },
     }
   );
+
+// ==========================================
+// DATABASE INDEXING
+// ==========================================
+
+// Notification list for a user, newest first.
+notificationSchema.index({
+  userId: 1,
+  createdAt: -1,
+});
+
+// Unread notification count and read-all query.
+notificationSchema.index({
+  userId: 1,
+  isRead: 1,
+});
+
+// Prevent duplicate due-date notifications
+// from requiring a collection scan.
+notificationSchema.index({
+  userId: 1,
+  todoId: 1,
+  type: 1,
+});
 
 module.exports =
   mongoose.model(

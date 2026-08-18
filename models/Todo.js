@@ -103,90 +103,66 @@ const todoSchema =
   );
 
 // ==========================================
-// DATABASE INDEXING
-// QUERY OPTIMIZATION
+// DATABASE INDEXING & QUERY OPTIMIZATION
 // ==========================================
 
-// ------------------------------------------
-// User's created todos
-//
-// Example:
-// Todo.find({
-//   createdBy: userId,
-//   isDeleted: false
-// })
-// .sort({ createdAt: -1 })
-// ------------------------------------------
-
+// User visibility queries:
+// { createdBy, isDeleted } / sort createdAt
 todoSchema.index({
   createdBy: 1,
   isDeleted: 1,
   createdAt: -1,
 });
 
-// ------------------------------------------
-// User's assigned todos
-//
-// Example:
-// Todo.find({
-//   assignedTo: userId,
-//   isDeleted: false
-// })
-// ------------------------------------------
-
+// User visibility queries:
+// { assignedTo, isDeleted } / sort createdAt
 todoSchema.index({
   assignedTo: 1,
   isDeleted: 1,
   createdAt: -1,
 });
 
-// ------------------------------------------
-// Filter by status
-// ------------------------------------------
+// Admin active Todo list:
+// { isDeleted: false } / sort createdAt
+todoSchema.index({
+  isDeleted: 1,
+  createdAt: -1,
+});
 
+// Active Todo status filters.
 todoSchema.index({
   isDeleted: 1,
   status: 1,
   createdAt: -1,
 });
 
-// ------------------------------------------
-// Filter by priority
-// ------------------------------------------
-
+// Active Todo priority filters.
 todoSchema.index({
   isDeleted: 1,
   priority: 1,
   createdAt: -1,
 });
 
-// ------------------------------------------
-// Due Date Queries
-// ------------------------------------------
+// Combined filtering.
+todoSchema.index({
+  isDeleted: 1,
+  status: 1,
+  priority: 1,
+  createdAt: -1,
+});
 
+// Due-date filtering used by Todo queries
+// and due-date notification generation.
 todoSchema.index({
   isDeleted: 1,
   dueDate: 1,
 });
 
-// ------------------------------------------
-// Admin Trash Queries
-// ------------------------------------------
-
+// Admin trash list:
+// { isDeleted: true } / sort deletedAt
 todoSchema.index({
   isDeleted: 1,
   deletedAt: -1,
-});
-
-// ------------------------------------------
-// Common Status + Priority Query
-// ------------------------------------------
-
-todoSchema.index({
-  isDeleted: 1,
-  status: 1,
-  priority: 1,
-  dueDate: 1,
 });
 
 module.exports =

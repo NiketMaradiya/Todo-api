@@ -1,6 +1,13 @@
 const mongoose = require("mongoose");
 
-const todoActivitySchema = new mongoose.Schema(
+// Activity.js is kept as a compatibility model.
+//
+// The actual TodoActivity model is defined in:
+// models/TodoActivity.js
+//
+// Both files must NOT register the same model name independently.
+
+const activitySchema = new mongoose.Schema(
   {
     todoId: {
       type: mongoose.Schema.Types.ObjectId,
@@ -18,6 +25,7 @@ const todoActivitySchema = new mongoose.Schema(
       type: String,
       required: true,
       trim: true,
+
       enum: [
         "created",
         "updated",
@@ -47,17 +55,43 @@ const todoActivitySchema = new mongoose.Schema(
       default: Date.now,
     },
   },
+
   {
     versionKey: false,
   }
 );
 
-todoActivitySchema.index({
+// ==========================================
+// Database Indexes
+// ==========================================
+
+activitySchema.index({
   todoId: 1,
   createdAt: -1,
 });
 
-module.exports = mongoose.model(
-  "TodoActivity",
-  todoActivitySchema
-);  
+activitySchema.index({
+  userId: 1,
+  createdAt: -1,
+});
+
+// ==========================================
+// IMPORTANT
+//
+// Reuse the existing TodoActivity model if
+// it has already been registered.
+//
+// Otherwise create it.
+//
+// This prevents:
+//
+// OverwriteModelError:
+// Cannot overwrite `TodoActivity` model once compiled
+// ==========================================
+
+module.exports =
+  mongoose.models.TodoActivity ||
+  mongoose.model(
+    "TodoActivity",
+    activitySchema
+  );

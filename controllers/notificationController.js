@@ -41,7 +41,7 @@ const getNotifications =
       //
       // This creates due-soon and overdue
       // notifications when needed.
-// ==========================================
+      // ==========================================
 
       await createDueDateNotifications();
 
@@ -63,7 +63,8 @@ const getNotifications =
           )
           .sort({
             createdAt: -1,
-          });
+          })
+          .lean();
 
       const unreadCount =
         await Notification.countDocuments(

@@ -1,31 +1,114 @@
 const cloudinary = require("cloudinary").v2;
 
-const cloudName =
-  process.env.CLOUDINARY_CLOUD_NAME;
+const {
+  getDecryptedCloudinaryConfig,
+} = require("../utils/cloudinaryConfigService");
 
-const apiKey =
-  process.env.CLOUDINARY_API_KEY;
+// ==========================================
+// Configure Cloudinary from MongoDB
+// ==========================================
+//
+// Cloudinary credentials are NOT read from .env.
+//
+// They are:
+// MongoDB
+//   ↓
+// Encrypted API key / secret
+//   ↓
+// CONFIG_ENCRYPTION_KEY
+//   ↓
+// Decrypted credentials
+//   ↓
+// Cloudinary SDK
+//
+// ==========================================
 
-const apiSecret =
-  process.env.CLOUDINARY_API_SECRET;
+const configureCloudinaryFromDatabase =
+  async () => {
+    const config =
+      await getDecryptedCloudinaryConfig();
 
-cloudinary.config({
-  cloud_name: cloudName,
-  api_key: apiKey,
-  api_secret: apiSecret,
-  secure: true,
-  timeout: 60000,
-});
+    if (!config) {
+      throw new Error(
+        "Cloudinary is not configured. Please create the Cloudinary configuration using POST /api/admin/cloudinary."
+      );
+    }
 
-const isCloudinaryConfigured = () => {
-  return Boolean(
-    cloudName &&
-      apiKey &&
-      apiSecret
-  );
-};
+    if (
+      !config.cloudName ||
+      !config.apiKey ||
+      !config.apiSecret
+    ) {
+      throw new Error(
+        "Cloudinary configuration is incomplete."
+      );
+    }
+
+    cloudinary.config({
+      cloud_name:
+        config.cloudName,
+
+      api_key:
+        config.apiKey,
+
+      api_secret:
+        config.apiSecret,
+
+      secure: true,
+
+      timeout: 60000,
+    });
+
+    return config;
+  };
+
+// ==========================================
+// Check Cloudinary configuration
+// ==========================================
+
+const isCloudinaryConfigured =
+  async () => {
+    try {
+      const config =
+        await getDecryptedCloudinaryConfig();
+
+      return Boolean(
+        config &&
+          config.cloudName &&
+          config.apiKey &&
+          config.apiSecret
+      );
+    } catch (error) {
+      console.error(
+        "Cloudinary configuration check failed:",
+        error.message
+      );
+
+      return false;
+    }
+  };
+
+// ==========================================
+// Get Cloudinary client
+// ==========================================
+
+const getCloudinaryClient =
+  async () => {
+    await configureCloudinaryFromDatabase();
+
+    return cloudinary;
+  };
+
+// ==========================================
+// Export
+// ==========================================
 
 module.exports = {
   cloudinary,
+
+  configureCloudinaryFromDatabase,
+
   isCloudinaryConfigured,
+
+  getCloudinaryClient,
 };

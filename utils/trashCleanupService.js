@@ -4,8 +4,7 @@ const Notification = require("../models/Notification");
 const TodoActivity = require("../models/TodoActivity");
 
 const {
-  cloudinary,
-  isCloudinaryConfigured,
+  getCloudinaryClient,
 } = require("../config/cloudinary");
 
 // ==========================================
@@ -56,7 +55,12 @@ const deleteCloudinaryAttachment = async (
     return;
   }
 
-  if (!isCloudinaryConfigured()) {
+  let cloudinary;
+
+  try {
+    cloudinary =
+      await getCloudinaryClient();
+  } catch (error) {
     console.warn(
       "Cloudinary is not configured. Skipping attachment cleanup."
     );

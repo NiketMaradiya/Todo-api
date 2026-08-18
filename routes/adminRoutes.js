@@ -27,6 +27,19 @@ const {
   "../controllers/adminController"
 );
 
+// ==========================================
+// Cloudinary Admin APIs
+// ==========================================
+
+const {
+  createAdminCloudinaryConfig,
+  getAdminCloudinaryConfig,
+  updateAdminCloudinaryConfig,
+  deleteAdminCloudinaryConfig,
+} = require(
+  "../controllers/cloudinaryAdminController"
+);
+
 const {
   protect,
   requirePasswordChanged,
@@ -50,7 +63,7 @@ router.use(
 // ==========================================
 // Temporary password protection
 //
-// Admin also cannot access admin APIs until
+// Admin cannot access admin APIs until
 // the temporary password has been changed.
 // ==========================================
 
@@ -215,6 +228,57 @@ router.patch(
 router.delete(
   "/users/:id",
   deleteUser
+);
+
+// ==========================================
+// ADMIN CLOUDINARY CONFIGURATION ROUTES
+// ==========================================
+
+// ------------------------------------------
+// POST /api/admin/cloudinary
+//
+// Create Cloudinary configuration
+// ------------------------------------------
+
+router.post(
+  "/cloudinary",
+  createAdminCloudinaryConfig
+);
+
+// ------------------------------------------
+// GET /api/admin/cloudinary
+//
+// Get Cloudinary configuration
+//
+// IMPORTANT:
+// apiSecret is NEVER returned.
+// ------------------------------------------
+
+router.get(
+  "/cloudinary",
+  getAdminCloudinaryConfig
+);
+
+// ------------------------------------------
+// PUT /api/admin/cloudinary
+//
+// Update Cloudinary configuration
+// ------------------------------------------
+
+router.put(
+  "/cloudinary",
+  updateAdminCloudinaryConfig
+);
+
+// ------------------------------------------
+// DELETE /api/admin/cloudinary
+//
+// Delete Cloudinary configuration
+// ------------------------------------------
+
+router.delete(
+  "/cloudinary",
+  deleteAdminCloudinaryConfig
 );
 
 // ==========================================

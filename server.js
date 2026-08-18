@@ -1,51 +1,88 @@
 require("dotenv").config();
 
-const express = require("express");
-const cors = require("cors");
+const express =
+  require("express");
 
-const connectDB = require("./config/db");
-const { setupSwagger } = require("./config/swagger");
+const cors =
+  require("cors");
+
+const connectDB =
+  require("./config/db");
+
+const {
+  setupSwagger,
+} = require("./config/swagger");
+
+const {
+  validateEncryptionKey,
+} = require(
+  "./utils/encryptionService"
+);
 
 const {
   startTrashCleanup,
-} = require("./utils/trashCleanupService");
+} = require(
+  "./utils/trashCleanupService"
+);
 
-const authRoutes = require("./routes/authRoutes");
-const todoRoutes = require("./routes/todoRoutes");
-const adminRoutes = require("./routes/adminRoutes");
-const notificationRoutes = require("./routes/notificationRoutes");
+const authRoutes =
+  require("./routes/authRoutes");
+
+const todoRoutes =
+  require("./routes/todoRoutes");
+
+const adminRoutes =
+  require("./routes/adminRoutes");
+
+const notificationRoutes =
+  require(
+    "./routes/notificationRoutes"
+  );
 
 const {
   notFound,
   errorHandler,
-} = require("./middleware/errorMiddleware");
+} = require(
+  "./middleware/errorMiddleware"
+);
 
-const app = express();
+const app =
+  express();
 
 // ==========================================
 // Global Middleware
 // ==========================================
 
-app.use(cors());
+app.use(
+  cors()
+);
 
-app.use(express.json());
+app.use(
+  express.json()
+);
 
 // ==========================================
 // Swagger API Documentation
 // ==========================================
 
-setupSwagger(app);
+setupSwagger(
+  app
+);
 
 // ==========================================
 // Routes
 // ==========================================
 
+// ------------------------------------------
 // Authentication
+// ------------------------------------------
+
 app.use(
   "/api/auth",
   authRoutes
 );
 
+// ------------------------------------------
 // Todos
 //
 // Includes:
@@ -54,14 +91,14 @@ app.use(
 // - Attachments
 // - Status
 // - Activity / Audit Log
-//
-// GET /api/todos/:id/activity
-//
+// ------------------------------------------
+
 app.use(
   "/api/todos",
   todoRoutes
 );
 
+// ------------------------------------------
 // Admin
 //
 // Includes:
@@ -69,16 +106,18 @@ app.use(
 // - Admin Todo access
 // - Trash
 // - Restore
-//
-// GET /api/admin/todos/trash
-// PATCH /api/admin/todos/:id/restore
-//
+// - Cloudinary configuration
+// ------------------------------------------
+
 app.use(
   "/api/admin",
   adminRoutes
 );
 
+// ------------------------------------------
 // Notifications
+// ------------------------------------------
+
 app.use(
   "/api/notifications",
   notificationRoutes
@@ -91,12 +130,14 @@ app.use(
 app.get(
   "/",
   (req, res) => {
-    return res.status(200).json({
-      success: true,
+    return res
+      .status(200)
+      .json({
+        success: true,
 
-      message:
-        "Todo API is running",
-    });
+        message:
+          "Todo API is running",
+      });
   }
 );
 
@@ -127,6 +168,38 @@ if (
     process.env.PORT ||
     5000;
 
+  // ========================================
+  // Validate encryption key
+  //
+  // The encryption key is required for
+  // Cloudinary credentials stored in MongoDB.
+  //
+  // IMPORTANT:
+  // The key itself is NEVER stored in MongoDB.
+  // ========================================
+
+  try {
+    validateEncryptionKey();
+
+    console.log(
+      "✅ Configuration encryption key verified"
+    );
+  } catch (error) {
+    console.error(
+      "❌ Configuration encryption key validation failed:"
+    );
+
+    console.error(
+      error.message
+    );
+
+    process.exit(1);
+  }
+
+  // ========================================
+  // Connect MongoDB
+  // ========================================
+
   connectDB()
     .then(() => {
       // ========================================
@@ -140,6 +213,10 @@ if (
       // ========================================
 
       startTrashCleanup();
+
+      // ========================================
+      // Start Express server
+      // ========================================
 
       app.listen(
         PORT,
@@ -165,4 +242,9 @@ if (
     );
 }
 
-module.exports = app;
+// ==========================================
+// Export app
+// ==========================================
+
+module.exports =
+  app;

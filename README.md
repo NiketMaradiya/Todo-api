@@ -1,10 +1,28 @@
 # 🚀 Todo API – Advanced Task Management System
 
-A complete and advanced **RESTful Todo API** built using **Node.js, Express.js, MongoDB, and Mongoose**.
+A complete and advanced **RESTful Todo API** built with **Node.js, Express.js, MongoDB, Mongoose, JWT, bcryptjs, Nodemailer, Cloudinary, Multer, Jest, and Supertest**.
 
-This project started as a basic Todo CRUD application and was extended with professional backend features such as authentication, role-based authorization, task assignment, due dates, priorities, comments, Cloudinary attachments, notifications, soft delete, admin management, activity history, and a complete audit log system.
+The project supports:
 
-The project is designed to demonstrate how a real-world backend application can manage users, tasks, permissions, notifications, file uploads, and complete action history.
+* User registration and login
+* Temporary-password onboarding
+* Mandatory first-login password change
+* JWT authentication
+* Forgot-password and password-reset flow
+* Role-based authorization
+* Todo CRUD
+* Todo assignment and reassignment
+* Due dates and priorities
+* Comments
+* File attachments
+* Cloudinary integration
+* Notifications
+* Soft delete and restore
+* Todo activity history
+* Admin management
+* Audit logging
+* Automated tests
+* Postman testing
 
 ---
 
@@ -15,8 +33,15 @@ The project is designed to demonstrate how a real-world backend application can 
 * [Project Structure](#-project-structure)
 * [Installation](#-installation)
 * [Environment Variables](#-environment-variables)
+* [Gmail Email Setup](#-gmail-email-setup)
 * [Running the Project](#-running-the-project)
-* [Authentication](#-authentication)
+* [Health Check](#-health-check)
+* [Authentication Flow](#-authentication-flow)
+* [Registration and Temporary Password](#-registration-and-temporary-password)
+* [Mandatory First Login Password Change](#-mandatory-first-login-password-change)
+* [Forgot Password](#-forgot-password)
+* [Reset Password](#-reset-password)
+* [JWT Authentication](#-jwt-authentication)
 * [User Roles](#-user-roles)
 * [Todo Features](#-todo-features)
 * [Todo Assignment](#-todo-assignment)
@@ -29,44 +54,76 @@ The project is designed to demonstrate how a real-world backend application can 
 * [Activity History and Audit Logs](#-activity-history-and-audit-logs)
 * [API Endpoints](#-api-endpoints)
 * [Postman Testing Flow](#-postman-testing-flow)
-* [Testing](#-testing)
+* [Error Testing](#-error-testing)
+* [Automated Testing](#-automated-testing)
 * [Database Models](#-database-models)
 * [Authorization Rules](#-authorization-rules)
-* [Error Handling](#-error-handling)
+* [Security](#-security)
 * [Project Flow](#-project-flow)
 * [Future Improvements](#-future-improvements)
+* [Author](#-author)
 
 ---
 
 # ✨ Features
 
-The Todo API currently supports the following features:
-
 ## 🔐 Authentication
 
+The API supports:
+
 * User registration
+* Temporary-password generation
+* Temporary-password email delivery
 * User login
 * JWT authentication
 * Protected routes
-* User profile API
-* Logout API
-* Password hashing using bcryptjs
+* User profile
+* Logout
+* Password hashing with bcryptjs
+* Mandatory first-login password change
+* Forgot password
+* Password reset
+* Password reset token expiry
+* Password changed notifications
+
+---
+
+## 📧 Email System
+
+The backend uses **Nodemailer** for email delivery.
+
+Emails are used for:
+
+* Temporary password after registration
+* Login notification
+* Forgot-password reset link
+* Password changed notification
+
+For Gmail, use a **Google App Password** rather than your normal Gmail password.
 
 ---
 
 ## 👥 Role-Based Authorization
 
-The application supports different user roles.
+The API supports two main roles:
+
+```text
+user
+admin
+```
 
 ### User
 
 A normal user can:
 
-* Register and login
+* Register
+* Login
+* Change password
+* View profile
 * Create Todos
 * View accessible Todos
 * Update allowed Todos
-* Delete their allowed Todos
+* Delete allowed Todos
 * Add comments
 * View comments
 * Upload attachments
@@ -76,66 +133,22 @@ A normal user can:
 
 ### Admin
 
-An admin has additional permissions.
-
-Admin can:
+An admin can additionally:
 
 * View all users
 * View all active Todos
 * View any Todo
 * Update any active Todo
 * Soft delete any Todo
-* View deleted Todos in Trash
+* View deleted Todos
 * Restore deleted Todos
-* Make a user admin
+* Make users admin
 * Remove admin role
 * Change user roles
 * Change user passwords
 * Enable or disable users
 * Delete users
-* Access Todo activity history
-
----
-
-# 📝 Todo Features
-
-Each Todo supports the following fields:
-
-```json
-{
-  "title": "Complete Todo API",
-  "description": "Build advanced backend features",
-  "createdBy": "USER_ID",
-  "assignedTo": "USER_ID",
-  "status": "pending",
-  "priority": "high",
-  "dueDate": "2026-08-20T00:00:00.000Z",
-  "attachmentUrl": "FILE_URL",
-  "isDeleted": false
-}
-```
-
-Main Todo features include:
-
-* Create Todo
-* Get all accessible Todos
-* Get single Todo
-* Update Todo
-* Update Todo using PUT
-* Update Todo using PATCH
-* Update Todo status
-* Assign Todo
-* Reassign Todo
-* Set priority
-* Set due date
-* Upload attachment
-* Soft delete Todo
-* Get Todo statistics
-* Search Todos
-* Filter Todos
-* Pagination
-* Sorting
-* Activity history
+* View Todo activity history
 
 ---
 
@@ -153,8 +166,13 @@ Main Todo features include:
 
 ## Authentication
 
-* JSON Web Token (JWT)
+* JSON Web Token
 * bcryptjs
+
+## Email
+
+* Nodemailer
+* Gmail SMTP
 
 ## File Upload
 
@@ -221,15 +239,19 @@ todo-api/
 ├── utils/
 │   ├── activityService.js
 │   ├── attachmentService.js
-│   └── notificationService.js
+│   ├── emailService.js
+│   ├── notificationService.js
+│   └── passwordService.js
 │
 ├── public/
 │   └── uploads/
 │
 ├── server.js
 ├── package.json
+├── package-lock.json
 ├── jest.config.js
 ├── .env
+├── .gitignore
 └── README.md
 ```
 
@@ -259,27 +281,72 @@ npm install
 
 # 🔑 Environment Variables
 
-Create a `.env` file in the root directory.
+Create a `.env` file in the project root.
 
 Example:
 
 ```env
+# ==========================================
+# SERVER
+# ==========================================
+
 PORT=5000
+
+
+# ==========================================
+# DATABASE
+# ==========================================
 
 MONGO_URI=your_mongodb_connection_string
 
+
+# ==========================================
+# JWT
+# ==========================================
+
 JWT_SECRET=your_secret_key
+JWT_EXPIRES_IN=7d
+
+
+# ==========================================
+# FRONTEND URL
+# Used to create password reset links
+# ==========================================
+
+CLIENT_URL=http://localhost:3000
+
+
+# ==========================================
+# CLOUDINARY
+# ==========================================
 
 CLOUDINARY_CLOUD_NAME=your_cloud_name
 CLOUDINARY_API_KEY=your_api_key
 CLOUDINARY_API_SECRET=your_api_secret
+
+
+# ==========================================
+# EMAIL - GMAIL SMTP
+# ==========================================
+
+EMAIL_HOST=smtp.gmail.com
+EMAIL_PORT=587
+EMAIL_SECURE=false
+
+EMAIL_USER=your_gmail@gmail.com
+
+# Gmail App Password
+# Do NOT use your normal Gmail password
+EMAIL_PASSWORD=your_gmail_app_password
+
+EMAIL_FROM="Todo API <your_gmail@gmail.com>"
 ```
 
-Do not upload your real `.env` file to GitHub.
+### Important
 
-Make sure `.env` is included in `.gitignore`.
+Never commit your real `.env` file to GitHub.
 
-Example:
+Your `.gitignore` should contain:
 
 ```text
 .env
@@ -288,29 +355,90 @@ node_modules
 
 ---
 
-# ▶️ Running the Project
+# 📧 Gmail Email Setup
 
-## Development Mode
+The registration process generates a temporary password and emails it to the new user.
+
+For Gmail:
+
+## Step 1
+
+Open:
+
+```text
+https://myaccount.google.com/security
+```
+
+## Step 2
+
+Enable:
+
+```text
+2-Step Verification
+```
+
+## Step 3
+
+Open:
+
+```text
+https://myaccount.google.com/apppasswords
+```
+
+## Step 4
+
+Create an App Password.
+
+For example, use:
+
+```text
+Todo API
+```
+
+Google will generate a 16-character App Password.
+
+Put that value into:
+
+```env
+EMAIL_PASSWORD=YOUR_APP_PASSWORD
+```
+
+Do not use your normal Gmail password.
+
+## Step 5
+
+Set:
+
+```env
+EMAIL_USER=your_gmail@gmail.com
+EMAIL_FROM="Todo API <your_gmail@gmail.com>"
+```
+
+## Step 6
+
+Restart the backend after changing `.env`.
 
 ```bash
 npm run dev
 ```
 
-The server will start using Nodemon.
+---
 
-Example:
+# ▶️ Running the Project
 
-```text
-Server running on port 5000
+## Development
+
+```bash
+npm run dev
 ```
 
-## Production Mode
+## Production
 
 ```bash
 npm start
 ```
 
-The default API URL is:
+Default API URL:
 
 ```text
 http://localhost:5000
@@ -326,7 +454,13 @@ http://localhost:5000
 GET /
 ```
 
-## Example Response
+## Example
+
+```text
+http://localhost:5000/
+```
+
+## Response
 
 ```json
 {
@@ -337,53 +471,91 @@ GET /
 
 ---
 
-# 🔐 Authentication
+# 🔐 Authentication Flow
 
-The API uses JWT authentication.
+The authentication system has two different password flows.
 
-The authentication flow is:
+## Normal existing user
+
+```text
+Login
+  ↓
+JWT Token
+  ↓
+Protected APIs
+```
+
+## New user
 
 ```text
 Register
    ↓
-Login
+Temporary Password Generated
    ↓
-Receive JWT Token
+Temporary Password Emailed
    ↓
-Add Token to Authorization Header
+Login with Temporary Password
    ↓
-Access Protected APIs
-```
-
-For protected APIs, add:
-
-```text
-Authorization: Bearer YOUR_JWT_TOKEN
+mustChangePassword = true
+   ↓
+Only Change Password / Profile / Logout
+   ↓
+Change Password
+   ↓
+mustChangePassword = false
+   ↓
+Full Application Access
 ```
 
 ---
 
-# 👤 Register User
+# 👤 Registration and Temporary Password
 
-## Endpoint
+## Register
 
 ```http
 POST /api/auth/register
 ```
 
+Full URL:
+
+```text
+http://localhost:5000/api/auth/register
+```
+
 ## Request Body
+
+The registration request does not need the user's final password.
 
 ```json
 {
   "name": "Test User",
-  "email": "testuser@example.com",
-  "password": "123456"
+  "email": "testuser@gmail.com"
 }
 ```
 
+## Successful Response
+
+```json
+{
+  "success": true,
+  "message": "New user created successfully. A temporary password has been sent to the registered email. Password change is required after first login.",
+  "data": {
+    "_id": "USER_ID",
+    "name": "Test User",
+    "email": "testuser@gmail.com",
+    "role": "user",
+    "isActive": true,
+    "mustChangePassword": true
+  }
+}
+```
+
+The user should receive an email containing the temporary password.
+
 ---
 
-# 🔑 Login User
+# 🔑 Login With Temporary Password
 
 ## Endpoint
 
@@ -391,18 +563,118 @@ POST /api/auth/register
 POST /api/auth/login
 ```
 
+Example:
+
+```json
+{
+  "email": "testuser@gmail.com",
+  "password": "TEMPORARY_PASSWORD_FROM_EMAIL"
+}
+```
+
+## Expected Response
+
+```json
+{
+  "success": true,
+  "message": "Login successful. You must change your temporary password before continuing.",
+  "token": "JWT_TOKEN",
+  "data": {
+    "email": "testuser@gmail.com",
+    "mustChangePassword": true
+  }
+}
+```
+
+Copy the JWT token.
+
+---
+
+# 🔒 Mandatory First Login Password Change
+
+A new user must change the temporary password before accessing normal application resources.
+
+When:
+
+```json
+{
+  "mustChangePassword": true
+}
+```
+
+the following remain available:
+
+```text
+GET  /api/auth/profile
+POST /api/auth/logout
+PATCH /api/auth/change-password
+```
+
+The following are blocked:
+
+```text
+Todo APIs
+Notification APIs
+Admin APIs
+```
+
+Blocked requests return:
+
+```text
+403 Forbidden
+```
+
+Example:
+
+```json
+{
+  "success": false,
+  "mustChangePassword": true,
+  "message": "You must change your temporary password before accessing this resource."
+}
+```
+
+---
+
+# 🔐 Change Password
+
+## Endpoint
+
+```http
+PATCH /api/auth/change-password
+```
+
+## Authorization
+
+```text
+Bearer JWT_TOKEN
+```
+
 ## Request Body
 
 ```json
 {
-  "email": "testuser@example.com",
-  "password": "123456"
+  "currentPassword": "TEMPORARY_PASSWORD",
+  "newPassword": "NewPassword@123"
 }
 ```
 
-After successful login, copy the JWT token.
+## Successful Response
 
-Use this token for protected APIs.
+```json
+{
+  "success": true,
+  "message": "Password changed successfully. You can now access the application."
+}
+```
+
+After this operation:
+
+```text
+mustChangePassword = false
+```
+
+The user can access the normal application.
 
 ---
 
@@ -414,7 +686,27 @@ Use this token for protected APIs.
 GET /api/auth/profile
 ```
 
-Authentication required.
+## Authorization
+
+```text
+Bearer JWT_TOKEN
+```
+
+Example response:
+
+```json
+{
+  "success": true,
+  "data": {
+    "_id": "USER_ID",
+    "name": "Test User",
+    "email": "testuser@gmail.com",
+    "role": "user",
+    "isActive": true,
+    "mustChangePassword": false
+  }
+}
+```
 
 ---
 
@@ -426,11 +718,187 @@ Authentication required.
 POST /api/auth/logout
 ```
 
-Authentication required.
+## Authorization
+
+```text
+Bearer JWT_TOKEN
+```
+
+Example response:
+
+```json
+{
+  "success": true,
+  "message": "Logout successful"
+}
+```
 
 ---
 
-# 📝 Create Todo
+# 📩 Forgot Password
+
+Forgot password is available to users who have forgotten their password.
+
+## Endpoint
+
+```http
+POST /api/auth/forgot-password
+```
+
+## Request Body
+
+```json
+{
+  "email": "testuser@gmail.com"
+}
+```
+
+## Response
+
+```json
+{
+  "success": true,
+  "message": "If an account exists with this email, a password reset link has been sent."
+}
+```
+
+The API intentionally returns the same message for an existing or non-existing email to avoid exposing account existence.
+
+---
+
+# 🔗 Password Reset Token
+
+After the forgot-password request, the user receives an email.
+
+Example reset link:
+
+```text
+http://localhost:3000/reset-password/abc123XYZ456
+```
+
+The token is:
+
+```text
+abc123XYZ456
+```
+
+The token is only valid for a limited time.
+
+Current reset-token lifetime:
+
+```text
+15 minutes
+```
+
+---
+
+# 🔄 Reset Password
+
+## Endpoint
+
+```http
+PATCH /api/auth/reset-password/:token
+```
+
+Example:
+
+```text
+http://localhost:5000/api/auth/reset-password/abc123XYZ456
+```
+
+## Request Body
+
+```json
+{
+  "newPassword": "ForgotPassword@123"
+}
+```
+
+## Successful Response
+
+```json
+{
+  "success": true,
+  "message": "Password reset successfully. You can now login with your new password."
+}
+```
+
+After a successful password reset:
+
+```text
+mustChangePassword = false
+```
+
+The reset token is cleared and cannot be reused.
+
+---
+
+# 🔑 JWT Authentication
+
+Protected APIs require:
+
+```text
+Authorization: Bearer YOUR_JWT_TOKEN
+```
+
+In Postman:
+
+```text
+Authorization
+    ↓
+Type: Bearer Token
+    ↓
+Paste JWT Token
+```
+
+Do not manually place a second `Bearer` inside the token field.
+
+---
+
+# 📝 Todo Features
+
+Each Todo can contain information such as:
+
+```json
+{
+  "title": "Complete Todo API",
+  "description": "Build advanced backend features",
+  "createdBy": "USER_ID",
+  "assignedTo": "USER_ID",
+  "status": "pending",
+  "priority": "high",
+  "dueDate": "2026-08-25",
+  "attachmentUrl": "FILE_URL",
+  "isDeleted": false
+}
+```
+
+Supported features:
+
+* Create Todo
+* Get Todos
+* Get single Todo
+* Update Todo
+* Update Todo using PUT
+* Update Todo using PATCH
+* Update Todo status
+* Assign Todo
+* Reassign Todo
+* Set priority
+* Set due date
+* Search Todos
+* Filter Todos
+* Pagination
+* Sorting
+* File attachment
+* Soft delete
+* Restore
+* Statistics
+* Activity history
+
+---
+
+# ➕ Create Todo
 
 ## Endpoint
 
@@ -438,22 +906,20 @@ Authentication required.
 POST /api/todos
 ```
 
-Authentication required.
-
 ## Request Body
 
 ```json
 {
-  "title": "Complete Audit Log System",
-  "description": "Add complete activity tracking",
+  "title": "Build Audit Log System",
+  "description": "Track important Todo actions",
   "assignedTo": "USER_ID",
   "status": "pending",
   "priority": "high",
-  "dueDate": "2026-08-20"
+  "dueDate": "2026-08-25"
 }
 ```
 
-The authenticated user automatically becomes the Todo creator.
+The authenticated user is automatically treated as the Todo creator.
 
 ---
 
@@ -465,29 +931,19 @@ The authenticated user automatically becomes the Todo creator.
 GET /api/todos
 ```
 
-Authentication required.
-
-The API can support searching, filtering, sorting, and pagination.
-
-Example:
+Examples:
 
 ```http
 GET /api/todos?page=1&limit=10
 ```
 
-Example search:
-
 ```http
 GET /api/todos?search=API
 ```
 
-Example status filter:
-
 ```http
 GET /api/todos?status=pending
 ```
-
-Example priority filter:
 
 ```http
 GET /api/todos?priority=high
@@ -497,13 +953,9 @@ GET /api/todos?priority=high
 
 # 🔍 Get Single Todo
 
-## Endpoint
-
 ```http
 GET /api/todos/:id
 ```
-
-Authentication required.
 
 Example:
 
@@ -514,8 +966,6 @@ GET /api/todos/TODO_ID
 ---
 
 # ✏️ Update Todo
-
-The API supports both PUT and PATCH requests.
 
 ## PUT
 
@@ -529,9 +979,7 @@ PUT /api/todos/:id
 PATCH /api/todos/:id
 ```
 
-Authentication required.
-
-Example request:
+Example:
 
 ```json
 {
@@ -545,15 +993,11 @@ Example request:
 
 # 🔄 Update Todo Status
 
-## Endpoint
-
 ```http
 PATCH /api/todos/:id/status
 ```
 
-Authentication required.
-
-Example request:
+Example:
 
 ```json
 {
@@ -573,21 +1017,17 @@ completed
 
 # 📊 Todo Statistics
 
-## Endpoint
-
 ```http
 GET /api/todos/stats
 ```
 
-Authentication required.
-
-This API provides Todo-related statistics.
+Returns Todo-related statistics.
 
 ---
 
 # 👥 Todo Assignment
 
-Todos can be assigned to users.
+A Todo can be assigned to another user.
 
 Example:
 
@@ -599,35 +1039,19 @@ Example:
 
 The backend validates the assigned user.
 
-The assignment activity is also recorded.
+Assignment and reassignment actions are recorded in the activity history.
 
 Example:
 
 ```text
-Action: assigned
+created
+assigned
+reassigned
 ```
-
-If the Todo was already assigned to another user:
-
-```text
-Action: reassigned
-```
-
-Example:
-
-```text
-User A
-   ↓
-User B
-```
-
-The audit log stores the previous user and new user information.
 
 ---
 
 # 📅 Due Date
-
-Todos support due dates.
 
 Example:
 
@@ -636,8 +1060,6 @@ Example:
   "dueDate": "2026-08-25"
 }
 ```
-
-This helps users track task deadlines.
 
 ---
 
@@ -659,132 +1081,77 @@ Example:
 }
 ```
 
-If the priority changes, an activity is recorded.
-
-Example:
-
-```text
-medium → high
-```
-
-Action:
-
-```text
-priority_changed
-```
+Priority changes are recorded in the activity history.
 
 ---
 
 # 💬 Comments System
 
-Users can add comments to a Todo.
+Users can add comments to accessible Todos.
 
-Each comment contains:
+A comment contains:
 
-* Todo ID
-* User ID
-* Comment text
-* Created date
-* Updated date
+```text
+Todo ID
+User ID
+Comment
+Created At
+Updated At
+```
 
 ---
 
 # ➕ Add Comment
 
-## Endpoint
-
 ```http
 POST /api/todos/:id/comments
 ```
 
-Authentication required.
-
-## Request Body
+Example:
 
 ```json
 {
-  "comment": "I have started working on this task."
+  "comment": "Started working on this Todo."
 }
 ```
 
-When a comment is added, the system can record:
-
-```text
-comment_added
-```
-
-in the Todo activity history.
-
 ---
 
-# 📖 Get Todo Comments
-
-## Endpoint
+# 📋 Get Comments
 
 ```http
 GET /api/todos/:id/comments
 ```
 
-Authentication required.
-
 ---
 
 # ✏️ Update Comment
-
-## Endpoint
 
 ```http
 PATCH /api/todos/:todoId/comments/:commentId
 ```
 
-Authentication required.
-
-Example request:
+Example:
 
 ```json
 {
-  "comment": "Updated comment text"
+  "comment": "Updated comment text."
 }
 ```
 
 ---
 
-# 🗑 Delete Comment
-
-## Endpoint
+# 🗑️ Delete Comment
 
 ```http
 DELETE /api/todos/:todoId/comments/:commentId
 ```
 
-Authentication required.
-
 ---
 
 # 📎 File Attachments
 
-The Todo API supports file attachments.
-
-The project uses:
-
-```text
-Multer
-+
-Cloudinary
-```
-
-A Todo can store:
-
-```text
-attachmentUrl
-attachmentPublicId
-```
-
-The file is uploaded and the file URL is associated with the Todo.
-
----
-
-# ⬆️ Upload Todo Attachment
+Todos can have file attachments.
 
 ## Endpoint
 
@@ -792,373 +1159,191 @@ The file is uploaded and the file URL is associated with the Todo.
 POST /api/todos/:id/attachment
 ```
 
-Authentication required.
-
 In Postman:
 
-1. Select `POST`.
-2. Enter:
-
 ```text
-/api/todos/TODO_ID/attachment
+Body
+  ↓
+form-data
+  ↓
+Key: attachment
+  ↓
+Type: File
+  ↓
+Choose File
 ```
 
-3. Go to `Body`.
-4. Select `form-data`.
-5. Add the key:
+The backend uses:
 
 ```text
-attachment
+Multer
+   ↓
+Cloudinary
 ```
 
-6. Change the key type from:
-
-```text
-Text
-```
-
-to:
-
-```text
-File
-```
-
-7. Select a file.
-8. Send the request.
-
-The attachment information is associated with the Todo.
-
-The activity system can record:
-
-```text
-attachment_added
-```
+The Todo stores the returned attachment information.
 
 ---
 
 # 🔔 Notification System
 
-The project includes a notification system.
+Users can receive notifications related to Todo activity.
 
-Notifications can be associated with:
-
-* Todo assignment
-* Due soon reminders
-* Overdue Todos
-* Todo status changes
-* Comments
-
-Supported notification types include:
-
-```text
-todo_assigned
-todo_due_soon
-todo_overdue
-todo_status_changed
-comment_added
-```
-
-Each notification contains:
-
-```text
-userId
-todoId
-type
-message
-isRead
-createdAt
-```
-
----
-
-# 🔔 Get Notifications
-
-## Endpoint
+## Get Notifications
 
 ```http
 GET /api/notifications
 ```
 
-Authentication required.
-
-This endpoint returns notifications for the currently logged-in user.
-
----
-
-# ✅ Mark One Notification as Read
-
-## Endpoint
-
-```http
-PATCH /api/notifications/:id/read
-```
-
-Authentication required.
-
----
-
-# ✅ Mark All Notifications as Read
-
-## Endpoint
+## Mark All Notifications as Read
 
 ```http
 PATCH /api/notifications/read-all
 ```
 
-Authentication required.
-
----
-
-# 🗑 Soft Delete
-
-The application uses soft delete instead of immediately removing Todo documents from the database.
-
-When a Todo is deleted:
-
-```text
-isDeleted = true
-deletedAt = current date
-```
-
-The Todo remains in MongoDB but is hidden from normal Todo queries.
-
----
-
-# 🗑 Delete Todo
-
-## Endpoint
+## Mark One Notification as Read
 
 ```http
-DELETE /api/todos/:id
+PATCH /api/notifications/:id/read
 ```
 
-Authentication required.
+### First-login restriction
 
-The Todo is soft deleted.
-
-The activity system records:
+When:
 
 ```text
-soft_deleted
+mustChangePassword = true
 ```
+
+notification APIs return:
+
+```text
+403 Forbidden
+```
+
+until the password is changed.
 
 ---
 
-# 🗑 Admin Trash
+# 🗑️ Soft Delete and Trash
 
-Admins can view all deleted Todos.
+Deleting a Todo uses soft delete behavior.
 
-## Endpoint
+The Todo remains in the database but is marked as deleted.
 
-```http
-GET /api/admin/todos/trash
+Typical fields:
+
+```json
+{
+  "isDeleted": true,
+  "deletedAt": "2026-08-18T10:00:00.000Z"
+}
 ```
 
-Admin authentication required.
-
----
-
-# ♻️ Restore Todo
-
-An admin can restore a soft-deleted Todo.
-
-## Endpoint
-
-```http
-PATCH /api/admin/todos/:id/restore
-```
-
-When restored:
-
-```text
-isDeleted: true → false
-```
-
-The activity system records:
-
-```text
-restored
-```
+Admins can later restore the Todo.
 
 ---
 
 # 👑 Admin Features
 
-All admin routes require:
+Admin routes use:
 
 ```text
-Authentication
-+
-Admin Role
+JWT authentication
+        +
+mustChangePassword = false
+        +
+admin role
 ```
 
-The admin route middleware flow is:
-
-```text
-Request
-   ↓
-JWT Authentication
-   ↓
-Role Authorization
-   ↓
-Admin Controller
-   ↓
-Database
-   ↓
-Response
-```
-
----
-
-# 👥 Get All Users
-
-## Endpoint
-
-```http
-GET /api/admin/users
-```
-
-Admin only.
-
----
-
-# 🛡 Make User Admin
-
-## Endpoint
-
-```http
-POST /api/admin/users/:id/make-admin
-```
-
-Admin only.
-
----
-
-# 👤 Remove Admin Role
-
-## Endpoint
-
-```http
-POST /api/admin/users/:id/remove-admin
-```
-
-Admin only.
-
----
-
-# 🔄 Change User Role
-
-## Endpoint
-
-```http
-PATCH /api/admin/users/:id/role
-```
-
-Admin only.
-
----
-
-# 🔑 Change User Password
-
-## Endpoint
-
-```http
-PATCH /api/admin/users/:id/password
-```
-
-Admin only.
-
----
-
-# 🚦 Change User Status
-
-## Endpoint
-
-```http
-PATCH /api/admin/users/:id/status
-```
-
-Admin only.
-
-This can be used to update the user's active status depending on the application's user model and controller logic.
-
----
-
-# ❌ Delete User
-
-## Endpoint
-
-```http
-DELETE /api/admin/users/:id
-```
-
-Admin only.
-
----
-
-# 📋 Admin Get All Todos
-
-## Endpoint
+## Admin Todo APIs
 
 ```http
 GET /api/admin/todos
 ```
 
-Admin can view all active Todos.
-
----
-
-# 🔍 Admin Get Any Todo
-
-## Endpoint
+```http
+GET /api/admin/todos/trash
+```
 
 ```http
 GET /api/admin/todos/:id
 ```
 
-Admin can access any active Todo.
-
----
-
-# ✏️ Admin Update Todo
-
-## PUT
-
 ```http
 PUT /api/admin/todos/:id
 ```
-
-## PATCH
 
 ```http
 PATCH /api/admin/todos/:id
 ```
 
-Admin can update any active Todo.
-
----
-
-# 🗑 Admin Delete Todo
-
-## Endpoint
-
 ```http
 DELETE /api/admin/todos/:id
 ```
 
-Admin only.
+```http
+PATCH /api/admin/todos/:id/restore
+```
 
-The Todo is soft deleted.
+## Admin User APIs
+
+```http
+GET /api/admin/users
+```
+
+```http
+POST /api/admin/users/:id/make-admin
+```
+
+```http
+POST /api/admin/users/:id/remove-admin
+```
+
+```http
+PATCH /api/admin/users/:id/role
+```
+
+```http
+PATCH /api/admin/users/:id/password
+```
+
+```http
+PATCH /api/admin/users/:id/status
+```
+
+```http
+DELETE /api/admin/users/:id
+```
 
 ---
 
-# 📜 Activity History and Audit Log
+# 📜 Activity History and Audit Logs
 
-One of the main advanced features of this project is the Todo Activity and Audit Log system.
+The system records important Todo actions.
 
-The system tracks important actions performed on a Todo.
+Examples:
 
-The `TodoActivity` model stores:
+```text
+created
+assigned
+reassigned
+updated
+priority_changed
+status_changed
+comment_added
+attachment_added
+soft_deleted
+restored
+```
+
+## Get Todo Activity
+
+```http
+GET /api/todos/:id/activity
+```
+
+The activity history contains information such as:
 
 ```text
 todoId
@@ -1169,355 +1354,112 @@ newValue
 createdAt
 ```
 
----
-
-# 🔄 Supported Activity Actions
-
-The system supports the following actions:
-
-```text
-created
-updated
-assigned
-reassigned
-status_changed
-priority_changed
-comment_added
-soft_deleted
-restored
-attachment_added
-```
+This provides a complete audit trail of important Todo changes.
 
 ---
 
-# 📝 Example Activity
-
-When a Todo is created:
-
-```json
-{
-  "action": "created",
-  "oldValue": null,
-  "newValue": {
-    "title": "Complete Todo API"
-  }
-}
-```
-
----
-
-# 👥 Assignment Activity
-
-Example:
-
-```text
-Todo assigned to User A
-```
-
-Activity:
-
-```text
-assigned
-```
-
-If the Todo is changed from User A to User B:
-
-```text
-User A
-   ↓
-User B
-```
-
-Activity:
-
-```text
-reassigned
-```
-
----
-
-# 🔄 Status Change Activity
-
-Example:
-
-```text
-pending
-   ↓
-in-progress
-```
-
-Activity:
-
-```text
-status_changed
-```
-
-The activity can store:
-
-```json
-{
-  "oldValue": {
-    "status": "pending"
-  },
-  "newValue": {
-    "status": "in-progress"
-  }
-}
-```
-
----
-
-# 🚨 Priority Change Activity
-
-Example:
-
-```text
-medium
-   ↓
-high
-```
-
-Activity:
-
-```text
-priority_changed
-```
-
----
-
-# 💬 Comment Activity
-
-When a user adds a comment:
-
-```text
-comment_added
-```
-
-is recorded in the activity history.
-
----
-
-# 📎 Attachment Activity
-
-When an attachment is uploaded:
-
-```text
-attachment_added
-```
-
-can be recorded.
-
----
-
-# 🗑 Delete Activity
-
-When a Todo is soft deleted:
-
-```text
-soft_deleted
-```
-
-is recorded.
-
----
-
-# ♻️ Restore Activity
-
-When an admin restores a Todo:
-
-```text
-restored
-```
-
-is recorded.
-
-Example:
-
-```text
-isDeleted
-true
-↓
-false
-```
-
----
-
-# 📜 Get Todo Activity History
-
-## Endpoint
-
-```http
-GET /api/todos/:id/activity
-```
-
-Authentication required.
-
-The activity history is connected to the specific Todo.
-
-Example response structure:
-
-```json
-{
-  "success": true,
-  "activities": [
-    {
-      "todoId": "TODO_ID",
-      "userId": "USER_ID",
-      "action": "created",
-      "oldValue": null,
-      "newValue": {
-        "title": "Complete Todo API"
-      },
-      "createdAt": "2026-08-17T10:00:00.000Z"
-    },
-    {
-      "action": "assigned",
-      "createdAt": "2026-08-17T10:05:00.000Z"
-    },
-    {
-      "action": "status_changed",
-      "oldValue": {
-        "status": "pending"
-      },
-      "newValue": {
-        "status": "in-progress"
-      }
-    }
-  ]
-}
-```
-
----
-
-# 🔒 Authorization Rules
-
-## Normal User
-
-A normal user can access Todos according to the application's authorization rules.
-
-The Todo system uses ownership and assignment information.
-
-Users can work with Todos they are authorized to access, including:
-
-* Todos created by them
-* Todos assigned to them
-
----
-
-## Admin
-
-An admin can:
-
-```text
-View all Todos
-Update all Todos
-Delete all Todos
-View deleted Todos
-Restore Todos
-Manage users
-Manage roles
-```
-
----
-
-# 📡 API Endpoints Summary
+# 📚 API Endpoints
 
 ## Authentication
 
-| Method | Endpoint             | Description      |
-| ------ | -------------------- | ---------------- |
-| POST   | `/api/auth/register` | Register user    |
-| POST   | `/api/auth/login`    | Login user       |
-| POST   | `/api/auth/logout`   | Logout user      |
-| GET    | `/api/auth/profile`  | Get user profile |
+| Method | Endpoint                          | Description                               | Auth |
+| ------ | --------------------------------- | ----------------------------------------- | ---- |
+| POST   | `/api/auth/register`              | Register user and send temporary password | No   |
+| POST   | `/api/auth/login`                 | Login                                     | No   |
+| POST   | `/api/auth/forgot-password`       | Request reset email                       | No   |
+| PATCH  | `/api/auth/reset-password/:token` | Reset password                            | No   |
+| PATCH  | `/api/auth/change-password`       | Change password                           | Yes  |
+| GET    | `/api/auth/profile`               | Get profile                               | Yes  |
+| POST   | `/api/auth/logout`                | Logout                                    | Yes  |
 
 ---
 
-## Todo
+## Todos
 
-| Method | Endpoint                    | Description          |
-| ------ | --------------------------- | -------------------- |
-| POST   | `/api/todos`                | Create Todo          |
-| GET    | `/api/todos`                | Get Todos            |
-| GET    | `/api/todos/stats`          | Get Todo statistics  |
-| GET    | `/api/todos/:id`            | Get single Todo      |
-| PUT    | `/api/todos/:id`            | Update Todo          |
-| PATCH  | `/api/todos/:id`            | Update Todo          |
-| PATCH  | `/api/todos/:id/status`     | Update Todo status   |
-| DELETE | `/api/todos/:id`            | Soft delete Todo     |
-| POST   | `/api/todos/:id/attachment` | Upload attachment    |
-| GET    | `/api/todos/:id/activity`   | Get activity history |
-
----
-
-## Comments
-
-| Method | Endpoint                                 | Description    |
-| ------ | ---------------------------------------- | -------------- |
-| POST   | `/api/todos/:id/comments`                | Add comment    |
-| GET    | `/api/todos/:id/comments`                | Get comments   |
-| PATCH  | `/api/todos/:todoId/comments/:commentId` | Update comment |
-| DELETE | `/api/todos/:todoId/comments/:commentId` | Delete comment |
+| Method | Endpoint                                 | Description          | Auth |
+| ------ | ---------------------------------------- | -------------------- | ---- |
+| POST   | `/api/todos`                             | Create Todo          | Yes  |
+| GET    | `/api/todos`                             | Get accessible Todos | Yes  |
+| GET    | `/api/todos/stats`                       | Get Todo statistics  | Yes  |
+| GET    | `/api/todos/:id`                         | Get single Todo      | Yes  |
+| PUT    | `/api/todos/:id`                         | Update Todo          | Yes  |
+| PATCH  | `/api/todos/:id`                         | Update Todo          | Yes  |
+| PATCH  | `/api/todos/:id/status`                  | Update status        | Yes  |
+| DELETE | `/api/todos/:id`                         | Soft delete Todo     | Yes  |
+| POST   | `/api/todos/:id/attachment`              | Upload attachment    | Yes  |
+| GET    | `/api/todos/:id/activity`                | Activity history     | Yes  |
+| POST   | `/api/todos/:id/comments`                | Add comment          | Yes  |
+| GET    | `/api/todos/:id/comments`                | Get comments         | Yes  |
+| PATCH  | `/api/todos/:todoId/comments/:commentId` | Update comment       | Yes  |
+| DELETE | `/api/todos/:todoId/comments/:commentId` | Delete comment       | Yes  |
 
 ---
 
 ## Notifications
 
-| Method | Endpoint                      | Description       |
-| ------ | ----------------------------- | ----------------- |
-| GET    | `/api/notifications`          | Get notifications |
-| PATCH  | `/api/notifications/read-all` | Mark all as read  |
-| PATCH  | `/api/notifications/:id/read` | Mark one as read  |
+| Method | Endpoint                      | Description       | Auth |
+| ------ | ----------------------------- | ----------------- | ---- |
+| GET    | `/api/notifications`          | Get notifications | Yes  |
+| PATCH  | `/api/notifications/read-all` | Mark all as read  | Yes  |
+| PATCH  | `/api/notifications/:id/read` | Mark one as read  | Yes  |
 
 ---
 
-## Admin Todos
+## Admin
 
-| Method | Endpoint                       | Description          |
-| ------ | ------------------------------ | -------------------- |
-| GET    | `/api/admin/todos`             | Get all active Todos |
-| GET    | `/api/admin/todos/trash`       | Get deleted Todos    |
-| GET    | `/api/admin/todos/:id`         | Get any Todo         |
-| PUT    | `/api/admin/todos/:id`         | Update Todo          |
-| PATCH  | `/api/admin/todos/:id`         | Update Todo          |
-| DELETE | `/api/admin/todos/:id`         | Soft delete Todo     |
-| PATCH  | `/api/admin/todos/:id/restore` | Restore Todo         |
-
----
-
-## Admin Users
-
-| Method | Endpoint                            | Description          |
-| ------ | ----------------------------------- | -------------------- |
-| GET    | `/api/admin/users`                  | Get all users        |
-| POST   | `/api/admin/users/:id/make-admin`   | Make user admin      |
-| POST   | `/api/admin/users/:id/remove-admin` | Remove admin role    |
-| PATCH  | `/api/admin/users/:id/role`         | Change user role     |
-| PATCH  | `/api/admin/users/:id/password`     | Change user password |
-| PATCH  | `/api/admin/users/:id/status`       | Change user status   |
-| DELETE | `/api/admin/users/:id`              | Delete user          |
+| Method | Endpoint                            | Description          | Auth  |
+| ------ | ----------------------------------- | -------------------- | ----- |
+| GET    | `/api/admin/users`                  | Get users            | Admin |
+| GET    | `/api/admin/todos`                  | Get all active Todos | Admin |
+| GET    | `/api/admin/todos/trash`            | Get deleted Todos    | Admin |
+| GET    | `/api/admin/todos/:id`              | Get any Todo         | Admin |
+| PUT    | `/api/admin/todos/:id`              | Update any Todo      | Admin |
+| PATCH  | `/api/admin/todos/:id`              | Update any Todo      | Admin |
+| DELETE | `/api/admin/todos/:id`              | Soft delete any Todo | Admin |
+| PATCH  | `/api/admin/todos/:id/restore`      | Restore Todo         | Admin |
+| POST   | `/api/admin/users/:id/make-admin`   | Make user admin      | Admin |
+| POST   | `/api/admin/users/:id/remove-admin` | Remove admin role    | Admin |
+| PATCH  | `/api/admin/users/:id/role`         | Change role          | Admin |
+| PATCH  | `/api/admin/users/:id/password`     | Change user password | Admin |
+| PATCH  | `/api/admin/users/:id/status`       | Enable/disable user  | Admin |
+| DELETE | `/api/admin/users/:id`              | Delete user          | Admin |
 
 ---
 
 # 🧪 Postman Testing Flow
 
-Follow this order when testing the API.
+Use the following sequence to test authentication from beginning to end.
 
 ---
 
-## Step 1: Start MongoDB
+## Step 1 — Start MongoDB
 
 Make sure MongoDB is running.
 
 ---
 
-## Step 2: Start Server
+## Step 2 — Configure `.env`
+
+Verify:
+
+```env
+MONGO_URI=...
+JWT_SECRET=...
+EMAIL_USER=...
+EMAIL_PASSWORD=...
+EMAIL_FROM=...
+CLIENT_URL=http://localhost:3000
+```
+
+---
+
+## Step 3 — Start Server
 
 ```bash
 npm run dev
 ```
 
-Expected output:
+Expected:
 
 ```text
 Server running on port 5000
@@ -1525,51 +1467,230 @@ Server running on port 5000
 
 ---
 
-## Step 3: Register User
+## Step 4 — Register a New User
 
 ```http
-POST /api/auth/register
+POST http://localhost:5000/api/auth/register
 ```
 
-Create at least two users.
+Body:
 
-Example:
+```json
+{
+  "name": "Test User",
+  "email": "testuser@gmail.com"
+}
+```
+
+Expected:
 
 ```text
-User 1 = Todo Creator
-User 2 = Assigned User
+201 Created
 ```
 
 ---
 
-## Step 4: Login
+## Step 5 — Check Email
+
+Open:
+
+```text
+testuser@gmail.com
+```
+
+Find:
+
+```text
+Welcome - Your Temporary Password
+```
+
+Copy the temporary password.
+
+Also check:
+
+```text
+Spam
+Promotions
+All Mail
+```
+
+if needed.
+
+---
+
+## Step 6 — Login With Temporary Password
 
 ```http
-POST /api/auth/login
+POST http://localhost:5000/api/auth/login
+```
+
+```json
+{
+  "email": "testuser@gmail.com",
+  "password": "TEMPORARY_PASSWORD_FROM_EMAIL"
+}
+```
+
+Expected:
+
+```text
+200 OK
+```
+
+and:
+
+```json
+{
+  "mustChangePassword": true
+}
 ```
 
 Copy the JWT token.
 
 ---
 
-## Step 5: Set Authorization
+## Step 7 — Test Todo Before Password Change
 
-In Postman:
+```http
+GET http://localhost:5000/api/todos
+```
+
+Authorization:
 
 ```text
-Authorization
-↓
-Bearer Token
-↓
-Paste JWT Token
+Bearer JWT_TOKEN
+```
+
+Expected:
+
+```text
+403 Forbidden
+```
+
+Response should contain:
+
+```json
+{
+  "success": false,
+  "mustChangePassword": true
+}
 ```
 
 ---
 
-## Step 6: Create Todo
+## Step 8 — Test Notifications Before Password Change
 
 ```http
-POST /api/todos
+GET http://localhost:5000/api/notifications
+```
+
+Expected:
+
+```text
+403 Forbidden
+```
+
+---
+
+## Step 9 — Test Profile Before Password Change
+
+```http
+GET http://localhost:5000/api/auth/profile
+```
+
+Expected:
+
+```text
+200 OK
+```
+
+and:
+
+```json
+{
+  "mustChangePassword": true
+}
+```
+
+---
+
+## Step 10 — Change Password
+
+```http
+PATCH http://localhost:5000/api/auth/change-password
+```
+
+Authorization:
+
+```text
+Bearer JWT_TOKEN
+```
+
+Body:
+
+```json
+{
+  "currentPassword": "TEMPORARY_PASSWORD_FROM_EMAIL",
+  "newPassword": "Niket@123"
+}
+```
+
+Expected:
+
+```text
+200 OK
+```
+
+---
+
+## Step 11 — Test Todo After Password Change
+
+```http
+GET http://localhost:5000/api/todos
+```
+
+Expected:
+
+```text
+200 OK
+```
+
+The user can now access normal Todo APIs.
+
+---
+
+## Step 12 — Login Again With New Password
+
+```http
+POST http://localhost:5000/api/auth/login
+```
+
+```json
+{
+  "email": "testuser@gmail.com",
+  "password": "Niket@123"
+}
+```
+
+Expected:
+
+```json
+{
+  "success": true,
+  "data": {
+    "mustChangePassword": false
+  }
+}
+```
+
+Copy the new JWT.
+
+---
+
+## Step 13 — Create Todo
+
+```http
+POST http://localhost:5000/api/todos
 ```
 
 Example:
@@ -1577,9 +1698,9 @@ Example:
 ```json
 {
   "title": "Build Audit Log System",
-  "description": "Track important Todo actions",
-  "assignedTo": "USER_2_ID",
+  "description": "Track Todo changes",
   "priority": "high",
+  "status": "pending",
   "dueDate": "2026-08-25"
 }
 ```
@@ -1588,26 +1709,24 @@ Copy the Todo ID.
 
 ---
 
-## Step 7: Get Todos
+## Step 14 — Get Todo
 
 ```http
-GET /api/todos
+GET http://localhost:5000/api/todos/TODO_ID
+```
+
+Expected:
+
+```text
+200 OK
 ```
 
 ---
 
-## Step 8: Get Single Todo
+## Step 15 — Update Todo
 
 ```http
-GET /api/todos/TODO_ID
-```
-
----
-
-## Step 9: Update Todo
-
-```http
-PATCH /api/todos/TODO_ID
+PATCH http://localhost:5000/api/todos/TODO_ID
 ```
 
 Example:
@@ -1621,13 +1740,13 @@ Example:
 
 ---
 
-## Step 10: Change Status
+## Step 16 — Change Status
 
 ```http
-PATCH /api/todos/TODO_ID/status
+PATCH http://localhost:5000/api/todos/TODO_ID/status
 ```
 
-Example:
+Body:
 
 ```json
 {
@@ -1637,51 +1756,59 @@ Example:
 
 ---
 
-## Step 11: Add Comment
+## Step 17 — Add Comment
 
 ```http
-POST /api/todos/TODO_ID/comments
+POST http://localhost:5000/api/todos/TODO_ID/comments
 ```
 
-Example:
+Body:
 
 ```json
 {
-  "comment": "Started working on the audit log feature."
+  "comment": "Started working on this Todo."
 }
 ```
 
 ---
 
-## Step 12: Upload Attachment
+## Step 18 — Get Comments
 
 ```http
-POST /api/todos/TODO_ID/attachment
+GET http://localhost:5000/api/todos/TODO_ID/comments
 ```
 
-Use:
+---
+
+## Step 19 — Upload Attachment
+
+```http
+POST http://localhost:5000/api/todos/TODO_ID/attachment
+```
+
+Postman:
 
 ```text
 Body
 ↓
 form-data
 ↓
-attachment
+Key: attachment
 ↓
-File
+Type: File
+↓
+Select file
 ```
-
-Select a file and send the request.
 
 ---
 
-## Step 13: Check Activity History
+## Step 20 — Check Activity History
 
 ```http
-GET /api/todos/TODO_ID/activity
+GET http://localhost:5000/api/todos/TODO_ID/activity
 ```
 
-Check that actions such as the following are recorded:
+Look for activities such as:
 
 ```text
 created
@@ -1695,66 +1822,359 @@ attachment_added
 
 ---
 
-## Step 14: Delete Todo
+## Step 21 — Delete Todo
 
 ```http
-DELETE /api/todos/TODO_ID
+DELETE http://localhost:5000/api/todos/TODO_ID
 ```
 
 The Todo should be soft deleted.
 
 ---
 
-## Step 15: Admin Login
+## Step 22 — Admin Login
 
-Login using an admin account.
+Login using an admin account:
 
-Use the admin JWT token.
+```http
+POST http://localhost:5000/api/auth/login
+```
+
+Copy the admin JWT.
 
 ---
 
-## Step 16: Check Trash
+## Step 23 — View Trash
 
 ```http
-GET /api/admin/todos/trash
+GET http://localhost:5000/api/admin/todos/trash
 ```
+
+Use the admin JWT.
 
 ---
 
-## Step 17: Restore Todo
+## Step 24 — Restore Todo
 
 ```http
-PATCH /api/admin/todos/TODO_ID/restore
+PATCH http://localhost:5000/api/admin/todos/TODO_ID/restore
 ```
 
----
-
-## Step 18: Check Activity Again
-
-```http
-GET /api/todos/TODO_ID/activity
-```
-
-The activity history should include:
+Expected:
 
 ```text
-soft_deleted
-restored
+200 OK
+```
+
+---
+
+# 🔁 Forgot Password Testing
+
+## Step 25 — Request Password Reset
+
+```http
+POST http://localhost:5000/api/auth/forgot-password
+```
+
+Body:
+
+```json
+{
+  "email": "testuser@gmail.com"
+}
+```
+
+Expected:
+
+```text
+200 OK
+```
+
+Response:
+
+```json
+{
+  "success": true,
+  "message": "If an account exists with this email, a password reset link has been sent."
+}
+```
+
+---
+
+## Step 26 — Check Email
+
+You should receive:
+
+```text
+Password Reset Request
+```
+
+Example link:
+
+```text
+http://localhost:3000/reset-password/RESET_TOKEN
+```
+
+The part after:
+
+```text
+/reset-password/
+```
+
+is the reset token.
+
+Example:
+
+```text
+abc123XYZ456
+```
+
+---
+
+## Step 27 — Reset Password
+
+```http
+PATCH http://localhost:5000/api/auth/reset-password/abc123XYZ456
+```
+
+Body:
+
+```json
+{
+  "newPassword": "ForgotPassword@123"
+}
+```
+
+Expected:
+
+```text
+200 OK
+```
+
+---
+
+## Step 28 — Login With Reset Password
+
+```http
+POST http://localhost:5000/api/auth/login
+```
+
+```json
+{
+  "email": "testuser@gmail.com",
+  "password": "ForgotPassword@123"
+}
+```
+
+Expected:
+
+```json
+{
+  "success": true,
+  "data": {
+    "mustChangePassword": false
+  }
+}
+```
+
+---
+
+## Step 29 — Reuse Reset Token
+
+Try the same token again:
+
+```http
+PATCH http://localhost:5000/api/auth/reset-password/OLD_TOKEN
+```
+
+Expected:
+
+```text
+400 Bad Request
+```
+
+Message:
+
+```text
+Password reset token is invalid or has expired
+```
+
+The reset token is single-use.
+
+---
+
+# 🧪 Error Testing
+
+## Invalid Login
+
+```http
+POST /api/auth/login
+```
+
+```json
+{
+  "email": "testuser@gmail.com",
+  "password": "WrongPassword"
+}
+```
+
+Expected:
+
+```text
+401 Unauthorized
+```
+
+---
+
+## Missing Login Fields
+
+```json
+{
+  "email": ""
+}
+```
+
+Expected:
+
+```text
+400 Bad Request
+```
+
+---
+
+## Wrong Current Password
+
+```http
+PATCH /api/auth/change-password
+```
+
+```json
+{
+  "currentPassword": "WrongPassword",
+  "newPassword": "NewPassword@123"
+}
+```
+
+Expected:
+
+```text
+400 Bad Request
+```
+
+---
+
+## Same Password
+
+```json
+{
+  "currentPassword": "NewPassword@123",
+  "newPassword": "NewPassword@123"
+}
+```
+
+Expected:
+
+```text
+400 Bad Request
+```
+
+---
+
+## Invalid JWT
+
+Use:
+
+```text
+Authorization: Bearer abc123
+```
+
+Expected:
+
+```text
+401 Unauthorized
+```
+
+---
+
+## Missing JWT
+
+Call a protected API without Authorization.
+
+Expected:
+
+```text
+401 Unauthorized
+```
+
+---
+
+## Disabled User
+
+Disable the user through the admin API and then try to login.
+
+Expected:
+
+```text
+403 Forbidden
+```
+
+---
+
+## Duplicate Registration
+
+Register the same email twice.
+
+Expected:
+
+```text
+400 Bad Request
+```
+
+---
+
+# ✅ Complete Authentication Test Checklist
+
+```text
+☐ Register new user
+☐ Temporary password generated
+☐ Temporary password email received
+☐ Login with temporary password
+☐ mustChangePassword = true
+☐ Todo blocked before password change
+☐ Notifications blocked before password change
+☐ Profile available before password change
+☐ Change password succeeds
+☐ mustChangePassword = false
+☐ Todo available after password change
+☐ Login with new password
+☐ Old temporary password fails
+☐ Wrong current password fails
+☐ Same password rejected
+☐ Forgot password request succeeds
+☐ Password reset email received
+☐ Extract reset token
+☐ Reset password succeeds
+☐ Login with reset password
+☐ Reset token cannot be reused
+☐ Invalid reset token rejected
+☐ Invalid JWT rejected
+☐ Missing JWT rejected
+☐ Duplicate registration rejected
+☐ Disabled user rejected
+☐ Login notification email received
+☐ Password changed email received
 ```
 
 ---
 
 # 🧪 Automated Testing
 
-The project includes automated tests using:
+The project uses:
 
 ```text
 Jest
-+
 Supertest
 ```
-
-Available test commands:
 
 ## Run all tests
 
@@ -1762,55 +2182,43 @@ Available test commands:
 npm test
 ```
 
-Or:
+or:
 
 ```bash
 npm run test:all
 ```
 
----
-
-## Run Authentication Tests
+## Authentication tests
 
 ```bash
 npm run test:auth
 ```
 
----
-
-## Run Todo Tests
+## Todo tests
 
 ```bash
 npm run test:todo
 ```
 
----
-
-## Run Admin Tests
+## Admin tests
 
 ```bash
 npm run test:admin
 ```
 
----
-
-## Run Todo Audit Tests
+## Todo activity tests
 
 ```bash
 npm run test:audit
 ```
 
----
-
-## Run Admin Audit Tests
+## Admin activity tests
 
 ```bash
 npm run test:admin-audit
 ```
 
----
-
-## Run Attachment Activity Tests
+## Attachment activity tests
 
 ```bash
 npm run test:attachment
@@ -1820,28 +2228,31 @@ npm run test:attachment
 
 # 🗄 Database Models
 
-The project contains the following main models.
-
----
-
 ## User
 
-Stores user information such as:
+Stores:
 
 ```text
-Name
-Email
-Password
-Role
-Status
-Created At
+name
+email
+password
+role
+isActive
+mustChangePassword
+passwordChangedAt
+passwordResetToken
+passwordResetExpires
+lastLoginAt
+lastLoginIp
+createdAt
+updatedAt
 ```
 
 ---
 
 ## Todo
 
-Stores Todo information:
+Stores:
 
 ```text
 title
@@ -1863,7 +2274,7 @@ updatedAt
 
 ## Comment
 
-Stores Todo comments:
+Stores:
 
 ```text
 todoId
@@ -1877,7 +2288,7 @@ updatedAt
 
 ## Notification
 
-Stores user notifications:
+Stores:
 
 ```text
 userId
@@ -1892,7 +2303,7 @@ createdAt
 
 ## TodoActivity
 
-Stores the complete Todo action history:
+Stores:
 
 ```text
 todoId
@@ -1903,18 +2314,95 @@ newValue
 createdAt
 ```
 
-The TodoActivity model has an index for retrieving activities efficiently:
+---
+
+# 🔒 Authorization Rules
+
+The application has three levels of protection.
+
+## Level 1 — Public
+
+These APIs do not require JWT:
 
 ```text
-todoId
-createdAt
+POST /api/auth/register
+POST /api/auth/login
+POST /api/auth/forgot-password
+PATCH /api/auth/reset-password/:token
 ```
 
 ---
 
-# 🧠 Complete Application Flow
+## Level 2 — Authenticated
 
-The overall backend request flow is:
+These APIs require a valid JWT:
+
+```text
+GET /api/auth/profile
+PATCH /api/auth/change-password
+POST /api/auth/logout
+```
+
+A first-login user can access these because they need to complete the password-change process.
+
+---
+
+## Level 3 — Password Already Changed
+
+These APIs require:
+
+```text
+Valid JWT
++
+isActive = true
++
+mustChangePassword = false
+```
+
+Examples:
+
+```text
+Todo APIs
+Notification APIs
+Admin APIs
+```
+
+---
+
+## Level 4 — Admin
+
+Admin APIs additionally require:
+
+```text
+role = admin
+```
+
+---
+
+# 🛡️ Security
+
+The project uses:
+
+* bcrypt password hashing
+* JWT authentication
+* Protected routes
+* Role-based authorization
+* Mandatory first-login password change
+* Password reset tokens
+* Expiring reset tokens
+* Single-use password reset tokens
+* Account enable/disable
+* Input validation
+* Environment variables
+* Soft delete
+* Audit logging
+* Access control
+* Secure file upload configuration
+* Non-enumerating forgot-password responses
+
+---
+
+# 🧠 Complete Application Flow
 
 ```text
 Client / Postman
@@ -1922,6 +2410,8 @@ Client / Postman
 Express Route
         ↓
 Authentication Middleware
+        ↓
+Password-Change Middleware
         ↓
 Authorization Middleware
         ↓
@@ -1933,183 +2423,221 @@ MongoDB / Mongoose
         ↓
 Additional Services
         ↓
-Activity Log
-        ↓
-Notification
+Activity / Notification
         ↓
 API Response
 ```
 
 ---
 
-# 📜 Todo Lifecycle Example
+# 🔐 Complete New User Flow
 
-A complete Todo lifecycle can look like this:
+```text
+REGISTER
+   ↓
+Generate temporary password
+   ↓
+Save user
+   ↓
+Send temporary password email
+   ↓
+LOGIN
+   ↓
+JWT returned
+   ↓
+mustChangePassword = true
+   ↓
+Todo / Notification / Admin APIs blocked
+   ↓
+Change password
+   ↓
+mustChangePassword = false
+   ↓
+Full access
+```
+
+---
+
+# 🔄 Forgot Password Flow
+
+```text
+Forgot Password Request
+        ↓
+Generate reset token
+        ↓
+Hash token
+        ↓
+Store token + expiry
+        ↓
+Send reset email
+        ↓
+User opens reset link
+        ↓
+Extract reset token
+        ↓
+Reset password
+        ↓
+Delete reset token
+        ↓
+mustChangePassword = false
+        ↓
+Login with new password
+```
+
+---
+
+# 📜 Todo Lifecycle Example
 
 ```text
 1. User Creates Todo
         ↓
-Activity: created
+created
 
 2. Todo Assigned
         ↓
-Activity: assigned
+assigned
 
-3. Priority Changed
+3. Todo Reassigned
         ↓
-medium → high
-Activity: priority_changed
+reassigned
 
-4. Status Changed
+4. Priority Changed
         ↓
-pending → in-progress
-Activity: status_changed
+priority_changed
 
-5. Comment Added
+5. Status Changed
         ↓
-Activity: comment_added
+status_changed
 
-6. Attachment Uploaded
+6. Comment Added
         ↓
-Activity: attachment_added
+comment_added
 
-7. Todo Updated
+7. Attachment Uploaded
         ↓
-Activity: updated
+attachment_added
 
-8. Todo Soft Deleted
+8. Todo Updated
         ↓
-Activity: soft_deleted
+updated
 
-9. Admin Restores Todo
+9. Todo Deleted
         ↓
-Activity: restored
-```
+soft_deleted
 
-This creates a complete history of the Todo.
-
----
-
-# ⚠️ Error Handling
-
-The API includes error handling for situations such as:
-
-* Invalid authentication token
-* Missing token
-* Unauthorized access
-* Admin-only route access
-* Invalid Todo ID
-* Todo not found
-* User not found
-* Missing required fields
-* Invalid priority
-* Invalid status
-* Invalid assignment
-* Invalid file upload
-* Comment not found
-
-Example response:
-
-```json
-{
-  "success": false,
-  "message": "Todo not found"
-}
-```
-
-Another example:
-
-```json
-{
-  "success": false,
-  "message": "Assigned user not found"
-}
+10. Admin Restores Todo
+        ↓
+restored
 ```
 
 ---
 
-# 🔒 Security Concepts Used
+# ⚠️ Common Problems
 
-The project implements or demonstrates the following security concepts:
+## Email not received
 
-* Password hashing
-* JWT authentication
-* Protected routes
-* Role-based authorization
-* Admin-only routes
-* Input validation
-* User access control
-* Soft delete
-* Activity logging
-* Environment variables
-* Secure file upload configuration
-
----
-
-# 📈 Learning Outcomes
-
-This project helped practice and understand:
+Check:
 
 ```text
-Node.js
-Express.js
-MongoDB
-Mongoose
-REST API Development
-JWT Authentication
-bcrypt Password Hashing
-Middleware
-Role-Based Authorization
-Admin Management
-Todo CRUD
-Task Assignment
-Task Reassignment
-Due Dates
-Priority Management
-Comments
-Cloudinary File Upload
-Multer
-Notifications
-Soft Delete
-Trash Management
-Restore Functionality
-Activity History
-Audit Logs
-Error Handling
-Jest
-Supertest
-Postman API Testing
-Environment Variables
-Backend Project Structure
+EMAIL_USER
+EMAIL_PASSWORD
+EMAIL_HOST
+EMAIL_PORT
+EMAIL_SECURE
+EMAIL_FROM
+```
+
+For Gmail, `EMAIL_PASSWORD` must be an App Password.
+
+Also check:
+
+```text
+Spam
+Promotions
+All Mail
+```
+
+Restart the server after changing `.env`.
+
+---
+
+## Temporary-password login fails
+
+Do not use the user's intended final password.
+
+Use the temporary password from the registration email.
+
+Example:
+
+```json
+{
+  "email": "testuser@gmail.com",
+  "password": "TEMPORARY_PASSWORD_FROM_EMAIL"
+}
 ```
 
 ---
 
-# 🚀 Future Improvements
+## Todo returns 403 after registration
 
-Possible future improvements include:
+This is expected when:
 
-* Email notifications
-* Real-time notifications using Socket.io
-* Scheduled due date reminders
+```text
+mustChangePassword = true
+```
+
+First call:
+
+```http
+PATCH /api/auth/change-password
+```
+
+Then access Todo APIs.
+
+---
+
+## Password reset token fails
+
+Make sure you copied the exact token from the email.
+
+Example:
+
+```text
+http://localhost:3000/reset-password/abc123XYZ456
+```
+
+Token:
+
+```text
+abc123XYZ456
+```
+
+The token expires and can be used only once.
+
+---
+
+# 📈 Future Improvements
+
+Possible future enhancements:
+
+* Refresh tokens
+* Rate limiting
+* Swagger/OpenAPI documentation
+* Socket.io real-time notifications
+* Scheduled due-date reminders
 * Automated overdue Todo detection
-* Advanced filtering
 * Advanced search
 * Full-text search
-* Rate limiting
-* API documentation using Swagger
-* Refresh tokens
-* Password reset using email
-* User profile image
 * Multiple attachments
 * Attachment deletion
-* Activity pagination
 * Notification pagination
+* Activity pagination
 * Dashboard analytics
-* Deployment using Docker
-* CI/CD pipeline
+* Docker deployment
+* CI/CD
 * Production logging
 * Redis caching
+* Monitoring and health metrics
 
 ---
 
@@ -2129,14 +2657,24 @@ This project is created for learning and development purposes.
 
 # ⭐ Final Summary
 
-This project is an advanced Todo Management REST API that goes beyond basic CRUD operations.
-
-It includes:
+This Todo API is an advanced backend application that demonstrates:
 
 ```text
 Authentication
 +
-Role-Based Access
+JWT
++
+Temporary Passwords
++
+Mandatory Password Change
++
+Forgot Password
++
+Password Reset
++
+Email Integration
++
+Role-Based Authorization
 +
 Todo Management
 +
@@ -2166,14 +2704,14 @@ Admin Management
 +
 Activity History
 +
-Complete Audit Logs
+Audit Logs
 +
 Automated Testing
++
+Postman API Testing
 ```
 
-The main goal of this project is to understand how a professional backend application manages users, permissions, tasks, collaboration, files, notifications, and complete action history.
-
-This Todo API demonstrates a structured backend architecture using:
+The project follows a structured backend architecture:
 
 ```text
 Routes
@@ -2189,4 +2727,6 @@ Models
 MongoDB
 ```
 
-The project can be further extended with frontend integration, real-time features, deployment, advanced security, and production-level monitoring.
+The authentication system is designed so that a newly registered user receives a temporary password, must change that password on first login, and only then receives normal application access.
+
+The project can be extended with a frontend, real-time features, stronger production security, deployment automation, monitoring, and additional enterprise features.

@@ -3,15 +3,14 @@ const express =
 
 const {
   protect,
+  requirePasswordChanged,
 } = require(
   "../middleware/authMiddleware"
 );
 
 const {
   getNotifications,
-
   markNotificationAsRead,
-
   markAllNotificationsAsRead,
 } = require(
   "../controllers/notificationController"
@@ -21,15 +20,22 @@ const router =
   express.Router();
 
 // ==========================================
-// Authentication Required
+// Authentication + Password Change Required
+//
+// A user with:
+//
+// mustChangePassword === true
+//
+// cannot access notifications.
 // ==========================================
 
 router.use(
-  protect
+  protect,
+  requirePasswordChanged
 );
 
 // ==========================================
-// Get Logged-In User Notifications
+// GET NOTIFICATIONS
 //
 // GET /api/notifications
 // ==========================================
@@ -40,7 +46,7 @@ router.get(
 );
 
 // ==========================================
-// Mark All Notifications As Read
+// MARK ALL AS READ
 //
 // IMPORTANT:
 // This must come before /:id/read
@@ -54,7 +60,7 @@ router.patch(
 );
 
 // ==========================================
-// Mark One Notification As Read
+// MARK ONE AS READ
 //
 // PATCH /api/notifications/:id/read
 // ==========================================
@@ -63,6 +69,10 @@ router.patch(
   "/:id/read",
   markNotificationAsRead
 );
+
+// ==========================================
+// EXPORT
+// ==========================================
 
 module.exports =
   router;

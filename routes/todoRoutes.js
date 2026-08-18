@@ -1,6 +1,8 @@
-const express = require("express");
+const express =
+  require("express");
 
-const router = express.Router();
+const router =
+  express.Router();
 
 // ==========================================
 // Todo Controller
@@ -23,7 +25,9 @@ const {
   deleteComment,
 
   getTodoActivity,
-} = require("../controllers/todoController");
+} = require(
+  "../controllers/todoController"
+);
 
 // ==========================================
 // Authentication Middleware
@@ -31,14 +35,35 @@ const {
 
 const {
   protect,
-} = require("../middleware/authMiddleware");
+  requirePasswordChanged,
+} = require(
+  "../middleware/authMiddleware"
+);
 
 // ==========================================
 // Multer Upload Middleware
 // ==========================================
 
-const upload = require(
-  "../middleware/uploadMiddleware"
+const upload =
+  require(
+    "../middleware/uploadMiddleware"
+  );
+
+// ==========================================
+// IMPORTANT
+//
+// Every Todo API requires:
+//
+// 1. Valid JWT
+// 2. Active account
+// 3. Temporary password already changed
+//
+// A first-login user receives 403.
+// ==========================================
+
+router.use(
+  protect,
+  requirePasswordChanged
 );
 
 // ==========================================
@@ -48,7 +73,6 @@ const upload = require(
 
 router.post(
   "/",
-  protect,
   createTodo
 );
 
@@ -59,7 +83,6 @@ router.post(
 
 router.get(
   "/",
-  protect,
   getTodos
 );
 
@@ -68,13 +91,11 @@ router.get(
 // GET /api/todos/stats
 //
 // IMPORTANT:
-// This route must be BEFORE /:id
-// so "stats" is not treated as a Todo ID.
+// This route must be before /:id.
 // ==========================================
 
 router.get(
   "/stats",
-  protect,
   getTodoStats
 );
 
@@ -85,7 +106,6 @@ router.get(
 
 router.patch(
   "/:id/status",
-  protect,
   updateTodoStatus
 );
 
@@ -96,8 +116,9 @@ router.patch(
 
 router.post(
   "/:id/attachment",
-  protect,
-  upload.single("attachment"),
+  upload.single(
+    "attachment"
+  ),
   uploadTodoAttachment
 );
 
@@ -105,47 +126,35 @@ router.post(
 // TODO COMMENTS
 // ==========================================
 
-// ------------------------------------------
 // Add Comment
 // POST /api/todos/:id/comments
-// ------------------------------------------
 
 router.post(
   "/:id/comments",
-  protect,
   addComment
 );
 
-// ------------------------------------------
 // Get Comments
 // GET /api/todos/:id/comments
-// ------------------------------------------
 
 router.get(
   "/:id/comments",
-  protect,
   getTodoComments
 );
 
-// ------------------------------------------
 // Update Comment
 // PATCH /api/todos/:todoId/comments/:commentId
-// ------------------------------------------
 
 router.patch(
   "/:todoId/comments/:commentId",
-  protect,
   updateComment
 );
 
-// ------------------------------------------
 // Delete Comment
 // DELETE /api/todos/:todoId/comments/:commentId
-// ------------------------------------------
 
 router.delete(
   "/:todoId/comments/:commentId",
-  protect,
   deleteComment
 );
 
@@ -153,21 +162,9 @@ router.delete(
 // TODO ACTIVITY / AUDIT LOG
 // GET /api/todos/:id/activity
 // ==========================================
-//
-// Normal user:
-// - Todo creator
-// - Todo assigned user
-//
-// Admin:
-// - Any Todo
-//
-// Authorization is handled inside
-// getTodoActivity.
-// ==========================================
 
 router.get(
   "/:id/activity",
-  protect,
   getTodoActivity
 );
 
@@ -178,7 +175,6 @@ router.get(
 
 router.get(
   "/:id",
-  protect,
   getTodoById
 );
 
@@ -189,7 +185,6 @@ router.get(
 
 router.put(
   "/:id",
-  protect,
   updateTodo
 );
 
@@ -200,7 +195,6 @@ router.put(
 
 router.patch(
   "/:id",
-  protect,
   updateTodo
 );
 
@@ -211,7 +205,6 @@ router.patch(
 
 router.delete(
   "/:id",
-  protect,
   deleteTodo
 );
 
@@ -219,4 +212,5 @@ router.delete(
 // EXPORT
 // ==========================================
 
-module.exports = router;
+module.exports =
+  router;

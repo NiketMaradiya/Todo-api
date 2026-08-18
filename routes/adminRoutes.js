@@ -1,4 +1,5 @@
-const express = require("express");
+const express =
+  require("express");
 
 const {
   getAllUsers,
@@ -22,24 +23,48 @@ const {
   changeUserPassword,
   changeUserStatus,
   deleteUser,
-} = require("../controllers/adminController");
+} = require(
+  "../controllers/adminController"
+);
 
 const {
   protect,
+  requirePasswordChanged,
   authorize,
-} = require("../middleware/authMiddleware");
+} = require(
+  "../middleware/authMiddleware"
+);
 
-const router = express.Router();
+const router =
+  express.Router();
 
 // ==========================================
 // ALL ADMIN ROUTES
 // ==========================================
 
 // JWT authentication
-router.use(protect);
+router.use(
+  protect
+);
 
+// ==========================================
+// Temporary password protection
+//
+// Admin also cannot access admin APIs until
+// the temporary password has been changed.
+// ==========================================
+
+router.use(
+  requirePasswordChanged
+);
+
+// ==========================================
 // Admin role required
-router.use(authorize("admin"));
+// ==========================================
+
+router.use(
+  authorize("admin")
+);
 
 // ==========================================
 // ADMIN TODO ROUTES
@@ -118,17 +143,6 @@ router.delete(
 // PATCH /api/admin/todos/:id/restore
 //
 // Admin can restore a soft-deleted Todo
-//
-// This controller must create:
-//
-// action:
-// "restored"
-//
-// oldValue:
-// true
-//
-// newValue:
-// false
 // ------------------------------------------
 
 router.patch(
@@ -207,4 +221,5 @@ router.delete(
 // EXPORT ROUTER
 // ==========================================
 
-module.exports = router;
+module.exports =
+  router;

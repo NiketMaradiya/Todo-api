@@ -15,10 +15,10 @@ const swaggerDocument = {
 
   servers: [
     {
-      url: "http://localhost:5000",
+      url: "/",
 
       description:
-        "Local development server",
+        "Current server (local or ngrok)",
     },
   ],
 
@@ -606,42 +606,20 @@ const swaggerDocument = {
         responses: {
           200: {
             description:
-              "Generic response; does not reveal account existence",
-          },
-
-          400: {
-            description:
-              "Email is required",
+              "Password reset request processed",
           },
         },
       },
     },
 
-    "/api/auth/reset-password/{token}": {
-      patch: {
+    "/api/auth/reset-password": {
+      post: {
         tags: [
           "Authentication",
         ],
 
         summary:
-          "Reset password with token",
-
-        parameters: [
-          {
-            name: "token",
-
-            in: "path",
-
-            required: true,
-
-            schema: {
-              type: "string",
-            },
-
-            description:
-              "Password reset token received by email. Expires after 15 minutes.",
-          },
-        ],
+          "Reset password using token",
 
         requestBody: {
           required: true,
@@ -652,10 +630,15 @@ const swaggerDocument = {
                 type: "object",
 
                 required: [
+                  "token",
                   "newPassword",
                 ],
 
                 properties: {
+                  token: {
+                    type: "string",
+                  },
+
                   newPassword: {
                     type: "string",
 
@@ -675,19 +658,19 @@ const swaggerDocument = {
         responses: {
           200: {
             description:
-              "Password reset successfully",
+              "Password reset successful",
           },
 
           400: {
             description:
-              "Invalid or expired token",
+              "Invalid or expired reset token",
           },
         },
       },
     },
 
     "/api/auth/change-password": {
-      patch: {
+      post: {
         tags: [
           "Authentication",
         ],
@@ -742,53 +725,20 @@ const swaggerDocument = {
 
           400: {
             description:
-              "Validation/current password failure",
-          },
-
-          401: {
-            description:
-              "Authentication required",
+              "Current password is incorrect",
           },
         },
       },
     },
 
-    "/api/auth/logout": {
-      post: {
-        tags: [
-          "Authentication",
-        ],
-
-        summary: "Logout",
-
-        security: [
-          {
-            bearerAuth: [],
-          },
-        ],
-
-        responses: {
-          200: {
-            description:
-              "Logout successful",
-          },
-
-          401: {
-            description:
-              "Authentication required",
-          },
-        },
-      },
-    },
-
-    "/api/auth/profile": {
+    "/api/auth/me": {
       get: {
         tags: [
           "Authentication",
         ],
 
         summary:
-          "Get current user profile",
+          "Get current user",
 
         security: [
           {
@@ -799,7 +749,7 @@ const swaggerDocument = {
         responses: {
           200: {
             description:
-              "Profile returned",
+              "Current user returned",
           },
 
           401: {
@@ -815,7 +765,7 @@ const swaggerDocument = {
         tags: ["Todos"],
 
         summary:
-          "Get current user's Todos",
+          "List Todos",
 
         security: [
           {
@@ -867,16 +817,6 @@ const swaggerDocument = {
           },
 
           {
-            name: "assignedTo",
-
-            in: "query",
-
-            schema: {
-              type: "string",
-            },
-          },
-
-          {
             name: "page",
 
             in: "query",
@@ -919,7 +859,8 @@ const swaggerDocument = {
                 "oldest",
               ],
 
-              default: "newest",
+              default:
+                "newest",
             },
           },
         ],
@@ -973,7 +914,7 @@ const swaggerDocument = {
                     type: "string",
 
                     example:
-                      "Finish Todo project",
+                      "Finish the Todo API project",
                   },
 
                   assignedTo: {
@@ -990,6 +931,9 @@ const swaggerDocument = {
                       "in-progress",
                       "completed",
                     ],
+
+                    default:
+                      "pending",
                   },
 
                   priority: {
@@ -1000,6 +944,9 @@ const swaggerDocument = {
                       "medium",
                       "high",
                     ],
+
+                    default:
+                      "medium",
                   },
 
                   dueDate: {
@@ -1023,34 +970,12 @@ const swaggerDocument = {
 
           400: {
             description:
-              "Validation error",
+              "Invalid Todo data",
           },
 
           401: {
             description:
               "Authentication required",
-          },
-        },
-      },
-    },
-
-    "/api/todos/stats": {
-      get: {
-        tags: ["Todos"],
-
-        summary:
-          "Get Todo statistics",
-
-        security: [
-          {
-            bearerAuth: [],
-          },
-        ],
-
-        responses: {
-          200: {
-            description:
-              "Todo statistics returned",
           },
         },
       },
@@ -1130,7 +1055,49 @@ const swaggerDocument = {
               schema: {
                 type: "object",
 
-                additionalProperties: true,
+                properties: {
+                  title: {
+                    type: "string",
+                  },
+
+                  description: {
+                    type: "string",
+                  },
+
+                  assignedTo: {
+                    type: "string",
+
+                    nullable: true,
+                  },
+
+                  status: {
+                    type: "string",
+
+                    enum: [
+                      "pending",
+                      "in-progress",
+                      "completed",
+                    ],
+                  },
+
+                  priority: {
+                    type: "string",
+
+                    enum: [
+                      "low",
+                      "medium",
+                      "high",
+                    ],
+                  },
+
+                  dueDate: {
+                    type: "string",
+
+                    format: "date-time",
+
+                    nullable: true,
+                  },
+                },
               },
             },
           },
@@ -1194,6 +1161,11 @@ const swaggerDocument = {
             description:
               "Todo updated",
           },
+
+          404: {
+            description:
+              "Todo not found",
+          },
         },
       },
 
@@ -1237,76 +1209,12 @@ const swaggerDocument = {
       },
     },
 
-    "/api/todos/{id}/status": {
+    "/api/todos/{id}/restore": {
       patch: {
         tags: ["Todos"],
 
         summary:
-          "Change Todo status",
-
-        security: [
-          {
-            bearerAuth: [],
-          },
-        ],
-
-        parameters: [
-          {
-            name: "id",
-
-            in: "path",
-
-            required: true,
-
-            schema: {
-              type: "string",
-            },
-          },
-        ],
-
-        requestBody: {
-          required: true,
-
-          content: {
-            "application/json": {
-              schema: {
-                type: "object",
-
-                required: [
-                  "status",
-                ],
-
-                properties: {
-                  status: {
-                    type: "string",
-
-                    enum: [
-                      "pending",
-                      "in-progress",
-                      "completed",
-                    ],
-                  },
-                },
-              },
-            },
-          },
-        },
-
-        responses: {
-          200: {
-            description:
-              "Status changed",
-          },
-        },
-      },
-    },
-
-    "/api/todos/{id}/activity": {
-      get: {
-        tags: ["Todos"],
-
-        summary:
-          "Get Todo activity history",
+          "Restore deleted Todo",
 
         security: [
           {
@@ -1331,12 +1239,12 @@ const swaggerDocument = {
         responses: {
           200: {
             description:
-              "Activity history returned",
+              "Todo restored",
           },
 
           404: {
             description:
-              "Todo not found",
+              "Deleted Todo not found",
           },
         },
       },
@@ -1381,7 +1289,7 @@ const swaggerDocument = {
         tags: ["Comments"],
 
         summary:
-          "Add Todo comment",
+          "Add comment to Todo",
 
         security: [
           {
@@ -1431,139 +1339,13 @@ const swaggerDocument = {
         responses: {
           201: {
             description:
-              "Comment created",
+              "Comment added",
           },
         },
       },
     },
 
-    "/api/todos/{todoId}/comments/{commentId}": {
-      patch: {
-        tags: ["Comments"],
-
-        summary:
-          "Update Todo comment",
-
-        security: [
-          {
-            bearerAuth: [],
-          },
-        ],
-
-        parameters: [
-          {
-            name: "todoId",
-
-            in: "path",
-
-            required: true,
-
-            schema: {
-              type: "string",
-            },
-          },
-
-          {
-            name: "commentId",
-
-            in: "path",
-
-            required: true,
-
-            schema: {
-              type: "string",
-            },
-          },
-        ],
-
-        requestBody: {
-          required: true,
-
-          content: {
-            "application/json": {
-              schema: {
-                type: "object",
-
-                required: [
-                  "comment",
-                ],
-
-                properties: {
-                  comment: {
-                    type: "string",
-                  },
-                },
-              },
-            },
-          },
-        },
-
-        responses: {
-          200: {
-            description:
-              "Comment updated",
-          },
-
-          404: {
-            description:
-              "Comment not found",
-          },
-        },
-      },
-
-      delete: {
-        tags: ["Comments"],
-
-        summary:
-          "Delete Todo comment",
-
-        security: [
-          {
-            bearerAuth: [],
-          },
-        ],
-
-        parameters: [
-          {
-            name: "todoId",
-
-            in: "path",
-
-            required: true,
-
-            schema: {
-              type: "string",
-            },
-          },
-
-          {
-            name: "commentId",
-
-            in: "path",
-
-            required: true,
-
-            schema: {
-              type: "string",
-            },
-          },
-        ],
-
-        responses: {
-          200: {
-            description:
-              "Comment deleted",
-          },
-
-          404: {
-            description:
-              "Comment not found",
-          },
-        },
-      },
-    },
-
-    "/api/todos/{id}/attachment": {
+    "/api/todos/{id}/attachments": {
       post: {
         tags: [
           "Attachments",
@@ -1571,9 +1353,6 @@ const swaggerDocument = {
 
         summary:
           "Upload Todo attachment",
-
-        description:
-          "Uses multipart/form-data with the field name `attachment`. The file is uploaded to Cloudinary.",
 
         security: [
           {
@@ -1603,17 +1382,17 @@ const swaggerDocument = {
               schema: {
                 type: "object",
 
-                required: [
-                  "attachment",
-                ],
-
                 properties: {
-                  attachment: {
+                  file: {
                     type: "string",
 
                     format: "binary",
                   },
                 },
+
+                required: [
+                  "file",
+                ],
               },
             },
           },
@@ -1623,11 +1402,6 @@ const swaggerDocument = {
           200: {
             description:
               "Attachment uploaded",
-          },
-
-          400: {
-            description:
-              "Invalid attachment",
           },
         },
       },
@@ -1640,7 +1414,7 @@ const swaggerDocument = {
         ],
 
         summary:
-          "Get current user's notifications",
+          "Get current user notifications",
 
         security: [
           {
@@ -1648,39 +1422,42 @@ const swaggerDocument = {
           },
         ],
 
-        responses: {
-          200: {
-            description:
-              "Notifications and unread count",
-          },
-
-          403: {
-            description:
-              "Temporary password must be changed first",
-          },
-        },
-      },
-    },
-
-    "/api/notifications/read-all": {
-      patch: {
-        tags: [
-          "Notifications",
-        ],
-
-        summary:
-          "Mark all notifications as read",
-
-        security: [
+        parameters: [
           {
-            bearerAuth: [],
+            name: "page",
+
+            in: "query",
+
+            schema: {
+              type: "integer",
+
+              minimum: 1,
+
+              default: 1,
+            },
+          },
+
+          {
+            name: "limit",
+
+            in: "query",
+
+            schema: {
+              type: "integer",
+
+              minimum: 1,
+
+              maximum: 100,
+
+              default: 10,
+            },
           },
         ],
 
         responses: {
           200: {
             description:
-              "Notifications marked as read",
+              "Notifications returned",
           },
         },
       },
@@ -1693,7 +1470,7 @@ const swaggerDocument = {
         ],
 
         summary:
-          "Mark one notification as read",
+          "Mark notification as read",
 
         security: [
           {
@@ -1720,11 +1497,6 @@ const swaggerDocument = {
             description:
               "Notification marked as read",
           },
-
-          404: {
-            description:
-              "Notification not found",
-          },
         },
       },
     },
@@ -1742,6 +1514,73 @@ const swaggerDocument = {
           },
         ],
 
+        parameters: [
+          {
+            name: "search",
+
+            in: "query",
+
+            schema: {
+              type: "string",
+            },
+          },
+
+          {
+            name: "role",
+
+            in: "query",
+
+            schema: {
+              type: "string",
+
+              enum: [
+                "user",
+                "admin",
+              ],
+            },
+          },
+
+          {
+            name: "isActive",
+
+            in: "query",
+
+            schema: {
+              type: "boolean",
+            },
+          },
+
+          {
+            name: "page",
+
+            in: "query",
+
+            schema: {
+              type: "integer",
+
+              minimum: 1,
+
+              default: 1,
+            },
+          },
+
+          {
+            name: "limit",
+
+            in: "query",
+
+            schema: {
+              type: "integer",
+
+              minimum: 1,
+
+              maximum: 100,
+
+              default: 10,
+            },
+          },
+        ],
+
         responses: {
           200: {
             description:
@@ -1756,157 +1595,12 @@ const swaggerDocument = {
       },
     },
 
-    "/api/admin/users/{id}/make-admin": {
-      post: {
-        tags: ["Admin"],
-
-        summary:
-          "Make user an admin",
-
-        security: [
-          {
-            bearerAuth: [],
-          },
-        ],
-
-        parameters: [
-          {
-            name: "id",
-
-            in: "path",
-
-            required: true,
-
-            schema: {
-              type: "string",
-            },
-          },
-        ],
-
-        responses: {
-          200: {
-            description:
-              "Role changed to admin",
-          },
-
-          403: {
-            description:
-              "Admin role required",
-          },
-        },
-      },
-    },
-
-    "/api/admin/users/{id}/remove-admin": {
-      post: {
-        tags: ["Admin"],
-
-        summary:
-          "Remove admin role",
-
-        security: [
-          {
-            bearerAuth: [],
-          },
-        ],
-
-        parameters: [
-          {
-            name: "id",
-
-            in: "path",
-
-            required: true,
-
-            schema: {
-              type: "string",
-            },
-          },
-        ],
-
-        responses: {
-          200: {
-            description:
-              "Admin role removed",
-          },
-
-          403: {
-            description:
-              "Admin role required",
-          },
-        },
-      },
-    },
-
-    "/api/admin/users/{id}/role": {
-      patch: {
-        tags: ["Admin"],
-
-        summary:
-          "Change user role",
-
-        security: [
-          {
-            bearerAuth: [],
-          },
-        ],
-
-        parameters: [
-          {
-            name: "id",
-
-            in: "path",
-
-            required: true,
-
-            schema: {
-              type: "string",
-            },
-          },
-        ],
-
-        requestBody: {
-          required: true,
-
-          content: {
-            "application/json": {
-              schema: {
-                type: "object",
-
-                required: [
-                  "role",
-                ],
-
-                properties: {
-                  role: {
-                    type: "string",
-
-                    enum: [
-                      "user",
-                      "admin",
-                    ],
-                  },
-                },
-              },
-            },
-          },
-        },
-
-        responses: {
-          200: {
-            description:
-              "Role changed",
-          },
-        },
-      },
-    },
-
     "/api/admin/users/{id}/password": {
       patch: {
         tags: ["Admin"],
 
         summary:
-          "Change a user's password",
+          "Admin reset user password",
 
         security: [
           {

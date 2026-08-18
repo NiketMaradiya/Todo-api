@@ -6,6 +6,10 @@ const cors = require("cors");
 const connectDB = require("./config/db");
 const { setupSwagger } = require("./config/swagger");
 
+const {
+  startTrashCleanup,
+} = require("./utils/trashCleanupService");
+
 const authRoutes = require("./routes/authRoutes");
 const todoRoutes = require("./routes/todoRoutes");
 const adminRoutes = require("./routes/adminRoutes");
@@ -66,6 +70,7 @@ app.use(
 // - Trash
 // - Restore
 //
+// GET /api/admin/todos/trash
 // PATCH /api/admin/todos/:id/restore
 //
 app.use(
@@ -124,6 +129,18 @@ if (
 
   connectDB()
     .then(() => {
+      // ========================================
+      // Start automatic Trash cleanup
+      //
+      // Default retention:
+      // 30 days
+      //
+      // Configured using:
+      // TRASH_RETENTION_DAYS
+      // ========================================
+
+      startTrashCleanup();
+
       app.listen(
         PORT,
         () => {

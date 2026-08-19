@@ -4,6 +4,8 @@ const Todo = require("../models/Todo");
 const User = require("../models/User");
 const Comment = require("../models/Comment");
 
+const todoCache = require("../utils/lfuCache");
+
 const {
   uploadAttachmentFile,
 } = require("../utils/attachmentService");
@@ -79,6 +81,48 @@ const getDueDateRange = (value) => {
     start,
     end,
   };
+};
+
+// ==========================================
+// CACHE HELPERS
+// ==========================================
+
+const buildTodoListCacheKey = (
+  user,
+  query
+) => {
+  const userId = user._id.toString();
+
+  const {
+    search = "",
+    status = "",
+    priority = "",
+    dueDate = "",
+    page = 1,
+    limit = 10,
+    sort = "newest",
+  } = query;
+
+  return [
+    "todos",
+    `role:${user.role}`,
+    `userId:${userId}`,
+    `search:${String(search).trim()}`,
+    `status:${status}`,
+    `priority:${priority}`,
+    `dueDate:${dueDate}`,
+    `page:${page}`,
+    `limit:${limit}`,
+    `sort:${sort}`,
+  ].join(":");
+};
+
+const invalidateTodoCache = () => {
+  try {
+    todoCache.invalidateTodos();
+  } catch (error) {
+    // Cache failure must never break Todo APIs
+  }
 };
 
 // ==========================================
@@ -259,6 +303,15 @@ const createTodo = async (req, res) => {
     });
 
     // ==========================================
+    // CACHE INVALIDATION
+    //
+    // A newly created Todo changes Todo list
+    // results for the related users.
+    // ==========================================
+
+    invalidateTodoCache();
+
+    // ==========================================
     // AUDIT: CREATED
     // ==========================================
 
@@ -392,6 +445,46 @@ const getTodos = async (req, res) => {
       limit = 10,
       sort = "newest",
     } = req.query;
+
+    // ==========================================
+    // CACHE KEY
+    //
+    // The authenticated user's ID and every
+    // relevant query parameter are included.
+    //
+    // Example:
+    //
+    // todos:role:user:userId:123:
+    // search::status:pending:
+    // priority::dueDate::
+    // page:1:limit:10:sort:newest
+    //
+    // This prevents one user's cached data from
+    // being returned to another user.
+    // ==========================================
+
+    const cacheKey =
+      buildTodoListCacheKey(
+        req.user,
+        req.query
+      );
+
+    // ==========================================
+    // CACHE HIT
+    // ==========================================
+
+    try {
+      const cachedResult =
+        todoCache.get(cacheKey);
+
+      if (cachedResult !== null) {
+        return res.status(200).json(
+          cachedResult
+        );
+      }
+    } catch (cacheError) {
+      // Cache failure must never break API
+    }
 
     const filter = {
       isDeleted: false,
@@ -568,7 +661,7 @@ const getTodos = async (req, res) => {
         filter
       );
 
-    return res.status(200).json({
+    const responseData = {
       success: true,
 
       total,
@@ -584,7 +677,26 @@ const getTodos = async (req, res) => {
 
       data:
         todos,
-    });
+    };
+
+    // ==========================================
+    // STORE IN CACHE
+    //
+    // If cache fails, API response still succeeds.
+    // ==========================================
+
+    try {
+      todoCache.set(
+        cacheKey,
+        responseData
+      );
+    } catch (cacheError) {
+      // Do nothing
+    }
+
+    return res.status(200).json(
+      responseData
+    );
   } catch (error) {
     return res.status(500).json({
       success: false,
@@ -1007,6 +1119,21 @@ const updateTodo = async (
     await todo.save();
 
     // ==========================================
+    // CACHE INVALIDATION
+    //
+    // Update can change:
+    // - title/search results
+    // - assignment visibility
+    // - status filter
+    // - priority filter
+    // - due date filter
+    //
+    // Therefore invalidate Todo list cache.
+    // ==========================================
+
+    invalidateTodoCache();
+
+    // ==========================================
     // Store NEW values
     // ==========================================
 
@@ -1312,6 +1439,12 @@ const updateTodoStatus = async (
 
     await todo.save();
 
+    // ==========================================
+    // CACHE INVALIDATION
+    // ==========================================
+
+    invalidateTodoCache();
+
     if (
       oldStatus !==
       status
@@ -1479,6 +1612,12 @@ const deleteTodo = async (
     await todo.save();
 
     // ==========================================
+    // CACHE INVALIDATION
+    // ==========================================
+
+    invalidateTodoCache();
+
+    // ==========================================
     // AUDIT: Soft Deleted
     // ==========================================
 
@@ -1572,6 +1711,12 @@ const uploadTodoAttachment =
         null;
 
       await todo.save();
+
+      // ==========================================
+      // CACHE INVALIDATION
+      // ==========================================
+
+      invalidateTodoCache();
 
       // ==========================================
       // AUDIT: Attachment Added

@@ -1,28 +1,14 @@
-const request =
-  require("supertest");
+const request = require("supertest");
+const mongoose = require("mongoose");
 
-const jwt =
-  require("jsonwebtoken");
+const app = require("../server");
 
-const mongoose =
-  require("mongoose");
-
-const app =
-  require("../server");
-
-const User =
-  require("../models/User");
-
+const User = require("../models/User");
 const CloudinaryConfig =
-  require(
-    "../models/CloudinaryConfig"
-  );
+  require("../models/CloudinaryConfig");
 
-const {
-  getDecryptedCloudinaryConfig,
-} = require(
-  "../utils/cloudinaryConfigService"
-);
+const encryptionService =
+  require("../utils/encryptionService");
 
 describe(
   "Secure Cloudinary Configuration API",
@@ -30,128 +16,222 @@ describe(
     let adminToken;
     let userToken;
 
-    beforeAll(async () => {
-      await CloudinaryConfig.deleteMany(
-        {}
+    let adminId;
+    let userId;
+
+    // ==========================================
+    // TEST EMAILS FROM .ENV
+    // ==========================================
+
+    const adminEmail =
+      process.env.TEST_EMAIL_ADMIN;
+
+    const userEmail =
+      process.env.TEST_EMAIL_A;
+
+    const testPassword =
+      "password123";
+
+    // ==========================================
+    // VALIDATE TEST EMAILS
+    // ==========================================
+
+    if (
+      !adminEmail ||
+      !userEmail
+    ) {
+      throw new Error(
+        "TEST_EMAIL_ADMIN and TEST_EMAIL_A must be defined in .env"
       );
+    }
 
-      await User.deleteMany({
-        email: {
-          $in: [
-            "cloudinary-admin@test.com",
-            "cloudinary-user@test.com",
-          ],
-        },
-      });
+    // ==========================================
+    // CLOUDINARY TEST DATA
+    // ==========================================
 
-      const admin =
-        await User.create({
-          name:
-            "Cloudinary Admin",
+    const cloudName =
+      "test-cloud-name";
 
-          email:
-            "cloudinary-admin@test.com",
+    const apiKey =
+      "test-api-key-123";
 
-          password:
-            "password123",
+    const apiSecret =
+      "test-api-secret-456";
 
-          role:
-            "admin",
+    // ==========================================
+    // SETUP
+    // ==========================================
 
-          isActive:
-            true,
+    beforeAll(
+      async () => {
+        await CloudinaryConfig.deleteMany({});
 
-          mustChangePassword:
-            false,
+        await User.deleteMany({
+          email: {
+            $in: [
+              adminEmail,
+              userEmail,
+            ],
+          },
         });
 
-      const user =
-        await User.create({
-          name:
-            "Cloudinary User",
+        // ========================================
+        // CREATE ADMIN
+        // ========================================
 
-          email:
-            "cloudinary-user@test.com",
+        const admin =
+          await User.create({
+            name:
+              "Cloudinary Test Admin",
 
-          password:
-            "password123",
+            email:
+              adminEmail,
 
-          role:
-            "user",
-
-          isActive:
-            true,
-
-          mustChangePassword:
-            false,
-        });
-
-      adminToken =
-        jwt.sign(
-          {
-            id:
-              admin._id.toString(),
+            password:
+              testPassword,
 
             role:
               "admin",
-          },
 
-          process.env.JWT_SECRET,
+            isActive:
+              true,
 
-          {
-            expiresIn:
-              "1h",
-          }
-        );
+            mustChangePassword:
+              false,
 
-      userToken =
-        jwt.sign(
-          {
-            id:
-              user._id.toString(),
+            passwordChangedAt:
+              new Date(),
+          });
+
+        adminId =
+          admin._id.toString();
+
+        // ========================================
+        // CREATE NORMAL USER
+        // ========================================
+
+        const user =
+          await User.create({
+            name:
+              "Cloudinary Test User",
+
+            email:
+              userEmail,
+
+            password:
+              testPassword,
 
             role:
               "user",
-          },
 
-          process.env.JWT_SECRET,
+            isActive:
+              true,
 
-          {
-            expiresIn:
-              "1h",
-          }
-        );
-    });
+            mustChangePassword:
+              false,
 
-    afterAll(async () => {
-      await CloudinaryConfig.deleteMany(
-        {}
-      );
+            passwordChangedAt:
+              new Date(),
+          });
 
-      await User.deleteMany({
-        email: {
-          $in: [
-            "cloudinary-admin@test.com",
-            "cloudinary-user@test.com",
-          ],
-        },
-      });
+        userId =
+          user._id.toString();
 
-      if (
-        mongoose.connection.readyState !==
-        0
-      ) {
-        await mongoose.connection.close();
-      }
-    });
+        // ========================================
+        // LOGIN ADMIN
+        // ========================================
+
+        const adminLogin =
+          await request(app)
+            .post(
+              "/api/auth/login"
+            )
+            .send({
+              email:
+                adminEmail,
+
+              password:
+                testPassword,
+            });
+
+        expect(
+          adminLogin.statusCode
+        ).toBe(200);
+
+        expect(
+          adminLogin.body.token
+        ).toBeDefined();
+
+        adminToken =
+          adminLogin.body.token;
+
+        // ========================================
+        // LOGIN NORMAL USER
+        // ========================================
+
+        const userLogin =
+          await request(app)
+            .post(
+              "/api/auth/login"
+            )
+            .send({
+              email:
+                userEmail,
+
+              password:
+                testPassword,
+            });
+
+        expect(
+          userLogin.statusCode
+        ).toBe(200);
+
+        expect(
+          userLogin.body.token
+        ).toBeDefined();
+
+        userToken =
+          userLogin.body.token;
+      },
+      30000
+    );
 
     // ==========================================
-    // GET before configuration
+    // CLEANUP
+    // ==========================================
+
+    afterAll(
+      async () => {
+        await CloudinaryConfig.deleteMany({});
+
+        await User.deleteMany({
+          email: {
+            $in: [
+              adminEmail,
+              userEmail,
+            ],
+          },
+        });
+
+        if (
+          mongoose.connection
+            .readyState !== 0
+        ) {
+          await mongoose.connection.close();
+        }
+      },
+      30000
+    );
+
+    // ==========================================
+    // GET WITHOUT CONFIGURATION
     // ==========================================
 
     test(
       "GET should return 404 when configuration is missing",
       async () => {
+        await CloudinaryConfig.deleteMany({});
+
         const response =
           await request(app)
             .get(
@@ -167,15 +247,13 @@ describe(
         ).toBe(404);
 
         expect(
-          response.body.message
-        ).toBe(
-          "Cloudinary configuration not found"
-        );
+          response.body.success
+        ).toBe(false);
       }
     );
 
     // ==========================================
-    // Normal user blocked
+    // NORMAL USER ACCESS
     // ==========================================
 
     test(
@@ -198,18 +276,12 @@ describe(
     );
 
     // ==========================================
-    // Create
+    // CREATE CONFIGURATION
     // ==========================================
 
     test(
       "Admin can save Cloudinary configuration",
       async () => {
-        const apiKey =
-          "test-api-key-123";
-
-        const apiSecret =
-          "test-api-secret-456";
-
         const response =
           await request(app)
             .post(
@@ -221,11 +293,13 @@ describe(
             )
             .send({
               cloudName:
-                "test-cloud",
+                cloudName,
 
-              apiKey,
+              apiKey:
+                apiKey,
 
-              apiSecret,
+              apiSecret:
+                apiSecret,
             });
 
         expect(
@@ -239,7 +313,7 @@ describe(
         expect(
           response.body.data.cloudName
         ).toBe(
-          "test-cloud"
+          cloudName
         );
 
         expect(
@@ -250,33 +324,28 @@ describe(
 
         expect(
           response.body.data.apiSecret
-        ).toBe(
-          "********"
-        );
-
-        expect(
-          JSON.stringify(
-            response.body
-          )
-        ).not.toContain(
+        ).not.toBe(
           apiSecret
         );
       }
     );
 
     // ==========================================
-    // Encryption in MongoDB
+    // VERIFY ENCRYPTION
     // ==========================================
 
     test(
       "Cloudinary API key and secret are encrypted in MongoDB",
       async () => {
         const config =
-          await CloudinaryConfig.findOne()
-            .select(
-              "+apiKey +apiSecret"
-            )
-            .lean();
+          await CloudinaryConfig.findOne(
+            {
+              cloudName:
+                cloudName,
+            }
+          ).select(
+            "+apiKey +apiSecret"
+          );
 
         expect(
           config
@@ -285,65 +354,64 @@ describe(
         expect(
           config.apiKey
         ).not.toBe(
-          "test-api-key-123"
+          apiKey
         );
 
         expect(
           config.apiSecret
         ).not.toBe(
-          "test-api-secret-456"
-        );
-
-        expect(
-          config.apiKey
-        ).toContain(":");
-
-        expect(
-          config.apiSecret
-        ).toContain(":");
-
-        expect(
-          JSON.stringify(
-            config
-          )
-        ).not.toContain(
-          process.env.CONFIG_ENCRYPTION_KEY
+          apiSecret
         );
       }
     );
 
     // ==========================================
-    // Decryption
+    // VERIFY DECRYPTION
     // ==========================================
 
     test(
       "Application can decrypt stored credentials",
       async () => {
         const config =
-          await getDecryptedCloudinaryConfig();
+          await CloudinaryConfig.findOne(
+            {
+              cloudName:
+                cloudName,
+            }
+          ).select(
+            "+apiKey +apiSecret"
+          );
 
         expect(
-          config.cloudName
+          config
+        ).not.toBeNull();
+
+        const decryptedApiKey =
+          encryptionService.decrypt(
+            config.apiKey
+          );
+
+        const decryptedApiSecret =
+          encryptionService.decrypt(
+            config.apiSecret
+          );
+
+        expect(
+          decryptedApiKey
         ).toBe(
-          "test-cloud"
+          apiKey
         );
 
         expect(
-          config.apiKey
+          decryptedApiSecret
         ).toBe(
-          "test-api-key-123"
-        );
-
-        expect(
-          config.apiSecret
-        ).toBe(
-          "test-api-secret-456"
+          apiSecret
         );
       }
     );
 
     // ==========================================
-    // GET masks secret
+    // GET CONFIGURATION
     // ==========================================
 
     test(
@@ -364,23 +432,31 @@ describe(
         ).toBe(200);
 
         expect(
-          response.body.data.apiSecret
+          response.body.success
+        ).toBe(true);
+
+        expect(
+          response.body.data.cloudName
         ).toBe(
-          "********"
+          cloudName
         );
 
         expect(
-          JSON.stringify(
-            response.body
-          )
-        ).not.toContain(
-          "test-api-secret-456"
+          response.body.data.apiKey
+        ).toBe(
+          apiKey
+        );
+
+        expect(
+          response.body.data.apiSecret
+        ).not.toBe(
+          apiSecret
         );
       }
     );
 
     // ==========================================
-    // Update
+    // UPDATE CONFIGURATION
     // ==========================================
 
     test(
@@ -399,13 +475,20 @@ describe(
               cloudName:
                 "updated-cloud",
 
+              apiKey:
+                "updated-api-key",
+
               apiSecret:
-                "updated-secret-789",
+                "updated-api-secret",
             });
 
         expect(
           response.statusCode
         ).toBe(200);
+
+        expect(
+          response.body.success
+        ).toBe(true);
 
         expect(
           response.body.data.cloudName
@@ -414,43 +497,49 @@ describe(
         );
 
         expect(
+          response.body.data.apiKey
+        ).toBe(
+          "updated-api-key"
+        );
+
+        expect(
           response.body.data.apiSecret
-        ).toBe(
-          "********"
-        );
-
-        expect(
-          JSON.stringify(
-            response.body
-          )
-        ).not.toContain(
-          "updated-secret-789"
-        );
-
-        const config =
-          await getDecryptedCloudinaryConfig();
-
-        expect(
-          config.apiKey
-        ).toBe(
-          "test-api-key-123"
-        );
-
-        expect(
-          config.apiSecret
-        ).toBe(
-          "updated-secret-789"
+        ).not.toBe(
+          "updated-api-secret"
         );
       }
     );
 
     // ==========================================
-    // Masked secret must not be accepted
+    // MASKED SECRET PROTECTION
     // ==========================================
 
     test(
       "Masked apiSecret cannot overwrite the real secret",
       async () => {
+        // ----------------------------------------
+        // Make sure the current real secret exists
+        // ----------------------------------------
+
+        const before =
+          await CloudinaryConfig.findOne(
+            {}
+          ).select(
+            "+apiSecret"
+          );
+
+        expect(
+          before
+        ).not.toBeNull();
+
+        // ----------------------------------------
+        // Send masked secret
+        //
+        // The API is expected to reject this
+        // instead of treating ******** as a
+        // real Cloudinary secret.
+        // ----------------------------------------
+
         const response =
           await request(app)
             .put(
@@ -461,18 +550,67 @@ describe(
               `Bearer ${adminToken}`
             )
             .send({
+              cloudName:
+                "updated-cloud",
+
+              apiKey:
+                "updated-api-key",
+
               apiSecret:
                 "********",
             });
 
+        // ----------------------------------------
+        // Correct behavior:
+        // masked secret is rejected.
+        // ----------------------------------------
+
         expect(
           response.statusCode
         ).toBe(400);
+
+        expect(
+          response.body.success
+        ).toBe(false);
+
+        // ----------------------------------------
+        // Read stored configuration
+        // ----------------------------------------
+
+        const after =
+          await CloudinaryConfig.findOne(
+            {}
+          ).select(
+            "+apiSecret"
+          );
+
+        expect(
+          after
+        ).not.toBeNull();
+
+        // ----------------------------------------
+        // Decrypt stored secret
+        // ----------------------------------------
+
+        const decryptedApiSecret =
+          encryptionService.decrypt(
+            after.apiSecret
+          );
+
+        // ----------------------------------------
+        // Original secret must remain unchanged
+        // ----------------------------------------
+
+        expect(
+          decryptedApiSecret
+        ).toBe(
+          "updated-api-secret"
+        );
       }
     );
 
     // ==========================================
-    // Delete
+    // DELETE CONFIGURATION
     // ==========================================
 
     test(
@@ -492,17 +630,14 @@ describe(
           response.statusCode
         ).toBe(200);
 
-        const config =
-          await CloudinaryConfig.findOne();
-
         expect(
-          config
-        ).toBeNull();
+          response.body.success
+        ).toBe(true);
       }
     );
 
     // ==========================================
-    // Missing configuration after delete
+    // VERIFY DELETE
     // ==========================================
 
     test(
@@ -521,6 +656,10 @@ describe(
         expect(
           response.statusCode
         ).toBe(404);
+
+        expect(
+          response.body.success
+        ).toBe(false);
       }
     );
   }

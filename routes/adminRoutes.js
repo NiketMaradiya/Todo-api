@@ -1,5 +1,4 @@
-const express =
-  require("express");
+const express = require("express");
 
 const {
   getAllUsers,
@@ -62,9 +61,6 @@ router.use(
 
 // ==========================================
 // Temporary password protection
-//
-// Admin cannot access admin APIs until
-// the temporary password has been changed.
 // ==========================================
 
 router.use(
@@ -73,6 +69,12 @@ router.use(
 
 // ==========================================
 // Admin role required
+//
+// Your project uses:
+// authorize("admin")
+//
+// NOT:
+// adminOnly
 // ==========================================
 
 router.use(
@@ -85,8 +87,6 @@ router.use(
 
 // ------------------------------------------
 // GET /api/admin/todos
-//
-// Admin can see ALL active Todos
 // ------------------------------------------
 
 router.get(
@@ -97,10 +97,8 @@ router.get(
 // ------------------------------------------
 // GET /api/admin/todos/trash
 //
-// Admin can see all soft-deleted Todos
-//
 // IMPORTANT:
-// Keep this BEFORE /todos/:id
+// This must stay before /todos/:id
 // ------------------------------------------
 
 router.get(
@@ -110,8 +108,6 @@ router.get(
 
 // ------------------------------------------
 // GET /api/admin/todos/:id
-//
-// Admin can see ANY active Todo
 // ------------------------------------------
 
 router.get(
@@ -121,8 +117,6 @@ router.get(
 
 // ------------------------------------------
 // PUT /api/admin/todos/:id
-//
-// Admin can update ANY active Todo
 // ------------------------------------------
 
 router.put(
@@ -132,8 +126,6 @@ router.put(
 
 // ------------------------------------------
 // PATCH /api/admin/todos/:id
-//
-// Admin can update ANY active Todo
 // ------------------------------------------
 
 router.patch(
@@ -143,8 +135,6 @@ router.patch(
 
 // ------------------------------------------
 // DELETE /api/admin/todos/:id
-//
-// Admin can soft-delete ANY active Todo
 // ------------------------------------------
 
 router.delete(
@@ -154,8 +144,6 @@ router.delete(
 
 // ------------------------------------------
 // PATCH /api/admin/todos/:id/restore
-//
-// Admin can restore a soft-deleted Todo
 // ------------------------------------------
 
 router.patch(
@@ -236,8 +224,6 @@ router.delete(
 
 // ------------------------------------------
 // POST /api/admin/cloudinary
-//
-// Create Cloudinary configuration
 // ------------------------------------------
 
 router.post(
@@ -247,11 +233,6 @@ router.post(
 
 // ------------------------------------------
 // GET /api/admin/cloudinary
-//
-// Get Cloudinary configuration
-//
-// IMPORTANT:
-// apiSecret is NEVER returned.
 // ------------------------------------------
 
 router.get(
@@ -261,8 +242,6 @@ router.get(
 
 // ------------------------------------------
 // PUT /api/admin/cloudinary
-//
-// Update Cloudinary configuration
 // ------------------------------------------
 
 router.put(
@@ -271,9 +250,16 @@ router.put(
 );
 
 // ------------------------------------------
+// PATCH /api/admin/cloudinary
+// ------------------------------------------
+
+router.patch(
+  "/cloudinary",
+  updateAdminCloudinaryConfig
+);
+
+// ------------------------------------------
 // DELETE /api/admin/cloudinary
-//
-// Delete Cloudinary configuration
 // ------------------------------------------
 
 router.delete(
@@ -282,7 +268,7 @@ router.delete(
 );
 
 // ==========================================
-// EXPORT ROUTER
+// EXPORT
 // ==========================================
 
 module.exports =

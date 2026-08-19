@@ -1,7 +1,7 @@
 {
   "name": "todo-api",
   "version": "1.0.0",
-  "description": "Todo API with authentication, email integration, password reset, assignments, comments, notifications, attachments, soft delete, restore, audit logs, database indexing, query optimization and Swagger API documentation",
+  "description": "Todo API with authentication, email integration, password reset, assignments, comments, notifications, attachments, soft delete, restore, audit logs, database indexing, query optimization, Swagger API documentation and custom in-memory LFU caching",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
@@ -13,6 +13,8 @@
     "test:audit": "jest tests/todoActivity.test.js --runInBand --forceExit",
     "test:admin-audit": "jest tests/adminActivity.test.js --runInBand --forceExit",
     "test:attachment": "jest tests/todoAttachmentActivity.test.js --runInBand --forceExit",
+    "test:cloudinary": "jest tests/cloudinaryConfig.test.js --runInBand --forceExit",
+    "test:lfu-cache": "jest tests/lfuCache.test.js --runInBand --forceExit",
     "test:all": "jest --runInBand --forceExit"
   },
   "dependencies": {

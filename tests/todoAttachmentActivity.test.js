@@ -1,361 +1,499 @@
-const request = require("supertest");
-const mongoose = require("mongoose");
+// ==========================================
+// MOCK ATTACHMENT SERVICE
+//
+// The attachment API uses Cloudinary in the
+// real application.
+//
+// For Jest tests we should NOT upload files to
+// the real Cloudinary service.
+//
+// This mock returns a fake successful upload
+// result so we can test:
+// - authentication
+// - Todo attachment update
+// - cache invalidation
+// - audit activity
+// ==========================================
 
-const app = require("../server");
+jest.mock(
+  "../utils/attachmentService",
+  () => ({
+    uploadAttachmentFile:
+      jest.fn(
+        async (file) => ({
+          url:
+            "https://res.cloudinary.com/test-cloud/image/upload/v1/todo-api/test-attachment.pdf",
 
-const Todo = require("../models/Todo");
-const User = require("../models/User");
-const TodoActivity = require("../models/TodoActivity");
+          public_id:
+            "todo-api/attachments/test-attachment",
 
-describe("Todo Attachment Audit Log", () => {
-  let userToken;
-  let userId;
+          resource_type:
+            "raw",
 
-  let assignedUserId;
+          format:
+            "pdf",
 
-  let todoId;
+          original_filename:
+            file &&
+            file.originalname
+              ? file.originalname
+              : "test-attachment.pdf",
+        })
+      ),
+  })
+);
 
-  const userEmail =
-    "attachment-audit-user@test.com";
+// ==========================================
+// Imports
+// ==========================================
 
-  const assignedUserEmail =
-    "attachment-audit-assigned@test.com";
+const request =
+  require("supertest");
 
-  // ==========================================
-  // Small valid PNG
-  //
-  // This is a real 1x1 PNG file represented
-  // as a Buffer.
-  // ==========================================
+const mongoose =
+  require("mongoose");
 
-  const createTestPng = () => {
-    return Buffer.from(
-      "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=",
-      "base64"
-    );
-  };
+const app =
+  require("../server");
 
-  // ==========================================
-  // Setup
-  // ==========================================
+const User =
+  require("../models/User");
 
-  beforeAll(async () => {
-    await TodoActivity.deleteMany({});
+const Todo =
+  require("../models/Todo");
 
-    await Todo.deleteMany({});
+const TodoActivity =
+  require("../models/TodoActivity");
 
-    await User.deleteMany({
-      email: {
-        $in: [
-          userEmail,
-          assignedUserEmail,
-        ],
-      },
-    });
+const todoCache =
+  require("../utils/lfuCache");
+
+const {
+  uploadAttachmentFile,
+} = require("../utils/attachmentService");
+
+describe(
+  "Todo Attachment Audit Log",
+  () => {
+    let userToken;
+    let userId;
+    let todoId;
 
     // ==========================================
-    // Create Main User
+    // TEST EMAIL FROM .ENV
     // ==========================================
 
-    const userResponse =
-      await request(app)
-        .post("/api/auth/register")
-        .send({
-          name:
-            "Attachment Audit User",
+    const userEmail =
+      process.env.TEST_EMAIL_A;
 
+    const testPassword =
+      "password123";
+
+    // ==========================================
+    // Validate Test Email
+    // ==========================================
+
+    if (!userEmail) {
+      throw new Error(
+        "TEST_EMAIL_A must be defined in .env"
+      );
+    }
+
+    // ==========================================
+    // SETUP
+    // ==========================================
+
+    beforeAll(
+      async () => {
+        todoCache.clear();
+
+        // ----------------------------------------
+        // Cleanup old data
+        // ----------------------------------------
+
+        await TodoActivity.deleteMany({});
+
+        await Todo.deleteMany({});
+
+        await User.deleteMany({
           email:
             userEmail,
-
-          password:
-            "password123",
         });
 
-    expect(
-      userResponse.statusCode
-    ).toBe(201);
+        // ========================================
+        // CREATE TEST USER
+        // ========================================
 
-    userId =
-      userResponse.body.data._id;
+        const user =
+          await User.create({
+            name:
+              "Todo Attachment Test User",
 
-    userToken =
-      userResponse.body.token;
+            email:
+              userEmail,
 
-    // ==========================================
-    // Create Assigned User
-    // ==========================================
+            password:
+              testPassword,
 
-    const assignedResponse =
-      await request(app)
-        .post("/api/auth/register")
-        .send({
-          name:
-            "Attachment Assigned User",
+            role:
+              "user",
 
-          email:
-            assignedUserEmail,
+            isActive:
+              true,
 
-          password:
-            "password123",
-        });
+            mustChangePassword:
+              false,
 
-    expect(
-      assignedResponse.statusCode
-    ).toBe(201);
+            passwordChangedAt:
+              new Date(),
+          });
 
-    assignedUserId =
-      assignedResponse.body.data._id;
+        userId =
+          user._id.toString();
 
-    // ==========================================
-    // Create Todo
-    // ==========================================
+        // ========================================
+        // LOGIN
+        // ========================================
 
-    const todoResponse =
-      await request(app)
-        .post("/api/todos")
-        .set(
-          "Authorization",
-          `Bearer ${userToken}`
-        )
-        .send({
-          title:
-            "Attachment Audit Todo",
+        const loginResponse =
+          await request(app)
+            .post(
+              "/api/auth/login"
+            )
+            .send({
+              email:
+                userEmail,
 
-          description:
-            "Attachment audit test",
+              password:
+                testPassword,
+            });
 
-          assignedTo:
-            assignedUserId,
+        expect(
+          loginResponse.statusCode
+        ).toBe(200);
 
-          status:
-            "pending",
+        expect(
+          loginResponse.body.token
+        ).toBeDefined();
 
-          priority:
-            "medium",
-        });
+        userToken =
+          loginResponse.body.token;
 
-    expect(
-      todoResponse.statusCode
-    ).toBe(201);
+        // ========================================
+        // CREATE TODO
+        // ========================================
 
-    todoId =
-      todoResponse.body.data._id;
-  });
+        const todoResponse =
+          await request(app)
+            .post(
+              "/api/todos"
+            )
+            .set(
+              "Authorization",
+              `Bearer ${userToken}`
+            )
+            .send({
+              title:
+                "Todo Attachment Test",
 
-  // ==========================================
-  // Cleanup
-  // ==========================================
+              description:
+                "Todo created for attachment tests",
 
-  afterAll(async () => {
-    await TodoActivity.deleteMany({});
+              assignedTo:
+                userId,
 
-    await Todo.deleteMany({});
+              status:
+                "pending",
 
-    await User.deleteMany({
-      email: {
-        $in: [
-          userEmail,
-          assignedUserEmail,
-        ],
+              priority:
+                "medium",
+            });
+
+        expect(
+          todoResponse.statusCode
+        ).toBe(201);
+
+        expect(
+          todoResponse.body.success
+        ).toBe(true);
+
+        todoId =
+          todoResponse.body.data._id;
       },
+      30000
+    );
+
+    // ==========================================
+    // RESET CACHE + MOCK BEFORE EACH TEST
+    // ==========================================
+
+    beforeEach(() => {
+      todoCache.clear();
+
+      uploadAttachmentFile.mockClear();
     });
 
-    if (
-      mongoose.connection.readyState !==
-      0
-    ) {
-      await mongoose.connection.close();
-    }
-  });
+    // ==========================================
+    // CLEANUP
+    // ==========================================
 
-  // ==========================================
-  // TEST 1
-  //
-  // Attachment upload creates activity
-  // ==========================================
+    afterAll(
+      async () => {
+        todoCache.clear();
 
-  test(
-    "Attachment upload should create attachment_added activity",
-    async () => {
-      const response =
-        await request(app)
-          .post(
-            `/api/todos/${todoId}/attachment`
-          )
-          .set(
-            "Authorization",
-            `Bearer ${userToken}`
-          )
-          .attach(
-            "attachment",
-            createTestPng(),
-            {
-              filename:
-                "audit-test.png",
+        await TodoActivity.deleteMany({});
 
-              contentType:
-                "image/png",
-            }
-          );
+        await Todo.deleteMany({});
 
-      expect(
-        response.statusCode
-      ).toBe(200);
-
-      expect(
-        response.body.success
-      ).toBe(true);
-
-      const activity =
-        await TodoActivity.findOne({
-          todoId,
-
-          action:
-            "attachment_added",
-        }).sort({
-          createdAt:
-            -1,
+        await User.deleteMany({
+          email:
+            userEmail,
         });
 
-      expect(
-        activity
-      ).not.toBeNull();
+        if (
+          mongoose.connection
+            .readyState !== 0
+        ) {
+          await mongoose.connection.close();
+        }
+      },
+      30000
+    );
 
-      // ========================================
-      // Correct User
-      // ========================================
+    // ==========================================
+    // UPLOAD ATTACHMENT
+    // ==========================================
 
-      expect(
-        activity.userId.toString()
-      ).toBe(userId);
-
-      // ========================================
-      // Old Value
-      //
-      // There was no attachment before upload.
-      // ========================================
-
-      expect(
-        activity.oldValue
-      ).toBeNull();
-
-      // ========================================
-      // New Value
-      // ========================================
-
-      expect(
-        activity.newValue
-      ).toBeTruthy();
-
-      expect(
-        typeof activity.newValue
-      ).toBe("string");
-
-      expect(
-        activity.newValue
-      ).toContain("http");
-    }
-  );
-
-  // ==========================================
-  // TEST 2
-  //
-  // Attachment URL stored on Todo
-  // ==========================================
-
-  test(
-    "Uploaded attachment URL should be stored on Todo",
-    async () => {
-      const todo =
-        await Todo.findById(
-          todoId
-        );
-
-      expect(
-        todo
-      ).not.toBeNull();
-
-      expect(
-        todo.attachmentUrl
-      ).toBeTruthy();
-
-      expect(
-        typeof todo.attachmentUrl
-      ).toBe("string");
-
-      expect(
-        todo.attachmentUrl
-      ).toContain("http");
-    }
-  );
-
-  // ==========================================
-  // TEST 3
-  //
-  // Activity API returns attachment activity
-  // ==========================================
-
-  test(
-    "Activity API should return attachment_added",
-    async () => {
-      const response =
-        await request(app)
-          .get(
-            `/api/todos/${todoId}/activity`
-          )
-          .set(
-            "Authorization",
-            `Bearer ${userToken}`
+    test(
+      "Attachment upload should create attachment_added activity",
+      async () => {
+        const pdfBuffer =
+          Buffer.from(
+            "%PDF-1.4\n%Test PDF attachment\n"
           );
 
-      expect(
-        response.statusCode
-      ).toBe(200);
+        const response =
+          await request(app)
+            .post(
+              `/api/todos/${todoId}/attachment`
+            )
+            .set(
+              "Authorization",
+              `Bearer ${userToken}`
+            )
+            .attach(
+              "attachment",
+              pdfBuffer,
+              {
+                filename:
+                  "test-attachment.pdf",
 
-      expect(
-        Array.isArray(
-          response.body.data
-        )
-      ).toBe(true);
+                contentType:
+                  "application/pdf",
+              }
+            );
 
-      const attachmentActivity =
-        response.body.data.find(
-          (activity) =>
-            activity.action ===
-            "attachment_added"
+        expect(
+          response.statusCode
+        ).toBe(200);
+
+        expect(
+          response.body.success
+        ).toBe(true);
+
+        expect(
+          response.body.data.attachmentUrl
+        ).toBe(
+          "https://res.cloudinary.com/test-cloud/image/upload/v1/todo-api/test-attachment.pdf"
         );
 
-      expect(
-        attachmentActivity
-      ).toBeDefined();
+        expect(
+          uploadAttachmentFile
+        ).toHaveBeenCalledTimes(1);
 
-      // ========================================
-      // Correct user
-      // ========================================
+        const activity =
+          await TodoActivity.findOne({
+            todoId,
 
-      expect(
-        attachmentActivity.userId
-      ).toBeDefined();
+            action:
+              "attachment_added",
+          }).sort({
+            createdAt:
+              -1,
+          });
 
-      // ========================================
-      // Old value
-      // ========================================
+        expect(
+          activity
+        ).not.toBeNull();
 
-      expect(
-        attachmentActivity.oldValue
-      ).toBeNull();
+        expect(
+          activity.userId.toString()
+        ).toBe(
+          userId
+        );
 
-      // ========================================
-      // New value
-      // ========================================
+        expect(
+          activity.newValue
+        ).toBe(
+          "https://res.cloudinary.com/test-cloud/image/upload/v1/todo-api/test-attachment.pdf"
+        );
 
-      expect(
-        attachmentActivity.newValue
-      ).toBeTruthy();
+        // ========================================
+        // Cache must be invalidated
+        // ========================================
 
-      expect(
-        attachmentActivity.newValue
-      ).toContain("http");
-    }
-  );
-});
+        expect(
+          todoCache.size()
+        ).toBe(0);
+      }
+    );
+
+    // ==========================================
+    // ATTACHMENT URL STORED
+    // ==========================================
+
+    test(
+      "Uploaded attachment URL should be stored on Todo",
+      async () => {
+        const pdfBuffer =
+          Buffer.from(
+            "%PDF-1.4\n%Second Test PDF attachment\n"
+          );
+
+        const response =
+          await request(app)
+            .post(
+              `/api/todos/${todoId}/attachment`
+            )
+            .set(
+              "Authorization",
+              `Bearer ${userToken}`
+            )
+            .attach(
+              "attachment",
+              pdfBuffer,
+              {
+                filename:
+                  "second-attachment.pdf",
+
+                contentType:
+                  "application/pdf",
+              }
+            );
+
+        expect(
+          response.statusCode
+        ).toBe(200);
+
+        expect(
+          response.body.success
+        ).toBe(true);
+
+        const updatedTodo =
+          await Todo.findById(
+            todoId
+          );
+
+        expect(
+          updatedTodo
+        ).not.toBeNull();
+
+        expect(
+          updatedTodo.attachmentUrl
+        ).toBeDefined();
+
+        expect(
+          updatedTodo.attachmentUrl
+        ).not.toBeNull();
+
+        expect(
+          typeof updatedTodo.attachmentUrl
+        ).toBe("string");
+
+        expect(
+          updatedTodo.attachmentUrl.length
+        ).toBeGreaterThan(0);
+
+        expect(
+          updatedTodo.attachmentUrl
+        ).toBe(
+          "https://res.cloudinary.com/test-cloud/image/upload/v1/todo-api/test-attachment.pdf"
+        );
+
+        expect(
+          updatedTodo.attachmentPublicId
+        ).toBe(
+          "todo-api/attachments/test-attachment"
+        );
+      }
+    );
+
+    // ==========================================
+    // ACTIVITY API
+    // ==========================================
+
+    test(
+      "Activity API should return attachment_added",
+      async () => {
+        const response =
+          await request(app)
+            .get(
+              `/api/todos/${todoId}/activity`
+            )
+            .set(
+              "Authorization",
+              `Bearer ${userToken}`
+            );
+
+        expect(
+          response.statusCode
+        ).toBe(200);
+
+        expect(
+          response.body.success
+        ).toBe(true);
+
+        expect(
+          Array.isArray(
+            response.body.data
+          )
+        ).toBe(true);
+
+        // ----------------------------------------
+        // Find attachment activity
+        // ----------------------------------------
+
+        const attachmentActivity =
+          response.body.data.find(
+            (activity) =>
+              activity.action ===
+              "attachment_added"
+          );
+
+        expect(
+          attachmentActivity
+        ).toBeDefined();
+
+        expect(
+          attachmentActivity.userId
+        ).toBeDefined();
+
+        const activityUserId =
+          attachmentActivity.userId?._id ||
+          attachmentActivity.userId;
+
+        expect(
+          activityUserId.toString()
+        ).toBe(
+          userId
+        );
+
+        expect(
+          attachmentActivity.newValue
+        ).toBe(
+          "https://res.cloudinary.com/test-cloud/image/upload/v1/todo-api/test-attachment.pdf"
+        );
+      }
+    );
+  }
+);

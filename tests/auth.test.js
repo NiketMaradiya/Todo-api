@@ -1,199 +1,476 @@
 const request = require("supertest");
+const mongoose = require("mongoose");
+
 const app = require("../server");
+
 const User = require("../models/User");
 
-describe("JWT Authentication API", () => {
-  let token;
-  let userId;
+describe(
+  "JWT Authentication API",
+  () => {
+    let userId;
+    let token;
 
-  const testUser = {
-    name: "Auth Test User",
-    email: "auth-test@example.com",
-    password: "password123",
-  };
+    // ==========================================
+    // TEST EMAIL FROM .ENV
+    // ==========================================
 
-  beforeAll(async () => {
-    await User.deleteMany({
-      email: testUser.email,
-    });
-  });
+    const testEmail =
+      process.env.TEST_EMAIL_A;
 
-  afterAll(async () => {
-    await User.deleteMany({
-      email: testUser.email,
-    });
-  });
+    const testPassword =
+      "password123";
 
-  test(
-    "POST /api/auth/register should register user",
-    async () => {
-      const response =
-        await request(app)
-          .post("/api/auth/register")
-          .send(testUser);
+    // ==========================================
+    // Validate Test Email
+    // ==========================================
 
-      expect(
-        response.statusCode
-      ).toBe(201);
-
-      expect(
-        response.body.success
-      ).toBe(true);
-
-      expect(
-        response.body.token
-      ).toBeDefined();
-
-      expect(
-        response.body.data.role
-      ).toBe("user");
-
-      token =
-        response.body.token;
-
-      userId =
-        response.body.data._id;
+    if (!testEmail) {
+      throw new Error(
+        "TEST_EMAIL_A must be defined in .env"
+      );
     }
-  );
 
-  test(
-    "POST /api/auth/register should reject duplicate user",
-    async () => {
-      const response =
-        await request(app)
-          .post("/api/auth/register")
-          .send(testUser);
+    // ==========================================
+    // SETUP
+    // ==========================================
 
-      expect(
-        response.statusCode
-      ).toBe(400);
-    }
-  );
+    beforeAll(
+      async () => {
+        // ----------------------------------------
+        // Remove old test user
+        // ----------------------------------------
 
-  test(
-    "POST /api/auth/login should return token",
-    async () => {
-      const response =
-        await request(app)
-          .post("/api/auth/login")
-          .send({
-            email: testUser.email,
-            password: testUser.password,
+        await User.deleteMany({
+          email:
+            testEmail,
+        });
+
+        // ----------------------------------------
+        // Create test user directly
+        //
+        // This avoids the real registration flow,
+        // which creates a temporary password and
+        // can send an email.
+        // ----------------------------------------
+
+        const user =
+          await User.create({
+            name:
+              "Auth Test User",
+
+            email:
+              testEmail,
+
+            password:
+              testPassword,
+
+            role:
+              "user",
+
+            isActive:
+              true,
+
+            mustChangePassword:
+              false,
+
+            passwordChangedAt:
+              new Date(),
           });
 
-      expect(
-        response.statusCode
-      ).toBe(200);
+        userId =
+          user._id.toString();
 
-      expect(
-        response.body.token
-      ).toBeDefined();
+        // ========================================
+        // LOGIN
+        // ========================================
 
-      token =
-        response.body.token;
-    }
-  );
+        const loginResponse =
+          await request(app)
+            .post(
+              "/api/auth/login"
+            )
+            .send({
+              email:
+                testEmail,
 
-  test(
-    "POST /api/auth/login should reject invalid password",
-    async () => {
-      const response =
-        await request(app)
-          .post("/api/auth/login")
-          .send({
-            email: testUser.email,
-            password: "wrongpassword",
-          });
+              password:
+                testPassword,
+            });
 
-      expect(
-        response.statusCode
-      ).toBe(401);
-    }
-  );
+        expect(
+          loginResponse.statusCode
+        ).toBe(200);
 
-  test(
-    "GET /api/auth/profile without token should return 401",
-    async () => {
-      const response =
-        await request(app).get(
-          "/api/auth/profile"
+        expect(
+          loginResponse.body.token
+        ).toBeDefined();
+
+        token =
+          loginResponse.body.token;
+      },
+      30000
+    );
+
+    // ==========================================
+    // CLEANUP
+    // ==========================================
+
+    afterAll(
+      async () => {
+        await User.deleteMany({
+          email:
+            testEmail,
+        });
+
+        if (
+          mongoose.connection
+            .readyState !== 0
+        ) {
+          await mongoose.connection.close();
+        }
+      },
+      30000
+    );
+
+    // ==========================================
+    // PROFILE WITHOUT TOKEN
+    // ==========================================
+
+    test(
+      "GET /api/auth/profile without token should return 401",
+      async () => {
+        const response =
+          await request(app)
+            .get(
+              "/api/auth/profile"
+            );
+
+        expect(
+          response.statusCode
+        ).toBe(401);
+      }
+    );
+
+    // ==========================================
+    // INVALID TOKEN
+    // ==========================================
+
+    test(
+      "GET /api/auth/profile with invalid token should return 401",
+      async () => {
+        const response =
+          await request(app)
+            .get(
+              "/api/auth/profile"
+            )
+            .set(
+              "Authorization",
+              "Bearer invalid-token"
+            );
+
+        expect(
+          response.statusCode
+        ).toBe(401);
+      }
+    );
+
+    // ==========================================
+    // VALID TOKEN
+    // ==========================================
+
+    test(
+      "GET /api/auth/profile with valid token should return 200",
+      async () => {
+        const response =
+          await request(app)
+            .get(
+              "/api/auth/profile"
+            )
+            .set(
+              "Authorization",
+              `Bearer ${token}`
+            );
+
+        expect(
+          response.statusCode
+        ).toBe(200);
+
+        expect(
+          response.body.success
+        ).toBe(true);
+
+        expect(
+          response.body.data._id
+        ).toBe(
+          userId
         );
 
-      expect(
-        response.statusCode
-      ).toBe(401);
-    }
-  );
+        expect(
+          response.body.data.email
+        ).toBe(
+          testEmail
+        );
+      }
+    );
 
-  test(
-    "GET /api/auth/profile with invalid token should return 401",
-    async () => {
-      const response =
-        await request(app)
-          .get("/api/auth/profile")
-          .set(
-            "Authorization",
-            "Bearer invalid-token"
-          );
+    // ==========================================
+    // VALID LOGIN
+    // ==========================================
 
-      expect(
-        response.statusCode
-      ).toBe(401);
-    }
-  );
+    test(
+      "POST /api/auth/login should return token",
+      async () => {
+        const response =
+          await request(app)
+            .post(
+              "/api/auth/login"
+            )
+            .send({
+              email:
+                testEmail,
 
-  test(
-    "GET /api/auth/profile with valid token should return 200",
-    async () => {
-      const response =
-        await request(app)
-          .get("/api/auth/profile")
-          .set(
-            "Authorization",
-            `Bearer ${token}`
-          );
+              password:
+                testPassword,
+            });
 
-      expect(
-        response.statusCode
-      ).toBe(200);
+        expect(
+          response.statusCode
+        ).toBe(200);
 
-      expect(
-        response.body.data._id
-      ).toBe(userId);
+        expect(
+          response.body.success
+        ).toBe(true);
 
-      expect(
-        response.body.data.role
-      ).toBe("user");
-    }
-  );
+        expect(
+          response.body.token
+        ).toBeDefined();
 
-  test(
-    "POST /api/auth/logout without token should return 401",
-    async () => {
-      const response =
-        await request(app)
-          .post("/api/auth/logout");
+        expect(
+          typeof response.body.token
+        ).toBe("string");
+      }
+    );
 
-      expect(
-        response.statusCode
-      ).toBe(401);
-    }
-  );
+    // ==========================================
+    // INVALID PASSWORD
+    // ==========================================
 
-  test(
-    "POST /api/auth/logout with valid token should return 200",
-    async () => {
-      const response =
-        await request(app)
-          .post("/api/auth/logout")
-          .set(
-            "Authorization",
-            `Bearer ${token}`
-          );
+    test(
+      "POST /api/auth/login should reject invalid password",
+      async () => {
+        const response =
+          await request(app)
+            .post(
+              "/api/auth/login"
+            )
+            .send({
+              email:
+                testEmail,
 
-      expect(
-        response.statusCode
-      ).toBe(200);
-    }
-  );
-});
+              password:
+                "wrong-password",
+            });
+
+        expect(
+          response.statusCode
+        ).toBe(401);
+
+        expect(
+          response.body.success
+        ).toBe(false);
+      }
+    );
+
+    // ==========================================
+    // UNKNOWN USER
+    // ==========================================
+
+    test(
+      "POST /api/auth/login should reject unknown user",
+      async () => {
+        const response =
+          await request(app)
+            .post(
+              "/api/auth/login"
+            )
+            .send({
+              email:
+                "unknown-user@example.com",
+
+              password:
+                testPassword,
+            });
+
+        expect(
+          response.statusCode
+        ).toBe(401);
+
+        expect(
+          response.body.success
+        ).toBe(false);
+      }
+    );
+
+    // ==========================================
+    // MISSING EMAIL
+    // ==========================================
+
+    test(
+      "POST /api/auth/login should reject missing email",
+      async () => {
+        const response =
+          await request(app)
+            .post(
+              "/api/auth/login"
+            )
+            .send({
+              password:
+                testPassword,
+            });
+
+        expect(
+          response.statusCode
+        ).toBeGreaterThanOrEqual(
+          400
+        );
+
+        expect(
+          response.statusCode
+        ).toBeLessThan(
+          500
+        );
+      }
+    );
+
+    // ==========================================
+    // MISSING PASSWORD
+    // ==========================================
+
+    test(
+      "POST /api/auth/login should reject missing password",
+      async () => {
+        const response =
+          await request(app)
+            .post(
+              "/api/auth/login"
+            )
+            .send({
+              email:
+                testEmail,
+            });
+
+        expect(
+          response.statusCode
+        ).toBeGreaterThanOrEqual(
+          400
+        );
+
+        expect(
+          response.statusCode
+        ).toBeLessThan(
+          500
+        );
+      }
+    );
+
+    // ==========================================
+    // LOGOUT WITHOUT TOKEN
+    // ==========================================
+
+    test(
+      "POST /api/auth/logout without token should return 401",
+      async () => {
+        const response =
+          await request(app)
+            .post(
+              "/api/auth/logout"
+            );
+
+        expect(
+          response.statusCode
+        ).toBe(401);
+      }
+    );
+
+    // ==========================================
+    // LOGOUT WITH VALID TOKEN
+    // ==========================================
+
+    test(
+      "POST /api/auth/logout with valid token should return 200",
+      async () => {
+        const response =
+          await request(app)
+            .post(
+              "/api/auth/logout"
+            )
+            .set(
+              "Authorization",
+              `Bearer ${token}`
+            );
+
+        expect(
+          response.statusCode
+        ).toBe(200);
+
+        expect(
+          response.body.success
+        ).toBe(true);
+      }
+    );
+
+    // ==========================================
+    // FRESH LOGIN AFTER LOGOUT
+    // ==========================================
+
+    test(
+      "GET /api/auth/profile should work with a fresh valid JWT",
+      async () => {
+        const loginResponse =
+          await request(app)
+            .post(
+              "/api/auth/login"
+            )
+            .send({
+              email:
+                testEmail,
+
+              password:
+                testPassword,
+            });
+
+        expect(
+          loginResponse.statusCode
+        ).toBe(200);
+
+        const freshToken =
+          loginResponse.body.token;
+
+        expect(
+          freshToken
+        ).toBeDefined();
+
+        const response =
+          await request(app)
+            .get(
+              "/api/auth/profile"
+            )
+            .set(
+              "Authorization",
+              `Bearer ${freshToken}`
+            );
+
+        expect(
+          response.statusCode
+        ).toBe(200);
+
+        expect(
+          response.body.data._id
+        ).toBe(
+          userId
+        );
+      }
+    );
+  }
+);

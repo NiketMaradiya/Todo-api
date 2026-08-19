@@ -25,6 +25,26 @@ const {
   "./utils/trashCleanupService"
 );
 
+// ==========================================
+// Custom In-Memory LFU Cache
+// ==========================================
+//
+// The cache is created from:
+// CACHE_MAX_SIZE
+// CACHE_TTL
+//
+// Cache data exists only in Node.js memory.
+//
+// Server restart automatically clears it.
+// ==========================================
+
+const todoCache =
+  require("./utils/lfuCache");
+
+// ==========================================
+// Routes
+// ==========================================
+
 const authRoutes =
   require("./routes/authRoutes");
 
@@ -39,12 +59,20 @@ const notificationRoutes =
     "./routes/notificationRoutes"
   );
 
+// ==========================================
+// Error Middleware
+// ==========================================
+
 const {
   notFound,
   errorHandler,
 } = require(
   "./middleware/errorMiddleware"
 );
+
+// ==========================================
+// Express App
+// ==========================================
 
 const app =
   express();
@@ -87,6 +115,7 @@ app.use(
 //
 // Includes:
 // - Todo CRUD
+// - Todo list LFU cache
 // - Comments
 // - Attachments
 // - Status
@@ -100,13 +129,6 @@ app.use(
 
 // ------------------------------------------
 // Admin
-//
-// Includes:
-// - Admin users
-// - Admin Todo access
-// - Trash
-// - Restore
-// - Cloudinary configuration
 // ------------------------------------------
 
 app.use(
@@ -142,6 +164,78 @@ app.get(
 );
 
 // ==========================================
+// Cache Statistics
+// ==========================================
+//
+// This endpoint is intentionally simple and
+// useful during local testing.
+//
+// GET /api/cache/stats
+//
+// It shows:
+// - current cache size
+// - maximum cache size
+// - TTL
+// - cache keys
+// - frequency
+//
+// No database is queried.
+//
+// NOTE:
+// This endpoint is kept disabled by default.
+// Set CACHE_DEBUG=true in .env if you want
+// to expose it for testing.
+//
+// ==========================================
+
+if (
+  process.env.CACHE_DEBUG ===
+  "true"
+) {
+  app.get(
+    "/api/cache/stats",
+    (req, res) => {
+      try {
+        return res
+          .status(200)
+          .json({
+            success: true,
+
+            cache:
+              todoCache.stats(),
+          });
+      } catch (error) {
+        return res
+          .status(200)
+          .json({
+            success: false,
+
+            message:
+              "Unable to read cache statistics",
+
+            cache: {
+              size: 0,
+              maxSize:
+                Number(
+                  process.env
+                    .CACHE_MAX_SIZE
+                ) || 100,
+
+              ttl:
+                Number(
+                  process.env
+                    .CACHE_TTL
+                ) || 60000,
+
+              entries: [],
+            },
+          });
+      }
+    }
+  );
+}
+
+// ==========================================
 // 404 Handler
 // ==========================================
 
@@ -158,6 +252,53 @@ app.use(
 );
 
 // ==========================================
+// Periodic Cache Cleanup
+// ==========================================
+//
+// TTL entries are checked on GET/SET, but this
+// interval also removes expired entries that
+// are no longer being requested.
+//
+// Cleanup does NOT affect API behavior.
+//
+// The cache itself remains in-memory.
+// No Redis or external service is used.
+// ==========================================
+
+const cacheCleanupInterval =
+  setInterval(
+    () => {
+      try {
+        todoCache.cleanupExpired();
+      } catch (error) {
+        // Cache cleanup failure must never
+        // terminate the Node.js application.
+      }
+    },
+
+    Math.max(
+      Number(
+        process.env.CACHE_TTL
+      ) || 60000,
+
+      1000
+    )
+  );
+
+// ==========================================
+// Do Not Keep Node Process Alive Only
+// Because of Cache Cleanup Timer
+// ==========================================
+
+if (
+  cacheCleanupInterval &&
+  typeof cacheCleanupInterval.unref ===
+    "function"
+) {
+  cacheCleanupInterval.unref();
+}
+
+// ==========================================
 // Start Server
 // ==========================================
 
@@ -169,13 +310,7 @@ if (
     5000;
 
   // ========================================
-  // Validate encryption key
-  //
-  // The encryption key is required for
-  // Cloudinary credentials stored in MongoDB.
-  //
-  // IMPORTANT:
-  // The key itself is NEVER stored in MongoDB.
+  // Validate Encryption Key
   // ========================================
 
   try {
@@ -197,26 +332,70 @@ if (
   }
 
   // ========================================
+  // Display Cache Configuration
+  // ========================================
+
+  console.log(
+    "=========================================="
+  );
+
+  console.log(
+    "In-Memory LFU Cache Configuration"
+  );
+
+  console.log(
+    "=========================================="
+  );
+
+  console.log(
+    `Maximum entries: ${
+      Number(
+        process.env.CACHE_MAX_SIZE
+      ) || 100
+    }`
+  );
+
+  console.log(
+    `TTL: ${
+      Number(
+        process.env.CACHE_TTL
+      ) || 60000
+    } ms`
+  );
+
+  console.log(
+    "Eviction: LFU"
+  );
+
+  console.log(
+    "Storage: Node.js application memory"
+  );
+
+  console.log(
+    "=========================================="
+  );
+
+  // ========================================
   // Connect MongoDB
   // ========================================
 
   connectDB()
     .then(() => {
-      // ========================================
+      // ======================================
       // Start automatic Trash cleanup
       //
-      // Default retention:
+      // Default:
       // 30 days
       //
-      // Configured using:
+      // Controlled by:
       // TRASH_RETENTION_DAYS
-      // ========================================
+      // ======================================
 
       startTrashCleanup();
 
-      // ========================================
-      // Start Express server
-      // ========================================
+      // ======================================
+      // Start Express Server
+      // ======================================
 
       app.listen(
         PORT,
@@ -243,7 +422,7 @@ if (
 }
 
 // ==========================================
-// Export app
+// Export App
 // ==========================================
 
 module.exports =

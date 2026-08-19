@@ -2,10 +2,23 @@ const mongoose = require("mongoose");
 
 const User = require("../models/User");
 const Todo = require("../models/Todo");
+const todoCache = require("../utils/lfuCache");
 
 const {
   createActivity,
 } = require("../utils/activityService");
+
+// ==========================================
+// Cache Helpers
+// ==========================================
+
+const invalidateTodoCache = () => {
+  try {
+    todoCache.invalidateTodos();
+  } catch (error) {
+    // Cache failure must never break Admin APIs
+  }
+};
 
 // ==========================================
 // Helpers
@@ -683,6 +696,21 @@ const updateAdminTodo = async (
       });
     }
 
+    // ==========================================
+    // CACHE INVALIDATION
+    //
+    // Admin update can change:
+    // - title/search
+    // - status
+    // - priority
+    // - due date
+    // - assigned user
+    //
+    // Therefore every Todo list cache is cleared.
+    // ==========================================
+
+    invalidateTodoCache();
+
     const updatedTodo =
       await Todo.findById(
         todo._id
@@ -763,6 +791,16 @@ const deleteAdminTodo = async (
     await todo.save();
 
     // ==========================================
+    // CACHE INVALIDATION
+    //
+    // Todo is no longer available from
+    // /api/todos, so all Todo list cache
+    // entries must be invalidated.
+    // ==========================================
+
+    invalidateTodoCache();
+
+    // ==========================================
     // AUDIT: Soft Deleted
     // ==========================================
 
@@ -792,8 +830,7 @@ const deleteAdminTodo = async (
   } catch (error) {
     return res.status(500).json({
       success: false,
-      message:
-        error.message,
+      message: error.message,
     });
   }
 };
@@ -1015,6 +1052,7 @@ const getTrashTodos = async (
 
       pagination: {
         total,
+
         page:
           pageNumber,
 
@@ -1091,6 +1129,15 @@ const restoreTodo = async (
     await todo.save();
 
     // ==========================================
+    // CACHE INVALIDATION
+    //
+    // Restored Todo must appear again in the
+    // next /api/todos request.
+    // ==========================================
+
+    invalidateTodoCache();
+
+    // ==========================================
     // AUDIT: Restored
     // ==========================================
 
@@ -1136,8 +1183,7 @@ const restoreTodo = async (
   } catch (error) {
     return res.status(500).json({
       success: false,
-      message:
-        error.message,
+      message: error.message,
     });
   }
 };
@@ -1190,8 +1236,7 @@ const makeAdmin = async (
   } catch (error) {
     return res.status(500).json({
       success: false,
-      message:
-        error.message,
+      message: error.message,
     });
   }
 };
@@ -1244,8 +1289,7 @@ const removeAdmin = async (
   } catch (error) {
     return res.status(500).json({
       success: false,
-      message:
-        error.message,
+      message: error.message,
     });
   }
 };
@@ -1314,8 +1358,7 @@ const changeUserRole = async (
   } catch (error) {
     return res.status(500).json({
       success: false,
-      message:
-        error.message,
+      message: error.message,
     });
   }
 };
@@ -1379,8 +1422,7 @@ const changeUserPassword = async (
   } catch (error) {
     return res.status(500).json({
       success: false,
-      message:
-        error.message,
+      message: error.message,
     });
   }
 };
@@ -1448,8 +1490,7 @@ const changeUserStatus = async (
   } catch (error) {
     return res.status(500).json({
       success: false,
-      message:
-        error.message,
+      message: error.message,
     });
   }
 };
@@ -1487,6 +1528,15 @@ const deleteUser = async (
       });
     }
 
+    // ==========================================
+    // CACHE INVALIDATION
+    //
+    // A user deletion can affect Todo visibility
+    // and assignments, so invalidate Todo lists.
+    // ==========================================
+
+    invalidateTodoCache();
+
     return res.status(200).json({
       success: true,
 
@@ -1496,8 +1546,7 @@ const deleteUser = async (
   } catch (error) {
     return res.status(500).json({
       success: false,
-      message:
-        error.message,
+      message: error.message,
     });
   }
 };

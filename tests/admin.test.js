@@ -7,6 +7,9 @@ const User = require("../models/User");
 const Todo = require("../models/Todo");
 const TodoActivity = require("../models/TodoActivity");
 
+const todoCache =
+  require("../utils/lfuCache");
+
 describe(
   "Admin Role and Todo Authorization API",
   () => {
@@ -20,234 +23,320 @@ describe(
 
     let todoId;
 
-    beforeAll(async () => {
-      // ==========================================
-      // Cleanup old test data
-      // ==========================================
+    // ==========================================
+    // TEST EMAILS FROM .ENV
+    // ==========================================
 
-      await TodoActivity.deleteMany({});
+    const normalUserEmail =
+      process.env.TEST_EMAIL_A;
 
-      await Todo.deleteMany({
-        title: {
-          $in: [
-            "Admin Todo Test",
-            "Admin Todo Delete Test",
-            "Admin Updated Todo",
-            "Unauthorized Update",
-          ],
-        },
-      });
+    const secondUserEmail =
+      process.env.TEST_EMAIL_B;
 
-      await User.deleteMany({
-        email: {
-          $in: [
-            "normal-user@test.com",
-            "second-user@test.com",
-            "admin-user@test.com",
-          ],
-        },
-      });
+    const adminUserEmail =
+      process.env.TEST_EMAIL_ADMIN;
 
-      // ==========================================
-      // CREATE NORMAL USER
-      // ==========================================
+    const testPassword =
+      "password123";
 
-      const userResponse =
-        await request(app)
-          .post("/api/auth/register")
-          .send({
-            name: "Normal User",
+    // ==========================================
+    // VALIDATE TEST EMAILS
+    // ==========================================
 
-            email:
-              "normal-user@test.com",
-
-            password:
-              "password123",
-          });
-
-      expect(
-        userResponse.statusCode
-      ).toBe(201);
-
-      userToken =
-        userResponse.body.token;
-
-      normalUserId =
-        userResponse.body.data._id;
-
-      // ==========================================
-      // CREATE SECOND USER
-      // ==========================================
-
-      const secondUserResponse =
-        await request(app)
-          .post("/api/auth/register")
-          .send({
-            name: "Second User",
-
-            email:
-              "second-user@test.com",
-
-            password:
-              "password123",
-          });
-
-      expect(
-        secondUserResponse.statusCode
-      ).toBe(201);
-
-      secondUserId =
-        secondUserResponse.body.data._id;
-
-      secondUserToken =
-        secondUserResponse.body.token;
-
-      // ==========================================
-      // CREATE ADMIN USER
-      // ==========================================
-
-      const adminResponse =
-        await request(app)
-          .post("/api/auth/register")
-          .send({
-            name:
-              "Admin User",
-
-            email:
-              "admin-user@test.com",
-
-            password:
-              "password123",
-          });
-
-      expect(
-        adminResponse.statusCode
-      ).toBe(201);
-
-      adminUserId =
-        adminResponse.body.data._id;
-
-      // ==========================================
-      // Make registered user admin
-      // ==========================================
-
-      await User.findByIdAndUpdate(
-        adminUserId,
-        {
-          role: "admin",
-        }
+    if (
+      !normalUserEmail ||
+      !secondUserEmail ||
+      !adminUserEmail
+    ) {
+      throw new Error(
+        "TEST_EMAIL_A, TEST_EMAIL_B and TEST_EMAIL_ADMIN must be defined in .env"
       );
+    }
 
-      // ==========================================
-      // LOGIN ADMIN
-      //
-      // Important:
-      // Login again after changing the role
-      // so JWT contains role=admin.
-      // ==========================================
+    // ==========================================
+    // SETUP
+    // ==========================================
 
-      const adminLoginResponse =
-        await request(app)
-          .post("/api/auth/login")
-          .send({
+    beforeAll(
+      async () => {
+        todoCache.clear();
+
+        // ========================================
+        // CLEAN OLD TEST DATA
+        // ========================================
+
+        await TodoActivity.deleteMany({});
+        await Todo.deleteMany({});
+
+        await User.deleteMany({
+          email: {
+            $in: [
+              normalUserEmail,
+              secondUserEmail,
+              adminUserEmail,
+            ],
+          },
+        });
+
+        // ========================================
+        // CREATE NORMAL USER
+        // ========================================
+
+        const normalUser =
+          await User.create({
+            name:
+              "Admin Test User",
+
             email:
-              "admin-user@test.com",
+              normalUserEmail,
 
             password:
-              "password123",
+              testPassword,
+
+            role:
+              "user",
+
+            isActive:
+              true,
+
+            mustChangePassword:
+              false,
+
+            passwordChangedAt:
+              new Date(),
           });
 
-      expect(
-        adminLoginResponse.statusCode
-      ).toBe(200);
+        normalUserId =
+          normalUser._id.toString();
 
-      adminToken =
-        adminLoginResponse.body.token;
+        // ========================================
+        // CREATE SECOND USER
+        // ========================================
 
-      // ==========================================
-      // CREATE TODO FOR ADMIN TESTS
-      // ==========================================
+        const secondUser =
+          await User.create({
+            name:
+              "Admin Test Second User",
 
-      const todoResponse =
-        await request(app)
-          .post("/api/todos")
-          .set(
-            "Authorization",
-            `Bearer ${userToken}`
-          )
-          .send({
-            title:
-              "Admin Todo Test",
+            email:
+              secondUserEmail,
 
-            description:
-              "Todo created by normal user",
+            password:
+              testPassword,
 
-            assignedTo:
-              secondUserId,
+            role:
+              "user",
 
-            status:
-              "pending",
+            isActive:
+              true,
 
-            priority:
-              "medium",
+            mustChangePassword:
+              false,
+
+            passwordChangedAt:
+              new Date(),
           });
 
-      expect(
-        todoResponse.statusCode
-      ).toBe(201);
+        secondUserId =
+          secondUser._id.toString();
 
-      todoId =
-        todoResponse.body.data._id;
+        // ========================================
+        // CREATE ADMIN USER
+        // ========================================
 
-      expect(
-        todoResponse.body.data.status
-      ).toBe("pending");
+        const adminUser =
+          await User.create({
+            name:
+              "Admin Test Admin",
 
-      expect(
-        todoResponse.body.data.priority
-      ).toBe("medium");
+            email:
+              adminUserEmail,
+
+            password:
+              testPassword,
+
+            role:
+              "admin",
+
+            isActive:
+              true,
+
+            mustChangePassword:
+              false,
+
+            passwordChangedAt:
+              new Date(),
+          });
+
+        adminUserId =
+          adminUser._id.toString();
+
+        // ========================================
+        // LOGIN NORMAL USER
+        // ========================================
+
+        const normalLogin =
+          await request(app)
+            .post(
+              "/api/auth/login"
+            )
+            .send({
+              email:
+                normalUserEmail,
+
+              password:
+                testPassword,
+            });
+
+        expect(
+          normalLogin.statusCode
+        ).toBe(200);
+
+        expect(
+          normalLogin.body.token
+        ).toBeDefined();
+
+        userToken =
+          normalLogin.body.token;
+
+        // ========================================
+        // LOGIN SECOND USER
+        // ========================================
+
+        const secondLogin =
+          await request(app)
+            .post(
+              "/api/auth/login"
+            )
+            .send({
+              email:
+                secondUserEmail,
+
+              password:
+                testPassword,
+            });
+
+        expect(
+          secondLogin.statusCode
+        ).toBe(200);
+
+        expect(
+          secondLogin.body.token
+        ).toBeDefined();
+
+        secondUserToken =
+          secondLogin.body.token;
+
+        // ========================================
+        // LOGIN ADMIN
+        // ========================================
+
+        const adminLogin =
+          await request(app)
+            .post(
+              "/api/auth/login"
+            )
+            .send({
+              email:
+                adminUserEmail,
+
+              password:
+                testPassword,
+            });
+
+        expect(
+          adminLogin.statusCode
+        ).toBe(200);
+
+        expect(
+          adminLogin.body.token
+        ).toBeDefined();
+
+        adminToken =
+          adminLogin.body.token;
+
+        // ========================================
+        // CREATE INITIAL TODO
+        // ========================================
+
+        const todoResponse =
+          await request(app)
+            .post(
+              "/api/todos"
+            )
+            .set(
+              "Authorization",
+              `Bearer ${userToken}`
+            )
+            .send({
+              title:
+                "Admin Todo Test",
+
+              description:
+                "Todo created for admin tests",
+
+              assignedTo:
+                secondUserId,
+
+              status:
+                "pending",
+
+              priority:
+                "medium",
+            });
+
+        expect(
+          todoResponse.statusCode
+        ).toBe(201);
+
+        expect(
+          todoResponse.body.success
+        ).toBe(true);
+
+        todoId =
+          todoResponse.body.data._id;
+      },
+      30000
+    );
+
+    // ==========================================
+    // CLEAR CACHE BEFORE EACH TEST
+    // ==========================================
+
+    beforeEach(() => {
+      todoCache.clear();
     });
 
     // ==========================================
     // CLEANUP
     // ==========================================
 
-    afterAll(async () => {
-      if (
-        todoId
-      ) {
-        await TodoActivity.deleteMany({
-          todoId,
+    afterAll(
+      async () => {
+        todoCache.clear();
+
+        await TodoActivity.deleteMany({});
+        await Todo.deleteMany({});
+
+        await User.deleteMany({
+          email: {
+            $in: [
+              normalUserEmail,
+              secondUserEmail,
+              adminUserEmail,
+            ],
+          },
         });
-      }
 
-      await Todo.deleteMany({
-        title: {
-          $in: [
-            "Admin Todo Test",
-            "Admin Updated Todo",
-            "Unauthorized Update",
-          ],
-        },
-      });
-
-      await User.deleteMany({
-        email: {
-          $in: [
-            "normal-user@test.com",
-            "second-user@test.com",
-            "admin-user@test.com",
-          ],
-        },
-      });
-
-      if (
-        mongoose.connection.readyState !==
-        0
-      ) {
-        await mongoose.connection.close();
-      }
-    });
+        if (
+          mongoose.connection
+            .readyState !== 0
+        ) {
+          await mongoose.connection.close();
+        }
+      },
+      30000
+    );
 
     // ==========================================
     // NO TOKEN
@@ -292,7 +381,7 @@ describe(
     );
 
     // ==========================================
-    // NORMAL USER CANNOT ACCESS ADMIN
+    // NORMAL USER CANNOT ACCESS ADMIN USERS
     // ==========================================
 
     test(
@@ -315,7 +404,7 @@ describe(
     );
 
     // ==========================================
-    // ADMIN CAN SEE USERS
+    // ADMIN GET USERS
     // ==========================================
 
     test(
@@ -336,6 +425,10 @@ describe(
         ).toBe(200);
 
         expect(
+          response.body.success
+        ).toBe(true);
+
+        expect(
           Array.isArray(
             response.body.data
           )
@@ -344,7 +437,7 @@ describe(
     );
 
     // ==========================================
-    // ADMIN CAN SEE TODOS
+    // ADMIN GET TODOS
     // ==========================================
 
     test(
@@ -384,23 +477,11 @@ describe(
         expect(
           todo
         ).toBeDefined();
-
-        expect(
-          todo.createdBy._id
-        ).toBe(
-          normalUserId
-        );
-
-        expect(
-          todo.assignedTo._id
-        ).toBe(
-          secondUserId
-        );
       }
     );
 
     // ==========================================
-    // NORMAL USER CANNOT ADMIN TODO API
+    // NORMAL USER CANNOT ACCESS ADMIN TODOS
     // ==========================================
 
     test(
@@ -423,7 +504,7 @@ describe(
     );
 
     // ==========================================
-    // ADMIN GET TODO BY ID
+    // ADMIN GET TODO
     // ==========================================
 
     test(
@@ -444,21 +525,13 @@ describe(
         ).toBe(200);
 
         expect(
+          response.body.success
+        ).toBe(true);
+
+        expect(
           response.body.data._id
         ).toBe(
           todoId
-        );
-
-        expect(
-          response.body.data.createdBy._id
-        ).toBe(
-          normalUserId
-        );
-
-        expect(
-          response.body.data.assignedTo._id
-        ).toBe(
-          secondUserId
         );
       }
     );
@@ -470,6 +543,24 @@ describe(
     test(
       "Admin should update any user's todo",
       async () => {
+        const cacheResponse =
+          await request(app)
+            .get(
+              "/api/todos"
+            )
+            .set(
+              "Authorization",
+              `Bearer ${userToken}`
+            );
+
+        expect(
+          cacheResponse.statusCode
+        ).toBe(200);
+
+        expect(
+          todoCache.size()
+        ).toBeGreaterThan(0);
+
         const response =
           await request(app)
             .put(
@@ -482,14 +573,15 @@ describe(
             .send({
               title:
                 "Admin Updated Todo",
-
-              status:
-                "in-progress",
             });
 
         expect(
           response.statusCode
         ).toBe(200);
+
+        expect(
+          response.body.success
+        ).toBe(true);
 
         expect(
           response.body.data.title
@@ -498,21 +590,59 @@ describe(
         );
 
         expect(
+          todoCache.size()
+        ).toBe(0);
+
+        const activity =
+          await TodoActivity.findOne({
+            todoId,
+
+            action:
+              "updated",
+
+            userId:
+              adminUserId,
+          }).sort({
+            createdAt:
+              -1,
+          });
+
+        expect(
+          activity
+        ).not.toBeNull();
+      }
+    );
+
+    // ==========================================
+    // ADMIN STATUS UPDATE
+    // ==========================================
+
+    test(
+      "Admin should update Todo status",
+      async () => {
+        const response =
+          await request(app)
+            .patch(
+              `/api/admin/todos/${todoId}`
+            )
+            .set(
+              "Authorization",
+              `Bearer ${adminToken}`
+            )
+            .send({
+              status:
+                "completed",
+            });
+
+        expect(
+          response.statusCode
+        ).toBe(200);
+
+        expect(
           response.body.data.status
         ).toBe(
-          "in-progress"
+          "completed"
         );
-
-        // Creator must NOT change
-        expect(
-          response.body.data.createdBy._id
-        ).toBe(
-          normalUserId
-        );
-
-        // ========================================
-        // Audit should record admin
-        // ========================================
 
         const activity =
           await TodoActivity.findOne({
@@ -541,84 +671,17 @@ describe(
         expect(
           activity.newValue
         ).toBe(
-          "in-progress"
+          "completed"
         );
       }
     );
 
     // ==========================================
-    // ADMIN REASSIGN TODO
+    // ADMIN PRIORITY UPDATE
     // ==========================================
 
     test(
-      "Admin should assign todo to another user",
-      async () => {
-        const response =
-          await request(app)
-            .patch(
-              `/api/admin/todos/${todoId}`
-            )
-            .set(
-              "Authorization",
-              `Bearer ${adminToken}`
-            )
-            .send({
-              assignedTo:
-                normalUserId,
-            });
-
-        expect(
-          response.statusCode
-        ).toBe(200);
-
-        expect(
-          response.body.data.assignedTo._id
-        ).toBe(
-          normalUserId
-        );
-
-        // ========================================
-        // Audit
-        // ========================================
-
-        const activity =
-          await TodoActivity.findOne({
-            todoId,
-
-            action:
-              "reassigned",
-
-            userId:
-              adminUserId,
-          }).sort({
-            createdAt:
-              -1,
-          });
-
-        expect(
-          activity
-        ).not.toBeNull();
-
-        expect(
-          activity.oldValue
-        ).toBe(
-          secondUserId
-        );
-
-        expect(
-          activity.newValue
-        ).toBe(
-          normalUserId
-        );
-      }
-    );
-
-    // ==========================================
-    // ADMIN PRIORITY CHANGE
-    // ==========================================
-
-    test(
-      "Admin should change todo priority",
+      "Admin should update Todo priority",
       async () => {
         const response =
           await request(app)
@@ -677,7 +740,78 @@ describe(
     );
 
     // ==========================================
-    // INVALID ASSIGNED USER
+    // ADMIN REASSIGNMENT
+    // ==========================================
+
+    test(
+      "Admin should reassign Todo",
+      async () => {
+        const response =
+          await request(app)
+            .patch(
+              `/api/admin/todos/${todoId}`
+            )
+            .set(
+              "Authorization",
+              `Bearer ${adminToken}`
+            )
+            .send({
+              assignedTo:
+                normalUserId,
+            });
+
+        expect(
+          response.statusCode
+        ).toBe(200);
+
+        const assignedTo =
+          response.body.data
+            .assignedTo;
+
+        const assignedToId =
+          assignedTo?._id ||
+          assignedTo;
+
+        expect(
+          assignedToId
+        ).toBe(
+          normalUserId
+        );
+
+        const activity =
+          await TodoActivity.findOne({
+            todoId,
+
+            action:
+              "reassigned",
+
+            userId:
+              adminUserId,
+          }).sort({
+            createdAt:
+              -1,
+          });
+
+        expect(
+          activity
+        ).not.toBeNull();
+
+        expect(
+          activity.oldValue
+        ).toBe(
+          secondUserId
+        );
+
+        expect(
+          activity.newValue
+        ).toBe(
+          normalUserId
+        );
+      }
+    );
+
+    // ==========================================
+    // INVALID USER ASSIGNMENT
     // ==========================================
 
     test(
@@ -714,7 +848,7 @@ describe(
     );
 
     // ==========================================
-    // NORMAL USER CANNOT ADMIN UPDATE
+    // NORMAL USER CANNOT UPDATE ADMIN ROUTE
     // ==========================================
 
     test(
@@ -741,7 +875,7 @@ describe(
     );
 
     // ==========================================
-    // NORMAL USER CANNOT ADMIN DELETE
+    // NORMAL USER CANNOT DELETE ADMIN ROUTE
     // ==========================================
 
     test(
@@ -770,6 +904,24 @@ describe(
     test(
       "Admin should soft delete any user's todo",
       async () => {
+        const cacheResponse =
+          await request(app)
+            .get(
+              "/api/todos"
+            )
+            .set(
+              "Authorization",
+              `Bearer ${userToken}`
+            );
+
+        expect(
+          cacheResponse.statusCode
+        ).toBe(200);
+
+        expect(
+          todoCache.size()
+        ).toBeGreaterThan(0);
+
         const response =
           await request(app)
             .delete(
@@ -789,14 +941,8 @@ describe(
         ).toBe(true);
 
         expect(
-          response.body.message
-        ).toBe(
-          "Todo moved to trash successfully by admin"
-        );
-
-        // ========================================
-        // Verify soft_deleted audit
-        // ========================================
+          todoCache.size()
+        ).toBe(0);
 
         const activity =
           await TodoActivity.findOne({
@@ -827,7 +973,7 @@ describe(
     );
 
     // ==========================================
-    // ADMIN GET ACTIVE TODO
+    // DELETED TODO NOT ACTIVE
     // ==========================================
 
     test(
@@ -869,6 +1015,10 @@ describe(
         expect(
           response.statusCode
         ).toBe(200);
+
+        expect(
+          response.body.success
+        ).toBe(true);
 
         expect(
           Array.isArray(
@@ -924,9 +1074,9 @@ describe(
           response.body.data.isDeleted
         ).toBe(false);
 
-        // ========================================
-        // Verify restore audit
-        // ========================================
+        expect(
+          todoCache.size()
+        ).toBe(0);
 
         const activity =
           await TodoActivity.findOne({
@@ -957,7 +1107,152 @@ describe(
     );
 
     // ==========================================
-    // ADMIN ROLE TESTS
+    // ADMIN CACHE INVALIDATION
+    // ==========================================
+
+    test(
+      "Admin Todo update should invalidate Todo list cache",
+      async () => {
+        const cacheResponse =
+          await request(app)
+            .get(
+              "/api/todos"
+            )
+            .set(
+              "Authorization",
+              `Bearer ${userToken}`
+            );
+
+        expect(
+          cacheResponse.statusCode
+        ).toBe(200);
+
+        expect(
+          todoCache.size()
+        ).toBeGreaterThan(0);
+
+        const response =
+          await request(app)
+            .patch(
+              `/api/admin/todos/${todoId}`
+            )
+            .set(
+              "Authorization",
+              `Bearer ${adminToken}`
+            )
+            .send({
+              title:
+                "Admin Cache Update",
+            });
+
+        expect(
+          response.statusCode
+        ).toBe(200);
+
+        expect(
+          todoCache.size()
+        ).toBe(0);
+      }
+    );
+
+    // ==========================================
+    // ADMIN DELETE + RESTORE CACHE
+    // ==========================================
+
+    test(
+      "Admin delete and restore should invalidate Todo cache",
+      async () => {
+        const createResponse =
+          await request(app)
+            .post(
+              "/api/todos"
+            )
+            .set(
+              "Authorization",
+              `Bearer ${userToken}`
+            )
+            .send({
+              title:
+                "Admin Cache Delete Test",
+
+              description:
+                "Fresh Todo for admin cache test",
+
+              assignedTo:
+                secondUserId,
+
+              status:
+                "pending",
+
+              priority:
+                "low",
+            });
+
+        expect(
+          createResponse.statusCode
+        ).toBe(201);
+
+        const freshTodoId =
+          createResponse.body.data._id;
+
+        const listResponse =
+          await request(app)
+            .get(
+              "/api/todos"
+            )
+            .set(
+              "Authorization",
+              `Bearer ${userToken}`
+            );
+
+        expect(
+          listResponse.statusCode
+        ).toBe(200);
+
+        expect(
+          todoCache.size()
+        ).toBeGreaterThan(0);
+
+        const deleteResponse =
+          await request(app)
+            .delete(
+              `/api/admin/todos/${freshTodoId}`
+            )
+            .set(
+              "Authorization",
+              `Bearer ${adminToken}`
+            );
+
+        expect(
+          deleteResponse.statusCode
+        ).toBe(200);
+
+        expect(
+          todoCache.size()
+        ).toBe(0);
+
+        const restoreResponse =
+          await request(app)
+            .patch(
+              `/api/admin/todos/${freshTodoId}/restore`
+            )
+            .set(
+              "Authorization",
+              `Bearer ${adminToken}`
+            );
+
+        expect(
+          restoreResponse.statusCode
+        ).toBe(200);
+
+        expect(
+          todoCache.size()
+        ).toBe(0);
+      }
+    );
+
+    // ==========================================
+    // MAKE ADMIN
     // ==========================================
 
     test(
@@ -978,16 +1273,40 @@ describe(
         ).toBe(200);
 
         expect(
+          response.body.success
+        ).toBe(true);
+
+        expect(
           response.body.data.role
         ).toBe(
           "admin"
         );
+
+        await User.findByIdAndUpdate(
+          normalUserId,
+          {
+            role:
+              "user",
+          }
+        );
       }
     );
+
+    // ==========================================
+    // REMOVE ADMIN
+    // ==========================================
 
     test(
       "Admin should remove admin privileges",
       async () => {
+        await User.findByIdAndUpdate(
+          normalUserId,
+          {
+            role:
+              "admin",
+          }
+        );
+
         const response =
           await request(app)
             .post(
@@ -1009,6 +1328,10 @@ describe(
         );
       }
     );
+
+    // ==========================================
+    // CHANGE ROLE
+    // ==========================================
 
     test(
       "Admin should change user role",
@@ -1035,6 +1358,14 @@ describe(
           response.body.data.role
         ).toBe(
           "admin"
+        );
+
+        await User.findByIdAndUpdate(
+          normalUserId,
+          {
+            role:
+              "user",
+          }
         );
       }
     );

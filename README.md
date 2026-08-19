@@ -1,1275 +1,744 @@
 # Todo API
 
-A RESTful Todo API built with Node.js, Express.js, MongoDB, and JWT authentication.
+A RESTful Todo API built with Node.js, Express.js, MongoDB, JWT authentication, Todo assignment, comments, notifications, attachments, audit history, soft delete/restore, Cloudinary configuration management, and a custom in-memory LFU cache.
 
 ## Features
 
-* User registration
-* User login
-* JWT authentication
-* Protected routes
-* Password hashing with bcrypt
-* Get current user
-* Change password
-* Forgot password
-* Password reset using reset token
-* Compulsory password-change support
-* Create Todo
-* Get all Todos
-* Get single Todo
-* Update Todo
-* Delete Todo
-* User-specific Todos
-* MongoDB integration
-* Email support for password reset
-* Environment variable configuration
-* Nodemon development server
+### Authentication
 
-## Technologies
+- User registration
+- User login
+- JWT authentication
+- Protected routes
+- Password hashing
+- Get current user
+- Change password
+- Forgot password
+- Reset password
+- Temporary password change protection
+- Logout
 
-* Node.js
-* Express.js
-* MongoDB
-* Mongoose
-* JSON Web Token
-* bcryptjs
-* dotenv
-* Nodemailer
-* Nodemon
+### Todo Management
 
-## Project Structure
+- Create Todo
+- Get Todos
+- Get single Todo
+- Update Todo
+- Delete Todo
+- Restore Todo
+- Assign Todo
+- Change Todo status
+- Change Todo priority
+- Due date support
+- Search
+- Filtering
+- Pagination
+- Sorting
 
-```
-todo-api/
-│
-├── controllers/
-│   ├── authController.js
-│   └── todoController.js
-│
-├── middleware/
-│   └── authMiddleware.js
-│
-├── models/
-│   ├── User.js
-│   └── Todo.js
-│
-├── routes/
-│   ├── authRoutes.js
-│   └── todoRoutes.js
-│
-├── utils/
-│   └── sendEmail.js
-│
-├── .env
-├── .gitignore
-├── package.json
-├── package-lock.json
-├── server.js
-└── README.md
-```
+### Collaboration
 
-## Installation
+- Add comments
+- Get comments
+- Update comments
+- Delete comments
+- Todo activity history
+- Audit logging
+- Notifications
+- Todo attachments
 
-### 1. Install Node.js
+### Admin
 
-Make sure Node.js is installed.
+- Get all users
+- Get all Todos
+- Get Todo by ID
+- Update any Todo
+- Delete any Todo
+- View Trash
+- Restore Todo
+- Change user role
+- Make user admin
+- Remove admin privileges
+- Change user password
+- Enable/disable users
+- Delete users
 
-Check the version:
+### Cloudinary
 
-```
-node -v
-```
+- Cloudinary configuration stored in MongoDB
+- Encrypted Cloudinary credentials
+- Secure credential management
+- Attachment upload
 
-Check npm:
+### Custom In-Memory LFU Cache
 
-```
-npm -v
-```
+- No Redis
+- No external cache service
+- Node.js memory only
+- Configurable maximum cache size
+- LFU eviction
+- Access-frequency tracking
+- TTL expiration
+- Cache invalidation
+- User-specific cache keys
+- Query-specific cache keys
+- Automatic expired-entry cleanup
+- Cache failure does not break the API
+- Server restart clears the cache
 
-### 2. Install dependencies
+---
 
-Open the project folder in terminal:
+# Technologies
 
-```
-cd todo-api
-```
+- Node.js
+- Express.js
+- MongoDB
+- Mongoose
+- JWT
+- bcryptjs
+- dotenv
+- Nodemailer
+- Cloudinary
+- Multer
+- Swagger UI
+- Jest
+- Supertest
+- Nodemon
 
-Install dependencies:
+---
 
-```
-npm install
-```
+# Project Structure
 
-## Environment Variables
+    todo-api/
+    │
+    ├── config/
+    │   ├── cloudinary.js
+    │   ├── db.js
+    │   ├── swagger.js
+    │   └── ...
+    │
+    ├── controllers/
+    │   ├── adminController.js
+    │   ├── authController.js
+    │   ├── cloudinaryAdminController.js
+    │   ├── notificationController.js
+    │   └── todoController.js
+    │
+    ├── middleware/
+    │   ├── authMiddleware.js
+    │   ├── errorMiddleware.js
+    │   ├── logger.js
+    │   └── uploadMiddleware.js
+    │
+    ├── models/
+    │   ├── Activity.js
+    │   ├── CloudinaryConfig.js
+    │   ├── Comment.js
+    │   ├── Notification.js
+    │   ├── Todo.js
+    │   ├── TodoActivity.js
+    │   └── User.js
+    │
+    ├── routes/
+    │   ├── adminRoutes.js
+    │   ├── authRoutes.js
+    │   ├── notificationRoutes.js
+    │   └── todoRoutes.js
+    │
+    ├── utils/
+    │   ├── activityService.js
+    │   ├── attachmentService.js
+    │   ├── cloudinaryConfigService.js
+    │   ├── emailService.js
+    │   ├── encryptionService.js
+    │   ├── lfuCache.js
+    │   ├── notificationService.js
+    │   ├── passwordService.js
+    │   └── trashCleanupService.js
+    │
+    ├── tests/
+    │   ├── admin.test.js
+    │   ├── adminActivity.test.js
+    │   ├── auth.test.js
+    │   ├── cloudinaryConfig.test.js
+    │   ├── setup.js
+    │   ├── todo.test.js
+    │   ├── todoActivity.test.js
+    │   └── todoAttachmentActivity.test.js
+    │
+    ├── public/
+    │   └── uploads/
+    │
+    ├── .env
+    ├── .gitignore
+    ├── jest.config.js
+    ├── package.json
+    ├── package-lock.json
+    ├── server.js
+    └── README.md
 
-Create a `.env` file in the root folder.
+---
+
+# Installation
+
+## 1. Install Dependencies
+
+    npm install
+
+## 2. Configure Environment
+
+Create `.env` in the project root.
 
 Example:
 
-```
-PORT=5000
-MONGO_URI=mongodb://127.0.0.1:27017/todo-api
-JWT_SECRET=your_super_secret_jwt_key
-JWT_EXPIRES_IN=7d
+    PORT=5000
 
-EMAIL_HOST=smtp.gmail.com
-EMAIL_PORT=587
-EMAIL_USER=your_email@gmail.com
-EMAIL_PASS=your_gmail_app_password
+    MONGO_URI=mongodb://127.0.0.1:27017/todo-api
 
-CLIENT_URL=http://localhost:3000
-```
+    JWT_SECRET=your_super_secret_jwt_key
+    JWT_EXPIRES_IN=1d
 
-Replace the values with your actual configuration.
+    CLIENT_URL=http://localhost:3000
 
-Do not upload `.env` to GitHub.
+    EMAIL_HOST=smtp.gmail.com
+    EMAIL_PORT=587
+    EMAIL_SECURE=false
+    EMAIL_USER=your_email@gmail.com
+    EMAIL_PASSWORD=your_gmail_app_password
+    EMAIL_FROM="Todo API <your_email@gmail.com>"
 
-## MongoDB
+    TRASH_RETENTION_DAYS=30
 
-You can use local MongoDB or MongoDB Atlas.
+    CONFIG_ENCRYPTION_KEY=your_64_character_hex_encryption_key
 
-### Local MongoDB
+    CACHE_MAX_SIZE=100
+    CACHE_TTL=60000
 
-```
-MONGO_URI=mongodb://127.0.0.1:27017/todo-api
-```
+---
 
-### MongoDB Atlas
+# Start the Application
 
-```
-MONGO_URI=mongodb+srv://USERNAME:PASSWORD@CLUSTER.mongodb.net/todo-api
-```
+## Development
 
-Replace:
+    npm run dev
 
-* `USERNAME`
-* `PASSWORD`
-* `CLUSTER`
+## Production
 
-with your actual MongoDB Atlas details.
+    npm start
 
-## Start Server
+Base URL:
 
-### Development
+    http://localhost:5000
 
-```
-npm run dev
-```
+---
 
-Expected output:
+# Custom In-Memory LFU Cache
 
-```
-[nodemon] starting `node server.js`
-Server running on port 5000
-MongoDB connected
-```
+Cache implementation:
 
-### Production
+    utils/lfuCache.js
 
-```
-npm start
-```
+The cache does not use Redis or any external service.
 
-## Base URL
+All cached data is stored inside the Node.js process memory.
 
-```
-http://localhost:5000
-```
+Each cache entry contains:
 
-# Authentication
+    Cache Entry
+    ├── key
+    ├── data
+    ├── frequency
+    ├── createdAt
+    └── expiresAt
 
-Authentication uses JWT.
+---
 
-After successful login, the API returns a token.
+# Cache Configuration
 
-For protected routes, send the token using:
+## Maximum Cache Size
 
-```
-Authorization: Bearer YOUR_JWT_TOKEN
-```
+    CACHE_MAX_SIZE=100
 
-# API Endpoints
+This controls the maximum number of cache entries.
 
-## Authentication
+For testing:
 
-| Method | Endpoint                        | Authentication |
-| ------ | ------------------------------- | -------------- |
-| POST   | /api/auth/register              | No             |
-| POST   | /api/auth/login                 | No             |
-| POST   | /api/auth/forgot-password       | No             |
-| POST   | /api/auth/reset-password/:token | No             |
-| POST   | /api/auth/change-password       | Yes            |
-| GET    | /api/auth/me                    | Yes            |
-| POST   | /api/auth/logout                | Yes            |
+    CACHE_MAX_SIZE=3
 
-## Todos
+## TTL
 
-| Method | Endpoint       | Authentication |
-| ------ | -------------- | -------------- |
-| POST   | /api/todos     | Yes            |
-| GET    | /api/todos     | Yes            |
-| GET    | /api/todos/:id | Yes            |
-| PUT    | /api/todos/:id | Yes            |
-| DELETE | /api/todos/:id | Yes            |
+TTL is specified in milliseconds:
 
-# Register User
+    CACHE_TTL=60000
 
-### Request
+Examples:
 
-```
-POST /api/auth/register
-```
+    60000    = 1 minute
+    300000   = 5 minutes
+    600000   = 10 minutes
+    3600000  = 1 hour
 
-### Body
+---
 
-```
-{
-  "name": "Niket",
-  "email": "niket@example.com",
-  "password": "Password@123"
-}
-```
+# LFU Eviction
 
-### Example Response
-
-```
-{
-  "message": "User registered successfully",
-  "user": {
-    "name": "Niket",
-    "email": "niket@example.com"
-  }
-}
-```
-
-# Login
-
-### Request
-
-```
-POST /api/auth/login
-```
-
-### Body
-
-```
-{
-  "email": "niket@example.com",
-  "password": "Password@123"
-}
-```
-
-### Example Response
-
-```
-{
-  "message": "Login successful",
-  "token": "YOUR_JWT_TOKEN",
-  "user": {
-    "name": "Niket",
-    "email": "niket@example.com"
-  }
-}
-```
-
-Copy the returned JWT token and use it for protected requests.
-
-# Get Current User
-
-### Request
-
-```
-GET /api/auth/me
-```
-
-### Header
-
-```
-Authorization: Bearer YOUR_JWT_TOKEN
-```
-
-### Example Response
-
-```
-{
-  "user": {
-    "name": "Niket",
-    "email": "niket@example.com"
-  }
-}
-```
-
-# Change Password
-
-A logged-in user can change their password.
-
-### Request
-
-```
-POST /api/auth/change-password
-```
-
-### Header
-
-```
-Authorization: Bearer YOUR_JWT_TOKEN
-```
-
-### Body
-
-```
-{
-  "currentPassword": "Password@123",
-  "newPassword": "NewPassword@123"
-}
-```
-
-### Example Response
-
-```
-{
-  "message": "Password changed successfully"
-}
-```
-
-# Forgot Password
-
-If the user forgets their password, they can request a password reset.
-
-### Request
-
-```
-POST /api/auth/forgot-password
-```
-
-### Body
-
-```
-{
-  "email": "niket@example.com"
-}
-```
-
-### Example Response
-
-```
-{
-  "message": "If an account with that email exists, a password reset link has been sent."
-}
-```
-
-The reset email contains a password reset token.
-
-# Password Reset Token
-
-The password reset token is generated when the user requests a password reset.
-
-The token is normally sent through the reset email.
-
-Example reset URL:
-
-```
-http://localhost:3000/reset-password/RESET_TOKEN
-```
-
-The exact URL depends on your frontend configuration.
-
-The reset token should be treated as secret information.
-
-# Reset Password
-
-Use the reset token received through the email.
-
-### Request
-
-```
-POST /api/auth/reset-password/:token
-```
+The cache uses Least Frequently Used eviction.
 
 Example:
 
-```
-POST /api/auth/reset-password/RESET_TOKEN
-```
+    Cache Capacity = 3
 
-### Body
+    A → accessed 10 times
+    B → accessed 5 times
+    C → accessed 1 time
 
-```
-{
-  "password": "NewPassword@123"
-}
-```
+Add D:
 
-### Example Response
+    A → Keep
+    B → Keep
+    C → Remove
+    D → Add
 
-```
-{
-  "message": "Password reset successful"
-}
-```
+The entry with the lowest frequency is removed.
 
-After successfully resetting the password, login using the new password.
+If multiple entries have the same frequency, the oldest entry is removed first.
 
-# Compulsory Password Change
+---
 
-The API supports a compulsory password-change flow.
+# TTL Expiration
 
-This can be used when a user's password must be changed before they can continue using protected functionality.
+When an entry expires:
 
-Example login response:
+    GET cache
+       ↓
+    Entry exists?
+       ↓
+    Expired?
+     ┌─┴─┐
+    YES  NO
+     ↓    ↓
+    Delete Return data
+     ↓
+    Cache miss
 
-```
-{
-  "message": "Password change required",
-  "mustChangePassword": true,
-  "token": "YOUR_JWT_TOKEN"
-}
-```
+Expired entries are never returned.
 
-The frontend should redirect the user to the change-password page.
+Expired entries are also cleaned periodically.
 
-Then call:
+---
 
-```
-POST /api/auth/change-password
-```
+# Todo Cache
 
-with:
+Caching is applied to:
 
-```
-{
-  "currentPassword": "OldPassword@123",
-  "newPassword": "NewPassword@123"
-}
-```
+    GET /api/todos
 
-After successfully changing the password, the backend should clear the compulsory password-change flag.
+The cache key contains the authenticated user and the Todo query.
 
-# Logout
+Example:
 
-### Request
+    todos:role:user:userId:123:search::status:pending:priority::dueDate::page:1:limit:10:sort:newest
 
-```
-POST /api/auth/logout
-```
+This prevents cached data from being mixed between users or queries.
 
-### Header
+For example:
 
-```
-Authorization: Bearer YOUR_JWT_TOKEN
-```
+    User 1 + pending + page 1
 
-### Example Response
+is different from:
 
-```
-{
-  "message": "Logout successful"
-}
-```
+    User 1 + completed + page 1
 
-For normal stateless JWT authentication, the client should remove the stored JWT token after logout.
+and:
+
+    User 2 + pending + page 1
+
+---
+
+# Todo Cache Flow
+
+    GET /api/todos
+          ↓
+    Create cache key
+          ↓
+    Check cache
+          ↓
+       ┌──┴──┐
+       │     │
+      HIT   MISS
+       │     │
+    Frequency MongoDB
+       +1     │
+       │      ↓
+       │   Store cache
+       │      │
+       └──┬───┘
+          ↓
+     Return response
+
+---
+
+# Cache Invalidation
+
+Todo cache is automatically invalidated when Todo data changes.
+
+The following operations invalidate the Todo cache:
+
+- Todo created
+- Todo updated
+- Todo deleted
+- Todo restored
+- Todo assigned
+- Todo reassigned
+- Todo status changed
+- Todo priority changed
+- Todo due date changed
+- Todo attachment changed
+
+After a modification:
+
+    Todo changed
+        ↓
+    Invalidate Todo cache
+        ↓
+    Next GET /api/todos
+        ↓
+    MongoDB
+        ↓
+    Fresh data
+        ↓
+    Store new cache
+
+This guarantees that the next Todo list request does not return stale cached data.
+
+---
+
+# Cache Failure Safety
+
+The cache is isolated from the main API.
+
+If a cache operation fails:
+
+    Cache error
+        ↓
+    Ignore cache error
+        ↓
+    Continue database operation
+        ↓
+    Return API response
+
+Therefore a cache failure does not break the Todo API.
+
+---
+
+# Server Restart
+
+The cache is stored only in Node.js application memory.
+
+Before restart:
+
+    Application memory
+    └── Cache entries
+
+After restart:
+
+    Application memory
+    └── Empty cache
+
+No cache data is stored permanently.
+
+---
+
+# Cache Statistics
+
+For local testing, add:
+
+    CACHE_DEBUG=true
+
+Then use:
+
+    GET /api/cache/stats
+
+Example response:
+
+    {
+      "success": true,
+      "cache": {
+        "size": 2,
+        "maxSize": 100,
+        "ttl": 60000,
+        "entries": [
+          {
+            "key": "todos:userId:123:status:pending",
+            "frequency": 5,
+            "createdAt": "2026-08-19T00:00:00.000Z",
+            "expiresAt": "2026-08-19T00:01:00.000Z"
+          }
+        ]
+      }
+    }
+
+This endpoint should only be enabled for local testing or protected appropriately.
+
+---
+
+# Authentication API
+
+    POST /api/auth/register
+    POST /api/auth/login
+    POST /api/auth/forgot-password
+    POST /api/auth/reset-password/:token
+    POST /api/auth/change-password
+    GET  /api/auth/me
+    POST /api/auth/logout
+
+Protected requests use:
+
+    Authorization: Bearer YOUR_JWT_TOKEN
+
+---
 
 # Todo API
 
-## Create Todo
+    POST   /api/todos
+    GET    /api/todos
+    GET    /api/todos/stats
+    GET    /api/todos/:id
+    PUT    /api/todos/:id
+    PATCH  /api/todos/:id
+    PATCH  /api/todos/:id/status
+    DELETE /api/todos/:id
 
-### Request
+    POST   /api/todos/:id/comments
+    GET    /api/todos/:id/comments
+    PATCH  /api/todos/:todoId/comments/:commentId
+    DELETE /api/todos/:todoId/comments/:commentId
 
-```
-POST /api/todos
-```
+    GET    /api/todos/:id/activity
+    POST   /api/todos/:id/attachment
 
-### Header
+---
 
-```
-Authorization: Bearer YOUR_JWT_TOKEN
-```
+# Admin API
 
-### Body
+    GET    /api/admin/users
 
-```
-{
-  "title": "Learn Node.js",
-  "description": "Complete Node.js API project",
-  "completed": false
-}
-```
+    GET    /api/admin/todos
+    GET    /api/admin/todos/trash
+    GET    /api/admin/todos/:id
 
-### Example Response
+    PUT    /api/admin/todos/:id
+    PATCH  /api/admin/todos/:id
+    DELETE /api/admin/todos/:id
+    PATCH  /api/admin/todos/:id/restore
 
-```
-{
-  "message": "Todo created successfully",
-  "todo": {
-    "_id": "TODO_ID",
-    "title": "Learn Node.js",
-    "description": "Complete Node.js API project",
-    "completed": false
-  }
-}
-```
+    POST   /api/admin/users/:id/make-admin
+    POST   /api/admin/users/:id/remove-admin
+    PATCH  /api/admin/users/:id/role
+    PATCH  /api/admin/users/:id/password
+    PATCH  /api/admin/users/:id/status
+    DELETE /api/admin/users/:id
 
-# Get All Todos
+---
 
-### Request
+# Trash Cleanup
 
-```
-GET /api/todos
-```
-
-### Header
-
-```
-Authorization: Bearer YOUR_JWT_TOKEN
-```
-
-### Example Response
-
-```
-{
-  "todos": [
-    {
-      "_id": "TODO_ID",
-      "title": "Learn Node.js",
-      "description": "Complete Node.js API project",
-      "completed": false
-    }
-  ]
-}
-```
-
-Only the authenticated user's Todos should be returned.
-
-# Get Single Todo
-
-### Request
-
-```
-GET /api/todos/:id
-```
+Deleted Todos are soft deleted first.
 
 Example:
 
-```
-GET /api/todos/TODO_ID
-```
+    Todo deleted
+         ↓
+    isDeleted = true
+         ↓
+    deletedAt = current date
+         ↓
+    Trash
 
-### Header
+Retention is controlled by:
 
-```
-Authorization: Bearer YOUR_JWT_TOKEN
-```
+    TRASH_RETENTION_DAYS=30
 
-# Update Todo
+After the configured retention period, old Trash records are permanently deleted.
 
-### Request
+When permanent Todo deletion occurs, the Todo cache is invalidated.
 
-```
-PUT /api/todos/:id
-```
+---
 
-Example:
+# Testing
 
-```
-PUT /api/todos/TODO_ID
-```
+Run all tests:
 
-### Header
+    npm test
 
-```
-Authorization: Bearer YOUR_JWT_TOKEN
-```
+Run Todo tests:
 
-### Body
+    npm run test:todo
 
-```
-{
-  "title": "Learn Express.js",
-  "description": "Complete Express.js API",
-  "completed": true
-}
-```
+Run Admin tests:
 
-### Example Response
+    npm run test:admin
 
-```
-{
-  "message": "Todo updated successfully",
-  "todo": {
-    "_id": "TODO_ID",
-    "title": "Learn Express.js",
-    "description": "Complete Express.js API",
-    "completed": true
-  }
-}
-```
+Run Authentication tests:
 
-# Delete Todo
+    npm run test:auth
 
-### Request
+Run LFU cache tests:
 
-```
-DELETE /api/todos/:id
-```
+    npm run test:lfu-cache
 
-Example:
+Run everything:
 
-```
-DELETE /api/todos/TODO_ID
-```
+    npm run test:all
 
-### Header
+---
 
-```
-Authorization: Bearer YOUR_JWT_TOKEN
-```
+# LFU Important Test
 
-### Example Response
+Set:
 
-```
-{
-  "message": "Todo deleted successfully"
-}
-```
+    CACHE_MAX_SIZE=3
 
-# Postman Testing
+Use:
 
-Use Postman to test all API endpoints.
+    A → 10 accesses
+    B → 5 accesses
+    C → 1 access
 
-## Test 1 - Register
+Then request:
 
-Method:
+    D
 
-```
-POST
-```
+Expected:
 
-URL:
+    A → Keep
+    B → Keep
+    C → Remove
+    D → Add
 
-```
-http://localhost:5000/api/auth/register
-```
+---
 
-Body:
+# LFU Testing Checklist
 
-```
-{
-  "name": "Niket",
-  "email": "niket@example.com",
-  "password": "Password@123"
-}
-```
+- [ ] Cache miss fetches data from MongoDB
+- [ ] Cache hit returns cached data
+- [ ] Cache hit increases frequency
+- [ ] Frequency is tracked correctly
+- [ ] Maximum cache size is respected
+- [ ] LFU item is removed when cache is full
+- [ ] Frequently accessed item remains in cache
+- [ ] TTL expiration works
+- [ ] Expired cache is not returned
+- [ ] New data replaces least frequently used data
+- [ ] Different users have separate cache entries
+- [ ] Different query parameters create separate cache keys
+- [ ] Todo creation invalidates relevant cache
+- [ ] Todo update invalidates relevant cache
+- [ ] Todo deletion invalidates relevant cache
+- [ ] Todo restore invalidates relevant cache
+- [ ] Todo assignment invalidates relevant cache
+- [ ] Todo status change invalidates relevant cache
+- [ ] Todo priority change invalidates relevant cache
+- [ ] Todo attachment change invalidates relevant cache
+- [ ] Cache failure does not break the API
+- [ ] Server restart clears in-memory cache
+- [ ] User cached data cannot be exposed to another user
 
-Expected result:
-
-```
-201 Created
-```
-
-## Test 2 - Login
-
-Method:
-
-```
-POST
-```
-
-URL:
-
-```
-http://localhost:5000/api/auth/login
-```
-
-Body:
-
-```
-{
-  "email": "niket@example.com",
-  "password": "Password@123"
-}
-```
-
-Copy the returned token.
-
-## Test 3 - Get Current User
-
-Method:
-
-```
-GET
-```
-
-URL:
-
-```
-http://localhost:5000/api/auth/me
-```
-
-Header:
-
-```
-Authorization: Bearer YOUR_JWT_TOKEN
-```
-
-Expected result:
-
-```
-200 OK
-```
-
-## Test 4 - Create Todo
-
-Method:
-
-```
-POST
-```
-
-URL:
-
-```
-http://localhost:5000/api/todos
-```
-
-Headers:
-
-```
-Authorization: Bearer YOUR_JWT_TOKEN
-Content-Type: application/json
-```
-
-Body:
-
-```
-{
-  "title": "My First Todo",
-  "description": "Test Todo API",
-  "completed": false
-}
-```
-
-Expected result:
-
-```
-201 Created
-```
-
-## Test 5 - Get All Todos
-
-Method:
-
-```
-GET
-```
-
-URL:
-
-```
-http://localhost:5000/api/todos
-```
-
-Header:
-
-```
-Authorization: Bearer YOUR_JWT_TOKEN
-```
-
-Expected result:
-
-```
-200 OK
-```
-
-## Test 6 - Get Single Todo
-
-Copy the Todo `_id` from the previous response.
-
-Method:
-
-```
-GET
-```
-
-URL:
-
-```
-http://localhost:5000/api/todos/TODO_ID
-```
-
-Header:
-
-```
-Authorization: Bearer YOUR_JWT_TOKEN
-```
-
-## Test 7 - Update Todo
-
-Method:
-
-```
-PUT
-```
-
-URL:
-
-```
-http://localhost:5000/api/todos/TODO_ID
-```
-
-Headers:
-
-```
-Authorization: Bearer YOUR_JWT_TOKEN
-Content-Type: application/json
-```
-
-Body:
-
-```
-{
-  "title": "Updated Todo",
-  "description": "Updated description",
-  "completed": true
-}
-```
-
-## Test 8 - Delete Todo
-
-Method:
-
-```
-DELETE
-```
-
-URL:
-
-```
-http://localhost:5000/api/todos/TODO_ID
-```
-
-Header:
-
-```
-Authorization: Bearer YOUR_JWT_TOKEN
-```
-
-Expected result:
-
-```
-200 OK
-```
-
-# Password Testing
-
-## Test 9 - Wrong Password
-
-Try logging in with an incorrect password.
-
-```
-{
-  "email": "niket@example.com",
-  "password": "WrongPassword@123"
-}
-```
-
-Expected result:
-
-```
-401 Unauthorized
-```
-
-## Test 10 - Forgot Password
-
-Method:
-
-```
-POST
-```
-
-URL:
-
-```
-http://localhost:5000/api/auth/forgot-password
-```
-
-Body:
-
-```
-{
-  "email": "niket@example.com"
-}
-```
-
-Check the configured email inbox for the reset email.
-
-## Test 11 - Reset Password
-
-Get the reset token from the reset email.
-
-Method:
-
-```
-POST
-```
-
-URL:
-
-```
-http://localhost:5000/api/auth/reset-password/RESET_TOKEN
-```
-
-Body:
-
-```
-{
-  "password": "NewPassword@123"
-}
-```
-
-Then login using:
-
-```
-{
-  "email": "niket@example.com",
-  "password": "NewPassword@123"
-}
-```
-
-## Test 12 - Change Password
-
-Login and copy the JWT token.
-
-Method:
-
-```
-POST
-```
-
-URL:
-
-```
-http://localhost:5000/api/auth/change-password
-```
-
-Header:
-
-```
-Authorization: Bearer YOUR_JWT_TOKEN
-```
-
-Body:
-
-```
-{
-  "currentPassword": "NewPassword@123",
-  "newPassword": "AnotherPassword@123"
-}
-```
-
-Then login again using the new password.
-
-## Test 13 - Old Password Must Fail
-
-After changing the password, try the old password:
-
-```
-{
-  "email": "niket@example.com",
-  "password": "NewPassword@123"
-}
-```
-
-The old password should no longer work.
-
-Use the latest password:
-
-```
-{
-  "email": "niket@example.com",
-  "password": "AnotherPassword@123"
-}
-```
-
-# Authorization Testing
-
-## Test 14 - Request Without Token
-
-Try:
-
-```
-GET /api/todos
-```
-
-without the Authorization header.
-
-Expected result:
-
-```
-401 Unauthorized
-```
-
-## Test 15 - Invalid Token
-
-Try:
-
-```
-Authorization: Bearer invalid-token
-```
-
-Expected result:
-
-```
-401 Unauthorized
-```
-
-## Test 16 - User Cannot Access Another User's Todo
-
-Create a Todo with User A.
-
-Login as User B.
-
-Try to access User A's Todo ID.
-
-The API should reject the request.
-
-Expected result:
-
-```
-403 Forbidden
-```
-
-or:
-
-```
-404 Not Found
-```
-
-depending on the implementation.
-
-# Error Handling
-
-Typical HTTP status codes:
-
-| Status | Meaning               |
-| ------ | --------------------- |
-| 200    | Success               |
-| 201    | Created               |
-| 400    | Bad Request           |
-| 401    | Unauthorized          |
-| 403    | Forbidden             |
-| 404    | Not Found             |
-| 500    | Internal Server Error |
-
-Example:
-
-```
-{
-  "message": "Invalid credentials"
-}
-```
+---
 
 # Security
 
-The API uses:
+Never commit secrets to Git.
 
-* bcrypt password hashing
-* JWT authentication
-* Protected routes
-* User-specific Todo access
-* Password reset tokens
-* Password reset token expiration
-* Environment variables
-* Authentication middleware
+Keep sensitive configuration in `.env`.
 
-Passwords should never be stored as plain text.
+Sensitive values include:
 
-Sensitive values such as JWT secrets, database credentials, and email credentials must be stored in `.env`.
+    JWT_SECRET
+    MONGO_URI
+    EMAIL_PASSWORD
+    CONFIG_ENCRYPTION_KEY
+    Cloudinary credentials
 
-# .gitignore
+Make sure `.env` is included in `.gitignore`.
 
-The `.gitignore` file should contain:
+---
 
-```
-node_modules/
-.env
-```
+# Multi-Process Note
 
-Never commit `.env` to GitHub.
+The cache is process-local.
 
-# NPM Scripts
+If multiple Node.js processes are running:
 
-The `package.json` should contain scripts similar to:
+    Process 1
+    └── Cache 1
 
-```
-"scripts": {
-  "start": "node server.js",
-  "dev": "nodemon server.js"
-}
-```
+    Process 2
+    └── Cache 2
 
-Run development server:
+They do not share cache entries.
 
-```
-npm run dev
-```
+This is expected because the requirement is a custom in-memory cache with no Redis or external cache service.
 
-Run production server:
+---
 
-```
-npm start
-```
+# Cache Design Summary
 
-# Common Problems
+The implemented cache follows this behavior:
 
-## MongoDB Connection Error
+    Request /api/todos
+            ↓
+    Build user/query-specific cache key
+            ↓
+    Search in-memory cache
+            ↓
+       ┌────┴────┐
+       │         │
+      HIT       MISS
+       │         │
+    frequency   MongoDB
+       +1         │
+       │          ↓
+       │       Store result
+       │          │
+       └────┬─────┘
+            ↓
+       Return response
 
-Check the `MONGO_URI` value in `.env`.
+When the cache reaches its capacity:
 
-Example:
+    New cache entry
+          ↓
+    Cache full?
+          ↓
+       Find LFU
+          ↓
+    Remove least used
+          ↓
+       Add new entry
 
-```
-MONGO_URI=mongodb://127.0.0.1:27017/todo-api
-```
+When TTL expires:
 
-Make sure MongoDB is running.
+    Cached entry
+          ↓
+    TTL expired?
+          ↓
+        Delete
+          ↓
+      Cache miss
+          ↓
+       MongoDB
 
-For MongoDB Atlas, make sure:
+When Todo data changes:
 
-* Cluster is running
-* Username is correct
-* Password is correct
-* IP address is allowed
-* Database connection string is correct
+    Create / Update / Delete / Restore /
+    Assign / Status / Priority / Attachment
+                  ↓
+          Invalidate Todo cache
+                  ↓
+          Next request is fresh
 
-## JWT Error
-
-Check:
-
-```
-JWT_SECRET=your_super_secret_jwt_key
-```
-
-Restart the server after changing `.env`.
-
-## Email Not Sending
-
-Check:
-
-```
-EMAIL_HOST=smtp.gmail.com
-EMAIL_PORT=587
-EMAIL_USER=your_email@gmail.com
-EMAIL_PASS=your_gmail_app_password
-```
-
-For Gmail, use an App Password when required by the account configuration.
-
-## Nodemon Not Found
-
-Run:
-
-```
-npm install
-```
-
-Or install Nodemon:
-
-```
-npm install --save-dev nodemon
-```
-
-Then run:
-
-```
-npm run dev
-```
-
-# Git Commands
-
-Initialize Git:
-
-```
-git init
-```
-
-Add files:
-
-```
-git add .
-```
-
-Commit:
-
-```
-git commit -m "Initial Todo API"
-```
-
-Add GitHub remote:
-
-```
-git remote add origin <your-github-repository-url>
-```
-
-Rename branch:
-
-```
-git branch -M main
-```
-
-Push:
-
-```
-git push -u origin main
-```
-
-# API Summary
-
-## Authentication
-
-```
-POST /api/auth/register
-POST /api/auth/login
-POST /api/auth/forgot-password
-POST /api/auth/reset-password/:token
-POST /api/auth/change-password
-GET  /api/auth/me
-POST /api/auth/logout
-```
-
-## Todos
-
-```
-POST   /api/todos
-GET    /api/todos
-GET    /api/todos/:id
-PUT    /api/todos/:id
-DELETE /api/todos/:id
-```
-
-# Project Status
-
-The Todo API includes:
-
-* User registration
-* User login
-* JWT authentication
-* Protected routes
-* Password hashing
-* Change password
-* Forgot password
-* Password reset
-* Password reset token
-* Compulsory password-change support
-* Todo creation
-* Todo listing
-* Todo details
-* Todo update
-* Todo deletion
-* User-specific Todo access
-* MongoDB integration
-* Email password reset support
-
+---
 
 # License
 
-This project is for learning and development purposes.
+This project is for development and API implementation purposes.

@@ -110,20 +110,13 @@ const buildTodoListCacheKey = (
   ];
 
   optionalParams.forEach((param) => {
-    const value = query[param];
-
     if (
-      value !== undefined &&
-      value !== null &&
-      String(value).trim() !== ""
+      query[param] !== undefined &&
+      query[param] !== null &&
+      String(query[param]).trim() !== ""
     ) {
-      const normalizedValue =
-        param === "search"
-          ? String(value).trim()
-          : String(value);
-
       keyParts.push(
-        `${param}:${normalizedValue}`
+        `${param}:${String(query[param]).trim()}`
       );
     }
   });
@@ -367,6 +360,10 @@ const createTodo = async (req, res) => {
     // ==========================================
     // AUDIT: ASSIGNED
     // ==========================================
+    //
+    // Creating a Todo with an assigned user
+    // is also an assignment action.
+    // ==========================================
 
     await createActivity({
       todoId: todo._id,
@@ -459,20 +456,38 @@ const getTodos = async (req, res) => {
     // ==========================================
     // CACHE KEY
     //
-    // Only parameters actually present in the
-    // query are included in the cache key.
+    // Only query parameters that are actually
+    // present in the request are added.
     //
-    // Examples:
+    // Always included:
+    // - todos
+    // - role
+    // - userId
     //
-    // /todos
-    // todos:role:user:userId:123
+    // Optional:
+    // - search
+    // - status
+    // - priority
+    // - dueDate
+    // - page
+    // - limit
+    // - sort
     //
-    // /todos?status=completed
-    // todos:role:user:userId:123:status:completed
+    // Example:
     //
-    // /todos?search=meeting&priority=high
-    // todos:role:user:userId:123:
-    // search:meeting:priority:high
+    // GET /api/todos
+    //
+    // todos:role:admin:userId:123
+    //
+    // GET /api/todos?status=pending
+    //
+    // todos:role:admin:userId:123:status:pending
+    //
+    // GET /api/todos?status=pending&priority=high
+    //
+    // todos:role:admin:userId:123:
+    // status:pending:
+    // priority:high
     // ==========================================
 
     const cacheKey =
@@ -490,9 +505,16 @@ const getTodos = async (req, res) => {
         todoCache.get(cacheKey);
 
       if (cachedResult !== null) {
-        return res.status(200).json(
-          cachedResult
-        );
+        return res.status(200).json({
+          ...cachedResult,
+
+          cache: {
+            status: "HIT",
+
+            key:
+              cacheKey,
+          },
+        });
       }
     } catch (cacheError) {
       // Cache failure must never break API
@@ -689,10 +711,19 @@ const getTodos = async (req, res) => {
 
       data:
         todos,
+
+      cache: {
+        status: "MISS",
+
+        key:
+          cacheKey,
+      },
     };
 
     // ==========================================
     // STORE IN CACHE
+    //
+    // If cache fails, API response still succeeds.
     // ==========================================
 
     try {
@@ -730,6 +761,8 @@ const getTodoStats = async (
       isDeleted: false,
     };
 
+    // Normal users can only see their
+    // created/assigned Todo statistics.
     if (req.user.role !== "admin") {
       baseFilter.$or = [
         {
@@ -935,6 +968,10 @@ const updateTodo = async (
       dueDate,
     } = req.body;
 
+    // ==========================================
+    // Store OLD values
+    // ==========================================
+
     const oldTitle =
       todo.title;
 
@@ -1124,9 +1161,22 @@ const updateTodo = async (
 
     // ==========================================
     // CACHE INVALIDATION
+    //
+    // Update can change:
+    // - title/search results
+    // - assignment visibility
+    // - status filter
+    // - priority filter
+    // - due date filter
+    //
+    // Therefore invalidate Todo list cache.
     // ==========================================
 
     invalidateTodoCache();
+
+    // ==========================================
+    // Store NEW values
+    // ==========================================
 
     const newAssignedTo =
       todo.assignedTo
@@ -1230,6 +1280,7 @@ const updateTodo = async (
           newAssignedTo,
       });
 
+      // Notification only when a user is assigned.
       if (newAssignedTo) {
         await createNotification({
           userId:
@@ -1272,6 +1323,7 @@ const updateTodo = async (
           todo.status,
       });
 
+      // Notification
       const recipientIds = [
         todo.createdBy,
         todo.assignedTo,
@@ -1438,6 +1490,10 @@ const updateTodoStatus = async (
       oldStatus !==
       status
     ) {
+      // ========================================
+      // AUDIT
+      // ========================================
+
       await createActivity({
         todoId:
           todo._id,
@@ -1454,6 +1510,10 @@ const updateTodoStatus = async (
         newValue:
           status,
       });
+
+      // ========================================
+      // Notification
+      // ========================================
 
       const recipientIds = [
         todo.createdBy,
@@ -1598,6 +1658,10 @@ const deleteTodo = async (
 
     invalidateTodoCache();
 
+    // ==========================================
+    // AUDIT: Soft Deleted
+    // ==========================================
+
     await createActivity({
       todoId:
         todo._id,
@@ -1694,6 +1758,10 @@ const uploadTodoAttachment =
       // ==========================================
 
       invalidateTodoCache();
+
+      // ==========================================
+      // AUDIT: Attachment Added
+      // ==========================================
 
       await createActivity({
         todoId:
@@ -1798,6 +1866,10 @@ const addComment = async (
           comment.trim(),
       });
 
+    // ==========================================
+    // AUDIT: Comment Added
+    // ==========================================
+
     await createActivity({
       todoId:
         todo._id,
@@ -1819,6 +1891,10 @@ const addComment = async (
           newComment.comment,
       },
     });
+
+    // ==========================================
+    // Notification
+    // ==========================================
 
     const recipientIds = [
       todo.createdBy,
@@ -2192,6 +2268,15 @@ const getTodoActivity =
             "Invalid Todo ID",
         });
       }
+
+      // ========================================
+      // IMPORTANT:
+      // Do NOT use getAccessibleTodo() here.
+      //
+      // A soft-deleted Todo must still have
+      // accessible audit history for its creator,
+      // assigned user, and admin.
+      // ========================================
 
       const todo =
         await Todo.findById(

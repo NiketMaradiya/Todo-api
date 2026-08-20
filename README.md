@@ -1,10 +1,12 @@
 # Todo API
 
-A RESTful Todo API built with Node.js, Express.js, MongoDB, JWT authentication, Todo assignment, comments, notifications, attachments, audit history, soft delete/restore, Cloudinary configuration management, and a custom in-memory LFU cache.
+A RESTful Todo API built with Node.js, Express.js, MongoDB, JWT authentication, Todo assignment, comments, notifications, attachments, audit history, soft delete/restore, Cloudinary configuration management, a custom in-memory LFU cache, and AI-powered Todo creation using Google Gemini.
 
-## Features
+---
 
-### Authentication
+# Features
+
+## Authentication
 
 - User registration
 - User login
@@ -18,9 +20,12 @@ A RESTful Todo API built with Node.js, Express.js, MongoDB, JWT authentication, 
 - Temporary password change protection
 - Logout
 
-### Todo Management
+---
+
+## Todo Management
 
 - Create Todo
+- AI-powered Todo creation from natural language
 - Get Todos
 - Get single Todo
 - Update Todo
@@ -30,12 +35,68 @@ A RESTful Todo API built with Node.js, Express.js, MongoDB, JWT authentication, 
 - Change Todo status
 - Change Todo priority
 - Due date support
+- Tags support
 - Search
 - Filtering
 - Pagination
 - Sorting
 
-### Collaboration
+---
+
+## AI-Powered Todo Creation
+
+Users can create Todos using natural-language requests.
+
+Example:
+
+    Tomorrow at 5 PM remind me to call Rahul about the project. Make it high priority.
+
+The AI extracts:
+
+- Title
+- Description
+- Due date/time
+- Priority
+- Assigned user
+- Tags
+
+The extracted data is validated before the Todo is created.
+
+The AI does not directly write to the database.
+
+The extracted Todo is passed through the existing Todo creation flow so the same validation, authorization, activity logging, notifications, and cache invalidation rules are applied.
+
+### Important Authorization Rule
+
+AI Todo creation is restricted to the authenticated user.
+
+If an AI request attempts to assign a Todo to another user:
+
+    403 Forbidden
+
+This prevents the AI endpoint from bypassing existing Todo permissions.
+
+Examples:
+
+    No assignee mentioned
+        ↓
+    Todo is assigned to logged-in user
+
+    Logged-in user mentioned
+        ↓
+    Todo is assigned to logged-in user
+
+    Different user mentioned
+        ↓
+    Request rejected with 403
+
+    Unknown user mentioned
+        ↓
+    Request rejected with 404
+
+---
+
+## Collaboration
 
 - Add comments
 - Get comments
@@ -46,7 +107,9 @@ A RESTful Todo API built with Node.js, Express.js, MongoDB, JWT authentication, 
 - Notifications
 - Todo attachments
 
-### Admin
+---
+
+## Admin
 
 - Get all users
 - Get all Todos
@@ -62,14 +125,18 @@ A RESTful Todo API built with Node.js, Express.js, MongoDB, JWT authentication, 
 - Enable/disable users
 - Delete users
 
-### Cloudinary
+---
+
+## Cloudinary
 
 - Cloudinary configuration stored in MongoDB
 - Encrypted Cloudinary credentials
 - Secure credential management
 - Attachment upload
 
-### Custom In-Memory LFU Cache
+---
+
+## Custom In-Memory LFU Cache
 
 - No Redis
 - No external cache service
@@ -103,6 +170,8 @@ A RESTful Todo API built with Node.js, Express.js, MongoDB, JWT authentication, 
 - Jest
 - Supertest
 - Nodemon
+- Google Gemini API
+- `@google/genai`
 
 ---
 
@@ -121,7 +190,8 @@ A RESTful Todo API built with Node.js, Express.js, MongoDB, JWT authentication, 
     │   ├── authController.js
     │   ├── cloudinaryAdminController.js
     │   ├── notificationController.js
-    │   └── todoController.js
+    │   ├── todoController.js
+    │   └── aiTodoController.js
     │
     ├── middleware/
     │   ├── authMiddleware.js
@@ -146,6 +216,7 @@ A RESTful Todo API built with Node.js, Express.js, MongoDB, JWT authentication, 
     │
     ├── utils/
     │   ├── activityService.js
+    │   ├── aiTodoService.js
     │   ├── attachmentService.js
     │   ├── cloudinaryConfigService.js
     │   ├── emailService.js
@@ -163,7 +234,8 @@ A RESTful Todo API built with Node.js, Express.js, MongoDB, JWT authentication, 
     │   ├── setup.js
     │   ├── todo.test.js
     │   ├── todoActivity.test.js
-    │   └── todoAttachmentActivity.test.js
+    │   ├── todoAttachmentActivity.test.js
+    │   └── aiTodo.test.js
     │
     ├── public/
     │   └── uploads/
@@ -184,7 +256,13 @@ A RESTful Todo API built with Node.js, Express.js, MongoDB, JWT authentication, 
 
     npm install
 
-## 2. Configure Environment
+The AI Todo feature requires the Google Gemini SDK:
+
+    npm install @google/genai
+
+---
+
+# Environment Configuration
 
 Create `.env` in the project root.
 
@@ -213,6 +291,248 @@ Example:
     CACHE_MAX_SIZE=100
     CACHE_TTL=60000
 
+    GEMINI_API_KEY=your_google_ai_studio_api_key
+    GEMINI_MODEL=gemini-3.6-flash
+    AI_TODO_TIMEZONE=Asia/Kolkata
+
+---
+
+# Google Gemini / AI Studio Setup
+
+The AI Todo feature uses Google Gemini.
+
+Google AI Studio is used to create/manage the Gemini API key.
+
+The backend uses the Gemini API through:
+
+    @google/genai
+
+The key must remain on the backend.
+
+Never expose:
+
+    GEMINI_API_KEY
+
+in frontend JavaScript or browser code.
+
+---
+
+# AI Todo Creation
+
+## Endpoint
+
+    POST /api/todos/ai
+
+This endpoint requires authentication.
+
+Protected requests must include:
+
+    Authorization: Bearer YOUR_JWT_TOKEN
+
+---
+
+## Request
+
+Example:
+
+    POST /api/todos/ai
+
+    Content-Type: application/json
+
+    Authorization: Bearer YOUR_JWT_TOKEN
+
+Body:
+
+    {
+      "prompt": "Tomorrow at 5 PM remind me to call Rahul about the project. Make it high priority."
+    }
+
+---
+
+## AI Extraction
+
+The AI extracts:
+
+    Title
+    Description
+    Due Date
+    Priority
+    Assigned User
+    Tags
+
+Example input:
+
+    Complete the client report by Friday and assign it to me and mark it high priority.
+
+Example extracted data:
+
+    Title:
+    Complete the client report
+
+    Priority:
+    high
+
+    Due Date:
+    Friday
+
+    Assigned To:
+    Logged-in user
+
+---
+
+# AI Todo Creation Flow
+
+    POST /api/todos/ai
+            ↓
+    Authentication middleware
+            ↓
+    Validate prompt
+            ↓
+    Send prompt to Gemini
+            ↓
+    Gemini returns structured JSON
+            ↓
+    Validate AI-generated data
+            ↓
+    Resolve assigned user
+            ↓
+    Check assignment authorization
+            ↓
+    Existing Todo creation flow
+            ↓
+    Todo validation
+            ↓
+    Create Todo
+            ↓
+    Activity / notification / cache logic
+            ↓
+    Return created Todo
+
+The AI controller must not bypass the existing Todo creation rules.
+
+---
+
+# AI Todo Security
+
+AI-created Todos can only be assigned to the currently logged-in user.
+
+### No assignment specified
+
+The Todo is automatically assigned to:
+
+    req.user
+
+### Logged-in user specified
+
+The Todo is created successfully.
+
+### Different user specified
+
+The request is rejected:
+
+    403 Forbidden
+
+Example:
+
+    {
+      "prompt": "Finish the report and assign it to John"
+    }
+
+If John is not the authenticated user:
+
+    403 AI Todo creation can only assign the Todo to the logged-in user
+
+### Unknown user
+
+If a mentioned user cannot be found:
+
+    404 Assigned user not found
+
+### Unauthorized request
+
+If the JWT is missing or invalid:
+
+    401 Unauthorized
+
+---
+
+# AI Validation
+
+AI-generated data is never trusted directly.
+
+The server validates:
+
+- Todo title
+- Todo description
+- Todo priority
+- Todo due date
+- Assigned user
+- Tags
+- Ambiguous date
+- User permissions
+
+Invalid AI output is rejected before database creation.
+
+Supported priorities:
+
+    low
+    medium
+    high
+
+Any other value such as:
+
+    urgent
+    critical
+    highest
+
+is rejected unless it is mapped to one of the supported priorities.
+
+---
+
+# AI Date Handling
+
+Relative dates are resolved using:
+
+    AI_TODO_TIMEZONE
+
+Default:
+
+    Asia/Kolkata
+
+Examples:
+
+    tomorrow
+    Friday
+    next Monday
+    tomorrow at 5 PM
+
+If the AI determines that a date is genuinely ambiguous, the Todo is not created.
+
+Example:
+
+    "Finish this on 5/6"
+
+If the date cannot safely be resolved, the endpoint returns:
+
+    400 Bad Request
+
+The response contains a clarification message.
+
+---
+
+# AI Failure Handling
+
+If Gemini is unavailable or the API key is missing/invalid, the endpoint returns a controlled error.
+
+Example:
+
+    {
+      "success": false,
+      "message": "AI Todo creation is temporarily unavailable"
+    }
+
+The server does not create a Todo from incomplete or invalid AI output.
+
 ---
 
 # Start the Application
@@ -228,6 +548,326 @@ Example:
 Base URL:
 
     http://localhost:5000
+
+---
+
+# Authentication API
+
+    POST /api/auth/register
+    POST /api/auth/login
+    POST /api/auth/forgot-password
+    POST /api/auth/reset-password/:token
+    POST /api/auth/change-password
+    GET  /api/auth/me
+    POST /api/auth/logout
+
+Protected requests use:
+
+    Authorization: Bearer YOUR_JWT_TOKEN
+
+---
+
+# Todo API
+
+    POST   /api/todos
+
+    POST   /api/todos/ai
+
+    GET    /api/todos
+    GET    /api/todos/stats
+    GET    /api/todos/:id
+
+    PUT    /api/todos/:id
+    PATCH  /api/todos/:id
+
+    PATCH  /api/todos/:id/status
+
+    DELETE /api/todos/:id
+
+    POST   /api/todos/:id/comments
+    GET    /api/todos/:id/comments
+
+    PATCH  /api/todos/:todoId/comments/:commentId
+    DELETE /api/todos/:todoId/comments/:commentId
+
+    GET    /api/todos/:id/activity
+
+    POST   /api/todos/:id/attachment
+
+---
+
+# AI Todo Testing
+
+## 1. Start the server
+
+    npm run dev
+
+---
+
+## 2. Login
+
+Send:
+
+    POST /api/auth/login
+
+Example body:
+
+    {
+      "email": "your-user@example.com",
+      "password": "your-password"
+    }
+
+Copy the returned JWT token.
+
+---
+
+## 3. Test AI Todo Creation
+
+Send:
+
+    POST /api/todos/ai
+
+Headers:
+
+    Authorization: Bearer YOUR_JWT_TOKEN
+    Content-Type: application/json
+
+Body:
+
+    {
+      "prompt": "Tomorrow at 5 PM remind me to call Rahul about the project. Make it high priority."
+    }
+
+Expected:
+
+    201 Created
+
+The resulting Todo should contain:
+
+    priority = high
+
+and a valid:
+
+    dueDate
+
+---
+
+## 4. Test Simple Todo
+
+Body:
+
+    {
+      "prompt": "Call Rahul about the project"
+    }
+
+Expected:
+
+    201 Created
+
+Default priority:
+
+    medium
+
+---
+
+## 5. Test Priority
+
+Body:
+
+    {
+      "prompt": "Finish the client report and make it high priority"
+    }
+
+Expected:
+
+    priority = high
+
+---
+
+## 6. Test Due Date
+
+Body:
+
+    {
+      "prompt": "Finish the client report tomorrow at 5 PM"
+    }
+
+Expected:
+
+    dueDate = tomorrow at 5 PM
+
+---
+
+## 7. Test Assigned User
+
+Body:
+
+    {
+      "prompt": "Finish the report and assign it to me"
+    }
+
+Expected:
+
+    assignedTo = logged-in user
+
+---
+
+## 8. Test Unknown User
+
+Body:
+
+    {
+      "prompt": "Finish the report and assign it to UnknownUser123"
+    }
+
+Expected:
+
+    404 Not Found
+
+---
+
+## 9. Test Cross-User Assignment
+
+Login as User A and send:
+
+    {
+      "prompt": "Finish the report and assign it to User B"
+    }
+
+Expected:
+
+    403 Forbidden
+
+This verifies that AI cannot bypass existing Todo permissions.
+
+---
+
+## 10. Test Without JWT
+
+Remove:
+
+    Authorization: Bearer YOUR_JWT_TOKEN
+
+Send the AI Todo request.
+
+Expected:
+
+    401 Unauthorized
+
+---
+
+## 11. Test Invalid AI Output
+
+The AI-generated priority must only be:
+
+    low
+    medium
+    high
+
+If the AI returns:
+
+    urgent
+
+the server must reject the request.
+
+Expected:
+
+    400 Bad Request
+
+---
+
+## 12. Test Ambiguous Date
+
+Example:
+
+    {
+      "prompt": "Finish the report on 5/6"
+    }
+
+If the date cannot be safely determined, expected:
+
+    400 Bad Request
+
+No Todo should be created.
+
+---
+
+## 13. Test Gemini API Failure
+
+Temporarily use an invalid key:
+
+    GEMINI_API_KEY=invalid-key
+
+Restart the server.
+
+Send an AI Todo request.
+
+Expected:
+
+    503 Service Unavailable
+
+Restore the real Gemini key afterward.
+
+---
+
+# Testing
+
+Run all tests:
+
+    npm test
+
+Run Todo tests:
+
+    npm run test:todo
+
+Run AI Todo tests:
+
+    npx jest tests/aiTodo.test.js --runInBand
+
+Run Admin tests:
+
+    npm run test:admin
+
+Run Authentication tests:
+
+    npm run test:auth
+
+Run LFU cache tests:
+
+    npm run test:lfu-cache
+
+Run everything:
+
+    npm run test:all
+
+---
+
+# AI Todo Testing Checklist
+
+- [ ] Create Todo from a simple sentence
+- [ ] Extract title
+- [ ] Extract description
+- [ ] Extract high priority
+- [ ] Extract low priority
+- [ ] Use medium as default priority
+- [ ] Extract due date
+- [ ] Extract due time
+- [ ] Handle relative dates
+- [ ] Handle ambiguous dates
+- [ ] Extract assigned user
+- [ ] Assign Todo to logged-in user
+- [ ] Reject assignment to another user
+- [ ] Reject unknown user
+- [ ] Extract tags
+- [ ] Handle missing information
+- [ ] Reject invalid priority
+- [ ] Reject invalid due date
+- [ ] Validate AI-generated fields
+- [ ] Require authentication
+- [ ] Handle Gemini API failure
+- [ ] Ensure no Todo is created when validation fails
+- [ ] Ensure AI cannot bypass Todo permissions
+- [ ] Ensure AI-created Todo follows the same creation rules as manually created Todo
 
 ---
 
@@ -298,7 +938,7 @@ Add D:
     C → Remove
     D → Add
 
-The entry with the lowest frequency is removed.
+The entry with the lowest frequency is removed first.
 
 If multiple entries have the same frequency, the oldest entry is removed first.
 
@@ -339,18 +979,6 @@ Example:
     todos:role:user:userId:123:search::status:pending:priority::dueDate::page:1:limit:10:sort:newest
 
 This prevents cached data from being mixed between users or queries.
-
-For example:
-
-    User 1 + pending + page 1
-
-is different from:
-
-    User 1 + completed + page 1
-
-and:
-
-    User 2 + pending + page 1
 
 ---
 
@@ -409,6 +1037,8 @@ After a modification:
     Store new cache
 
 This guarantees that the next Todo list request does not return stale cached data.
+
+AI-created Todos also use the existing Todo creation flow, so the normal Todo cache invalidation logic is preserved.
 
 ---
 
@@ -481,43 +1111,6 @@ This endpoint should only be enabled for local testing or protected appropriatel
 
 ---
 
-# Authentication API
-
-    POST /api/auth/register
-    POST /api/auth/login
-    POST /api/auth/forgot-password
-    POST /api/auth/reset-password/:token
-    POST /api/auth/change-password
-    GET  /api/auth/me
-    POST /api/auth/logout
-
-Protected requests use:
-
-    Authorization: Bearer YOUR_JWT_TOKEN
-
----
-
-# Todo API
-
-    POST   /api/todos
-    GET    /api/todos
-    GET    /api/todos/stats
-    GET    /api/todos/:id
-    PUT    /api/todos/:id
-    PATCH  /api/todos/:id
-    PATCH  /api/todos/:id/status
-    DELETE /api/todos/:id
-
-    POST   /api/todos/:id/comments
-    GET    /api/todos/:id/comments
-    PATCH  /api/todos/:todoId/comments/:commentId
-    DELETE /api/todos/:todoId/comments/:commentId
-
-    GET    /api/todos/:id/activity
-    POST   /api/todos/:id/attachment
-
----
-
 # Admin API
 
     GET    /api/admin/users
@@ -561,34 +1154,6 @@ Retention is controlled by:
 After the configured retention period, old Trash records are permanently deleted.
 
 When permanent Todo deletion occurs, the Todo cache is invalidated.
-
----
-
-# Testing
-
-Run all tests:
-
-    npm test
-
-Run Todo tests:
-
-    npm run test:todo
-
-Run Admin tests:
-
-    npm run test:admin
-
-Run Authentication tests:
-
-    npm run test:auth
-
-Run LFU cache tests:
-
-    npm run test:lfu-cache
-
-Run everything:
-
-    npm run test:all
 
 ---
 
@@ -653,6 +1218,7 @@ Keep sensitive configuration in `.env`.
 
 Sensitive values include:
 
+    GEMINI_API_KEY
     JWT_SECRET
     MONGO_URI
     EMAIL_PASSWORD
@@ -660,6 +1226,10 @@ Sensitive values include:
     Cloudinary credentials
 
 Make sure `.env` is included in `.gitignore`.
+
+The Gemini API key must only be used by the backend.
+
+Do not expose the Gemini API key to the frontend.
 
 ---
 

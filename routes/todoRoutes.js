@@ -40,6 +40,12 @@ const {
   "../middleware/authMiddleware"
 );
 
+const {
+  createAiTodo,
+} = require(
+  "../controllers/aiTodoController"
+);
+
 // ==========================================
 // Multer Upload Middleware
 // ==========================================
@@ -58,12 +64,21 @@ const upload =
 // 2. Active account
 // 3. Temporary password already changed
 //
-// A first-login user receives 403.
 // ==========================================
 
 router.use(
   protect,
   requirePasswordChanged
+);
+
+// ==========================================
+// CREATE TODO FROM AI
+// POST /api/todos/ai
+// ==========================================
+
+router.post(
+  "/ai",
+  createAiTodo
 );
 
 // ==========================================
@@ -89,9 +104,6 @@ router.get(
 // ==========================================
 // TODO STATISTICS
 // GET /api/todos/stats
-//
-// IMPORTANT:
-// This route must be before /:id.
 // ==========================================
 
 router.get(
@@ -126,32 +138,20 @@ router.post(
 // TODO COMMENTS
 // ==========================================
 
-// Add Comment
-// POST /api/todos/:id/comments
-
 router.post(
   "/:id/comments",
   addComment
 );
-
-// Get Comments
-// GET /api/todos/:id/comments
 
 router.get(
   "/:id/comments",
   getTodoComments
 );
 
-// Update Comment
-// PATCH /api/todos/:todoId/comments/:commentId
-
 router.patch(
   "/:todoId/comments/:commentId",
   updateComment
 );
-
-// Delete Comment
-// DELETE /api/todos/:todoId/comments/:commentId
 
 router.delete(
   "/:todoId/comments/:commentId",
@@ -160,7 +160,6 @@ router.delete(
 
 // ==========================================
 // TODO ACTIVITY / AUDIT LOG
-// GET /api/todos/:id/activity
 // ==========================================
 
 router.get(
@@ -170,7 +169,6 @@ router.get(
 
 // ==========================================
 // GET SINGLE TODO
-// GET /api/todos/:id
 // ==========================================
 
 router.get(
@@ -180,18 +178,12 @@ router.get(
 
 // ==========================================
 // UPDATE TODO
-// PUT /api/todos/:id
 // ==========================================
 
 router.put(
   "/:id",
   updateTodo
 );
-
-// ==========================================
-// UPDATE TODO
-// PATCH /api/todos/:id
-// ==========================================
 
 router.patch(
   "/:id",
@@ -200,17 +192,12 @@ router.patch(
 
 // ==========================================
 // SOFT DELETE TODO
-// DELETE /api/todos/:id
 // ==========================================
 
 router.delete(
   "/:id",
   deleteTodo
 );
-
-// ==========================================
-// EXPORT
-// ==========================================
 
 module.exports =
   router;

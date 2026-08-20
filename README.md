@@ -1,6 +1,6 @@
 # Todo API
 
-A RESTful Todo API built with Node.js, Express.js, MongoDB, JWT authentication, Todo assignment, comments, notifications, attachments, audit history, soft delete/restore, Cloudinary configuration management, a custom in-memory LFU cache, and AI-powered Todo creation using Google Gemini.
+A RESTful Todo API built with Node.js, Express.js, MongoDB, Mongoose, JWT authentication, Todo assignment, comments, notifications, attachments, audit history, soft delete/restore, Cloudinary integration, in-memory LFU caching, and an AI-powered Todo Assistant using Google Gemini.
 
 ---
 
@@ -17,25 +17,24 @@ A RESTful Todo API built with Node.js, Express.js, MongoDB, JWT authentication, 
 - Change password
 - Forgot password
 - Reset password
-- Temporary password change protection
+- Temporary password protection
 - Logout
 
 ---
 
-## Todo Management
+# Todo Management
 
 - Create Todo
-- AI-powered Todo creation from natural language
-- Get Todos
-- Get single Todo
 - Update Todo
 - Delete Todo
 - Restore Todo
+- Get Todos
+- Get Todo by ID
 - Assign Todo
-- Change Todo status
-- Change Todo priority
-- Due date support
-- Tags support
+- Update Todo status
+- Update Todo priority
+- Due date/time
+- Tags
 - Search
 - Filtering
 - Pagination
@@ -43,220 +42,348 @@ A RESTful Todo API built with Node.js, Express.js, MongoDB, JWT authentication, 
 
 ---
 
-## AI-Powered Todo Creation
+# AI Todo Assistant
 
-Users can create Todos using natural-language requests.
+The API supports natural-language Todo commands using Google Gemini.
+
+The assistant can understand English, Hindi, and Hinglish requests.
+
+Examples:
+
+    Tomorrow at 5 PM remind me to call Rahul about the project and make it high priority.
+
+    Rahul wale task ko 6 PM kar do.
+
+    aaj ke kitne task hain?
+
+    aaj kisko call karna hai?
+
+    aaj ke saare tasks batao.
+
+    aaj kaunse task pehle karne chahiye?
+
+    aaj ke saare task complete karne mein kitna time lagega?
+
+    aaj ke saare tasks ka priority wise plan bana do.
+
+---
+
+# AI Features
+
+## Natural-Language Todo Creation
 
 Example:
 
-    Tomorrow at 5 PM remind me to call Rahul about the project. Make it high priority.
+    POST /api/todos/ai
+
+Request:
+
+    {
+      "prompt": "Tomorrow at 5 PM remind me to call Rahul about the project. Make it high priority."
+    }
 
 The AI extracts:
 
 - Title
 - Description
-- Due date/time
+- Due date
+- Due time
 - Priority
 - Assigned user
 - Tags
+- Estimated duration
+- Scheduling requirements
 
-The extracted data is validated before the Todo is created.
+---
 
-The AI does not directly write to the database.
+## Todo Update
 
-The extracted Todo is passed through the existing Todo creation flow so the same validation, authorization, activity logging, notifications, and cache invalidation rules are applied.
+The AI can find an existing Todo belonging to the logged-in user and update it.
 
-### Important Authorization Rule
+Example:
 
-AI Todo creation is restricted to the authenticated user.
+    {
+      "prompt": "Rahul wale call ko 6 PM kar do"
+    }
 
-If an AI request attempts to assign a Todo to another user:
+The system:
+
+1. Finds the matching Todo
+2. Checks that it belongs to the authenticated user
+3. Validates the update
+4. Uses the existing Todo update flow
+5. Returns the updated Todo
+
+---
+
+## Duplicate Detection
+
+Before creating a new AI Todo, the system checks the logged-in user's existing Todos for similar titles.
+
+Example:
+
+Existing:
+
+    Call Rahul about the project
+
+New request:
+
+    Tomorrow call Rahul about project
+
+The API can return:
+
+    409 Conflict
+
+with:
+
+    duplicate: true
+
+instead of silently creating a duplicate Todo.
+
+The response includes the matching Todo so the client can decide whether to update it.
+
+---
+
+# Today's Tasks
+
+The AI can answer questions about today's Todos.
+
+## Count Today's Tasks
+
+Request:
+
+    {
+      "prompt": "aaj ke kitne task hain?"
+    }
+
+Response contains:
+
+    type: count_today
+
+and the number of today's tasks.
+
+---
+
+## List Today's Tasks
+
+Request:
+
+    {
+      "prompt": "aaj ke saare tasks batao"
+    }
+
+Response contains:
+
+    type: list_today
+
+with today's tasks.
+
+---
+
+## Today's Call Tasks
+
+Request:
+
+    {
+      "prompt": "aaj kisko call karna hai?"
+    }
+
+The system searches today's tasks belonging to the authenticated user and returns relevant call-related tasks.
+
+---
+
+# Today's Task Recommendations
+
+The AI assistant can recommend the best order for today's work.
+
+Example:
+
+    {
+      "prompt": "aaj kaunse task pehle karne chahiye?"
+    }
+
+Recommendations consider:
+
+1. Priority
+2. Due date
+3. Overdue status
+4. Tasks due soon
+5. Estimated task duration
+6. In-progress status
+
+---
+
+# All-Today Duration Estimation
+
+The assistant can estimate the time required for all pending tasks today.
+
+Example:
+
+    {
+      "prompt": "aaj ke saare task complete karne mein kitna time lagega?"
+    }
+
+The response can include:
+
+- Total tasks
+- Completed tasks
+- Pending tasks
+- Estimated duration for every task
+- Total estimated minutes
+- Total estimated hours
+- Estimated completion time
+
+Example:
+
+    Call Rahul
+    20 minutes
+
+    Reply to client emails
+    15 minutes
+
+    Complete client report
+    60 minutes
+
+    Attend team meeting
+    45 minutes
+
+    Total:
+    140 minutes
+    = 2 hours 20 minutes
+
+---
+
+# Full Daily Planning
+
+The assistant can combine task listing, prioritization, duration estimation, and scheduling.
+
+Example:
+
+    {
+      "prompt": "aaj ke saare tasks batao, kaunsa pehle karna chahiye, har task ko kitna time lagega aur sab kab tak complete honge?"
+    }
+
+The application should return:
+
+- Today's tasks
+- Priority
+- Due time
+- Recommended order
+- Estimated duration per task
+- Total estimated duration
+- Estimated completion time
+
+---
+
+# Logged-in User Security
+
+All AI Todo operations are restricted to the authenticated user.
+
+The AI does not decide which user's data it can access.
+
+The server always gets the user identity from:
+
+    req.user
+
+and not from:
+
+    req.body.userId
+
+or an AI-generated user ID.
+
+---
+
+# Assignment Security
+
+AI Todo creation and updates are restricted to the logged-in user.
+
+## No assignee specified
+
+The Todo is assigned to:
+
+    Logged-in user
+
+## Logged-in user specified
+
+The request is allowed.
+
+## Another user specified
+
+The request is rejected:
 
     403 Forbidden
 
-This prevents the AI endpoint from bypassing existing Todo permissions.
+Example:
 
-Examples:
+    {
+      "prompt": "Create a Todo and assign it to John"
+    }
 
-    No assignee mentioned
-        ↓
-    Todo is assigned to logged-in user
+If John is another user:
 
-    Logged-in user mentioned
-        ↓
-    Todo is assigned to logged-in user
+    403 AI Todo creation can only assign the Todo to the logged-in user
 
-    Different user mentioned
-        ↓
-    Request rejected with 403
+## Unknown user
 
-    Unknown user mentioned
-        ↓
-    Request rejected with 404
+If the mentioned user cannot be found:
+
+    404 Not Found
 
 ---
 
-## Collaboration
+# Authorization Rules
 
-- Add comments
-- Get comments
-- Update comments
-- Delete comments
-- Todo activity history
-- Audit logging
+AI cannot bypass existing Todo permissions.
+
+Every request must pass:
+
+    Authentication
+        ↓
+    AI extraction
+        ↓
+    Server-side validation
+        ↓
+    User authorization
+        ↓
+    Existing Todo validation
+        ↓
+    Todo creation/update
+
+The AI is never trusted as an authorization source.
+
+---
+
+# Existing Todo Flow
+
+AI-created Todos are passed through the existing Todo creation logic.
+
+The AI layer does not directly bypass the normal Todo service/controller.
+
+This keeps the same:
+
+- Validation
+- Authentication
+- Authorization
+- Activity logging
 - Notifications
-- Todo attachments
-
----
-
-## Admin
-
-- Get all users
-- Get all Todos
-- Get Todo by ID
-- Update any Todo
-- Delete any Todo
-- View Trash
-- Restore Todo
-- Change user role
-- Make user admin
-- Remove admin privileges
-- Change user password
-- Enable/disable users
-- Delete users
-
----
-
-## Cloudinary
-
-- Cloudinary configuration stored in MongoDB
-- Encrypted Cloudinary credentials
-- Secure credential management
-- Attachment upload
-
----
-
-## Custom In-Memory LFU Cache
-
-- No Redis
-- No external cache service
-- Node.js memory only
-- Configurable maximum cache size
-- LFU eviction
-- Access-frequency tracking
-- TTL expiration
 - Cache invalidation
-- User-specific cache keys
-- Query-specific cache keys
-- Automatic expired-entry cleanup
-- Cache failure does not break the API
-- Server restart clears the cache
+- Database rules
+
+used by manually created Todos.
 
 ---
 
-# Technologies
+# Google Gemini / Google AI Studio
 
-- Node.js
-- Express.js
-- MongoDB
-- Mongoose
-- JWT
-- bcryptjs
-- dotenv
-- Nodemailer
-- Cloudinary
-- Multer
-- Swagger UI
-- Jest
-- Supertest
-- Nodemon
-- Google Gemini API
-- `@google/genai`
+The AI Todo assistant uses Google Gemini.
 
----
+Google AI Studio is used to create and manage the Gemini API key.
 
-# Project Structure
+The backend uses:
 
-    todo-api/
-    │
-    ├── config/
-    │   ├── cloudinary.js
-    │   ├── db.js
-    │   ├── swagger.js
-    │   └── ...
-    │
-    ├── controllers/
-    │   ├── adminController.js
-    │   ├── authController.js
-    │   ├── cloudinaryAdminController.js
-    │   ├── notificationController.js
-    │   ├── todoController.js
-    │   └── aiTodoController.js
-    │
-    ├── middleware/
-    │   ├── authMiddleware.js
-    │   ├── errorMiddleware.js
-    │   ├── logger.js
-    │   └── uploadMiddleware.js
-    │
-    ├── models/
-    │   ├── Activity.js
-    │   ├── CloudinaryConfig.js
-    │   ├── Comment.js
-    │   ├── Notification.js
-    │   ├── Todo.js
-    │   ├── TodoActivity.js
-    │   └── User.js
-    │
-    ├── routes/
-    │   ├── adminRoutes.js
-    │   ├── authRoutes.js
-    │   ├── notificationRoutes.js
-    │   └── todoRoutes.js
-    │
-    ├── utils/
-    │   ├── activityService.js
-    │   ├── aiTodoService.js
-    │   ├── attachmentService.js
-    │   ├── cloudinaryConfigService.js
-    │   ├── emailService.js
-    │   ├── encryptionService.js
-    │   ├── lfuCache.js
-    │   ├── notificationService.js
-    │   ├── passwordService.js
-    │   └── trashCleanupService.js
-    │
-    ├── tests/
-    │   ├── admin.test.js
-    │   ├── adminActivity.test.js
-    │   ├── auth.test.js
-    │   ├── cloudinaryConfig.test.js
-    │   ├── setup.js
-    │   ├── todo.test.js
-    │   ├── todoActivity.test.js
-    │   ├── todoAttachmentActivity.test.js
-    │   └── aiTodo.test.js
-    │
-    ├── public/
-    │   └── uploads/
-    │
-    ├── .env
-    ├── .gitignore
-    ├── jest.config.js
-    ├── package.json
-    ├── package-lock.json
-    ├── server.js
-    └── README.md
+    @google/genai
 
----
-
-# Installation
-
-## 1. Install Dependencies
-
-    npm install
-
-The AI Todo feature requires the Google Gemini SDK:
+Install:
 
     npm install @google/genai
 
@@ -264,7 +391,7 @@ The AI Todo feature requires the Google Gemini SDK:
 
 # Environment Configuration
 
-Create `.env` in the project root.
+Create a `.env` file in the project root.
 
 Example:
 
@@ -297,49 +424,100 @@ Example:
 
 ---
 
-# Google Gemini / AI Studio Setup
+# Gemini API Key
 
-The AI Todo feature uses Google Gemini.
+Use a Gemini API key generated through Google AI Studio.
 
-Google AI Studio is used to create/manage the Gemini API key.
+Set:
 
-The backend uses the Gemini API through:
+    GEMINI_API_KEY=your_google_ai_studio_api_key
 
-    @google/genai
+Do not expose this key in the frontend.
 
-The key must remain on the backend.
-
-Never expose:
-
-    GEMINI_API_KEY
-
-in frontend JavaScript or browser code.
+Do not commit `.env` to Git.
 
 ---
 
-# AI Todo Creation
+# AI Model
+
+The model is configured using:
+
+    GEMINI_MODEL=gemini-3.6-flash
+
+The code reads the model from the environment so it can be changed without modifying application code.
+
+---
+
+# AI Timezone
+
+Relative dates are interpreted using:
+
+    AI_TODO_TIMEZONE
+
+Example:
+
+    AI_TODO_TIMEZONE=Asia/Kolkata
+
+This supports requests such as:
+
+    today
+    tomorrow
+    Friday
+    tomorrow at 5 PM
+    aaj
+    kal
+
+---
+
+# Installation
+
+Install dependencies:
+
+    npm install
+
+Install Gemini SDK:
+
+    npm install @google/genai
+
+---
+
+# Start the Server
+
+Development:
+
+    npm run dev
+
+Production:
+
+    npm start
+
+Default API:
+
+    http://localhost:5000
+
+---
+
+# AI Todo API
 
 ## Endpoint
 
     POST /api/todos/ai
 
-This endpoint requires authentication.
-
-Protected requests must include:
+Authentication:
 
     Authorization: Bearer YOUR_JWT_TOKEN
+
+Content-Type:
+
+    application/json
 
 ---
 
-## Request
+# AI Create Example
 
-Example:
+Request:
 
     POST /api/todos/ai
-
-    Content-Type: application/json
-
-    Authorization: Bearer YOUR_JWT_TOKEN
 
 Body:
 
@@ -347,131 +525,166 @@ Body:
       "prompt": "Tomorrow at 5 PM remind me to call Rahul about the project. Make it high priority."
     }
 
----
+Expected:
 
-## AI Extraction
+    201 Created
 
-The AI extracts:
-
-    Title
-    Description
-    Due Date
-    Priority
-    Assigned User
-    Tags
-
-Example input:
-
-    Complete the client report by Friday and assign it to me and mark it high priority.
-
-Example extracted data:
-
-    Title:
-    Complete the client report
-
-    Priority:
-    high
-
-    Due Date:
-    Friday
-
-    Assigned To:
-    Logged-in user
+The response contains the created Todo.
 
 ---
 
-# AI Todo Creation Flow
+# AI Update Example
 
-    POST /api/todos/ai
-            ↓
-    Authentication middleware
-            ↓
-    Validate prompt
-            ↓
-    Send prompt to Gemini
-            ↓
-    Gemini returns structured JSON
-            ↓
-    Validate AI-generated data
-            ↓
-    Resolve assigned user
-            ↓
-    Check assignment authorization
-            ↓
-    Existing Todo creation flow
-            ↓
-    Todo validation
-            ↓
-    Create Todo
-            ↓
-    Activity / notification / cache logic
-            ↓
-    Return created Todo
-
-The AI controller must not bypass the existing Todo creation rules.
-
----
-
-# AI Todo Security
-
-AI-created Todos can only be assigned to the currently logged-in user.
-
-### No assignment specified
-
-The Todo is automatically assigned to:
-
-    req.user
-
-### Logged-in user specified
-
-The Todo is created successfully.
-
-### Different user specified
-
-The request is rejected:
-
-    403 Forbidden
-
-Example:
+Request:
 
     {
-      "prompt": "Finish the report and assign it to John"
+      "prompt": "Rahul wale call ko 6 PM kar do"
     }
 
-If John is not the authenticated user:
+Expected:
 
-    403 AI Todo creation can only assign the Todo to the logged-in user
+    200 OK
 
-### Unknown user
-
-If a mentioned user cannot be found:
-
-    404 Assigned user not found
-
-### Unauthorized request
-
-If the JWT is missing or invalid:
-
-    401 Unauthorized
+The system finds the matching Todo belonging to the logged-in user and updates it.
 
 ---
 
-# AI Validation
+# AI Count Example
 
-AI-generated data is never trusted directly.
+Request:
 
-The server validates:
+    {
+      "prompt": "aaj ke kitne task hain?"
+    }
 
-- Todo title
-- Todo description
-- Todo priority
-- Todo due date
+Expected:
+
+    type: count_today
+
+---
+
+# AI List Example
+
+Request:
+
+    {
+      "prompt": "aaj ke saare tasks batao"
+    }
+
+Expected:
+
+    type: list_today
+
+---
+
+# AI Call Search Example
+
+Request:
+
+    {
+      "prompt": "aaj kisko call karna hai?"
+    }
+
+Returns relevant call-related tasks scheduled for today for the authenticated user.
+
+---
+
+# AI Recommendation Example
+
+Request:
+
+    {
+      "prompt": "aaj kaunse task pehle karne chahiye?"
+    }
+
+Returns today's pending tasks ordered by recommendation score.
+
+---
+
+# AI Full-Day Estimate Example
+
+Request:
+
+    {
+      "prompt": "aaj ke saare task complete karne mein kitna time lagega?"
+    }
+
+Returns:
+
+    totalTasks
+    completedTasks
+    pendingTasks
+    estimatedTotalMinutes
+    estimatedTotalHours
+    estimatedCompletionTime
+    task-by-task estimated duration
+
+---
+
+# AI Full-Day Planning Example
+
+Request:
+
+    {
+      "prompt": "aaj ke saare tasks batao, kaunsa pehle karna chahiye, har task ko kitna time lagega aur sab kab tak complete honge?"
+    }
+
+Expected information:
+
+    Task
+    Priority
+    Due Time
+    Estimated Duration
+    Recommended Order
+    Recommended Start
+    Recommended Finish
+    Total Duration
+    Estimated Completion
+
+---
+
+# Request Validation
+
+The AI endpoint validates the request before processing.
+
+Invalid:
+
+    {}
+    
+or:
+
+    {
+      "prompt": ""
+    }
+
+Response:
+
+    {
+      "success": false,
+      "message": "prompt is required and must be a non-empty string"
+    }
+
+Maximum prompt length:
+
+    4000 characters
+
+---
+
+# AI Output Validation
+
+AI output is validated by the backend.
+
+Validated fields include:
+
+- Title
+- Description
+- Priority
+- Due date
+- Status
 - Assigned user
 - Tags
-- Ambiguous date
-- User permissions
-
-Invalid AI output is rejected before database creation.
+- Ambiguous dates
+- Estimated duration
 
 Supported priorities:
 
@@ -479,98 +692,70 @@ Supported priorities:
     medium
     high
 
-Any other value such as:
+Supported statuses:
 
-    urgent
-    critical
-    highest
-
-is rejected unless it is mapped to one of the supported priorities.
+    pending
+    in-progress
+    completed
 
 ---
 
-# AI Date Handling
+# Ambiguous Dates
 
-Relative dates are resolved using:
-
-    AI_TODO_TIMEZONE
-
-Default:
-
-    Asia/Kolkata
-
-Examples:
-
-    tomorrow
-    Friday
-    next Monday
-    tomorrow at 5 PM
-
-If the AI determines that a date is genuinely ambiguous, the Todo is not created.
+If the AI determines that a requested date is ambiguous, the Todo is not created.
 
 Example:
 
-    "Finish this on 5/6"
+    "Finish it on 5/6"
 
-If the date cannot safely be resolved, the endpoint returns:
+If the system cannot safely determine the date:
 
     400 Bad Request
 
-The response contains a clarification message.
+The user should clarify the date.
 
 ---
 
 # AI Failure Handling
 
-If Gemini is unavailable or the API key is missing/invalid, the endpoint returns a controlled error.
+If Gemini is unavailable, incorrectly configured, or returns invalid structured data:
+
+    503 Service Unavailable
 
 Example:
 
     {
       "success": false,
-      "message": "AI Todo creation is temporarily unavailable"
+      "message": "AI Todo assistant is temporarily unavailable"
     }
 
-The server does not create a Todo from incomplete or invalid AI output.
+AI failure must never result in an invalid Todo being saved.
 
 ---
 
-# Start the Application
+# Duplicate Handling
 
-## Development
+When AI creation is requested, the application compares the new Todo title with the authenticated user's existing Todos.
 
-    npm run dev
+If a strong duplicate is detected:
 
-## Production
+    409 Conflict
 
-    npm start
+Example:
 
-Base URL:
+    {
+      "success": false,
+      "duplicate": true,
+      "message": "A similar Todo already exists"
+    }
 
-    http://localhost:5000
-
----
-
-# Authentication API
-
-    POST /api/auth/register
-    POST /api/auth/login
-    POST /api/auth/forgot-password
-    POST /api/auth/reset-password/:token
-    POST /api/auth/change-password
-    GET  /api/auth/me
-    POST /api/auth/logout
-
-Protected requests use:
-
-    Authorization: Bearer YOUR_JWT_TOKEN
+The existing Todo is returned so the client can decide whether to update it.
 
 ---
 
 # Todo API
 
     POST   /api/todos
-
     POST   /api/todos/ai
 
     GET    /api/todos
@@ -596,36 +781,225 @@ Protected requests use:
 
 ---
 
-# AI Todo Testing
+# Authentication API
 
-## 1. Start the server
-
-    npm run dev
+    POST /api/auth/register
+    POST /api/auth/login
+    POST /api/auth/forgot-password
+    POST /api/auth/reset-password/:token
+    POST /api/auth/change-password
+    GET  /api/auth/me
+    POST /api/auth/logout
 
 ---
 
-## 2. Login
+# Collaboration
 
-Send:
+The API supports:
+
+- Comments
+- Todo activity
+- Audit logging
+- Notifications
+- Attachments
+- Assignment
+- Status updates
+
+---
+
+# Admin
+
+Admin functionality includes:
+
+- Get all users
+- Get all Todos
+- Get Todo by ID
+- Update any Todo
+- Delete Todo
+- Restore Todo
+- View Trash
+- Change user role
+- Make user admin
+- Remove admin privileges
+- Change user password
+- Enable/disable users
+- Delete users
+
+---
+
+# Cloudinary
+
+Cloudinary is used for Todo attachments.
+
+Capabilities include:
+
+- Upload attachments
+- Store attachment URL
+- Store Cloudinary public ID
+- Secure Cloudinary configuration
+- Cloudinary credentials stored securely
+
+---
+
+# In-Memory LFU Cache
+
+The project includes a custom in-memory Least Frequently Used cache.
+
+No Redis or external cache service is required.
+
+Features:
+
+- In-memory storage
+- Maximum cache size
+- Frequency tracking
+- LFU eviction
+- TTL expiration
+- Cache invalidation
+- User-specific cache keys
+- Query-specific cache keys
+- Expired entry cleanup
+- Cache failure isolation
+
+---
+
+# Cache Configuration
+
+Example:
+
+    CACHE_MAX_SIZE=100
+    CACHE_TTL=60000
+
+TTL is in milliseconds.
+
+Examples:
+
+    60000
+    1 minute
+
+    300000
+    5 minutes
+
+    600000
+    10 minutes
+
+---
+
+# Cache Flow
+
+    GET /api/todos
+          ↓
+    Create cache key
+          ↓
+    Check cache
+          ↓
+       ┌──┴──┐
+       │     │
+      HIT   MISS
+       │     │
+    frequency MongoDB
+       +1     │
+       │      ↓
+       │   Store result
+       │      │
+       └──┬───┘
+          ↓
+      Response
+
+---
+
+# Cache Invalidation
+
+Todo cache is invalidated when Todo data changes.
+
+Operations include:
+
+- Todo creation
+- Todo update
+- Todo deletion
+- Todo restore
+- Todo assignment
+- Status change
+- Priority change
+- Due date change
+- Attachment changes
+
+AI-created and AI-updated Todos also use the existing Todo flow so normal cache invalidation is preserved.
+
+---
+
+# Todo Trash
+
+Todos are soft deleted.
+
+When deleted:
+
+    isDeleted = true
+    deletedAt = current date
+
+Retention is controlled using:
+
+    TRASH_RETENTION_DAYS=30
+
+After the retention period, old deleted Todos can be permanently removed.
+
+---
+
+# Testing
+
+Install dependencies:
+
+    npm install
+
+Run all tests:
+
+    npm test
+
+Run AI Todo tests:
+
+    npx jest tests/aiTodo.test.js --runInBand
+
+Run Todo tests:
+
+    npm run test:todo
+
+Run Authentication tests:
+
+    npm run test:auth
+
+Run Admin tests:
+
+    npm run test:admin
+
+Run all test suites:
+
+    npm run test:all
+
+---
+
+# Manual AI Testing
+
+## 1. Login
+
+Request:
 
     POST /api/auth/login
 
-Example body:
+Body:
 
     {
       "email": "your-user@example.com",
       "password": "your-password"
     }
 
-Copy the returned JWT token.
+Copy the JWT token.
 
 ---
 
-## 3. Test AI Todo Creation
+## 2. Test AI Endpoint
 
-Send:
+Request:
 
-    POST /api/todos/ai
+    POST http://localhost:5000/api/todos/ai
 
 Headers:
 
@@ -642,82 +1016,171 @@ Expected:
 
     201 Created
 
-The resulting Todo should contain:
+---
 
-    priority = high
+## 3. Create Today's Test Todos
 
-and a valid:
+Create several Todos for today's date.
 
-    dueDate
+Example:
+
+    Call Rahul about the project
+    Priority: high
+    Due: 2:00 PM
+
+    Complete client report
+    Priority: high
+    Due: 5:00 PM
+
+    Reply to client emails
+    Priority: medium
+    Due: 3:00 PM
+
+    Attend team meeting
+    Priority: medium
+    Due: 4:00 PM
+
+    Update project documentation
+    Priority: low
+    Due: 7:00 PM
 
 ---
 
-## 4. Test Simple Todo
-
-Body:
+## 4. Test Today's Count
 
     {
-      "prompt": "Call Rahul about the project"
+      "prompt": "aaj ke kitne task hain?"
     }
 
 Expected:
 
-    201 Created
-
-Default priority:
-
-    medium
+    count_today
 
 ---
 
-## 5. Test Priority
-
-Body:
+## 5. Test Today's Tasks
 
     {
-      "prompt": "Finish the client report and make it high priority"
+      "prompt": "aaj ke saare tasks batao"
     }
 
 Expected:
 
-    priority = high
+    list_today
 
 ---
 
-## 6. Test Due Date
-
-Body:
+## 6. Test Today's Calls
 
     {
-      "prompt": "Finish the client report tomorrow at 5 PM"
+      "prompt": "aaj kisko call karna hai?"
     }
 
 Expected:
 
-    dueDate = tomorrow at 5 PM
+    Call Rahul about the project
 
 ---
 
-## 7. Test Assigned User
-
-Body:
+## 7. Test Recommendation
 
     {
-      "prompt": "Finish the report and assign it to me"
+      "prompt": "aaj kaunse task pehle karne chahiye?"
     }
 
 Expected:
 
-    assignedTo = logged-in user
+    Recommended order based on:
+    priority
+    due time
+    urgency
+    status
+    estimated duration
 
 ---
 
-## 8. Test Unknown User
-
-Body:
+## 8. Test All-Task Duration
 
     {
-      "prompt": "Finish the report and assign it to UnknownUser123"
+      "prompt": "aaj ke saare task complete karne mein kitna time lagega?"
+    }
+
+Expected:
+
+    All pending tasks
+    Individual duration
+    Total duration
+    Total hours
+    Estimated completion time
+
+---
+
+## 9. Test Full Schedule
+
+    {
+      "prompt": "aaj ke saare tasks batao, kaunsa pehle karna chahiye, har task ko kitna time lagega aur sab kab tak complete honge?"
+    }
+
+Expected:
+
+    Task list
+    Priority
+    Due time
+    Estimated duration
+    Recommended order
+    Start time
+    Finish time
+    Total duration
+    Estimated completion
+
+---
+
+## 10. Test Update
+
+First create:
+
+    {
+      "prompt": "Tomorrow at 10 AM call Amit about the proposal"
+    }
+
+Then:
+
+    {
+      "prompt": "Amit wale call ko 6 PM kar do"
+    }
+
+Expected:
+
+    Existing Todo updated
+
+No duplicate Todo should be created.
+
+---
+
+## 11. Test Duplicate Detection
+
+Create:
+
+    {
+      "prompt": "Tomorrow at 10 AM call Amit about the proposal"
+    }
+
+Send the same request again.
+
+Expected:
+
+    409 Conflict
+
+and:
+
+    duplicate = true
+
+---
+
+## 12. Test Unknown User
+
+    {
+      "prompt": "Create a task and assign it to UnknownUser123"
     }
 
 Expected:
@@ -726,29 +1189,35 @@ Expected:
 
 ---
 
-## 9. Test Cross-User Assignment
+## 13. Test Cross-User Assignment
 
-Login as User A and send:
+Login as User A.
+
+Send:
 
     {
-      "prompt": "Finish the report and assign it to User B"
+      "prompt": "Create a task and assign it to User B"
     }
 
 Expected:
 
     403 Forbidden
 
-This verifies that AI cannot bypass existing Todo permissions.
+No Todo should be created for User B.
 
 ---
 
-## 10. Test Without JWT
+## 14. Test Authentication
 
 Remove:
 
     Authorization: Bearer YOUR_JWT_TOKEN
 
-Send the AI Todo request.
+Send:
+
+    {
+      "prompt": "aaj ke saare tasks batao"
+    }
 
 Expected:
 
@@ -756,457 +1225,42 @@ Expected:
 
 ---
 
-## 11. Test Invalid AI Output
+# AI Testing Checklist
 
-The AI-generated priority must only be:
-
-    low
-    medium
-    high
-
-If the AI returns:
-
-    urgent
-
-the server must reject the request.
-
-Expected:
-
-    400 Bad Request
-
----
-
-## 12. Test Ambiguous Date
-
-Example:
-
-    {
-      "prompt": "Finish the report on 5/6"
-    }
-
-If the date cannot be safely determined, expected:
-
-    400 Bad Request
-
-No Todo should be created.
-
----
-
-## 13. Test Gemini API Failure
-
-Temporarily use an invalid key:
-
-    GEMINI_API_KEY=invalid-key
-
-Restart the server.
-
-Send an AI Todo request.
-
-Expected:
-
-    503 Service Unavailable
-
-Restore the real Gemini key afterward.
-
----
-
-# Testing
-
-Run all tests:
-
-    npm test
-
-Run Todo tests:
-
-    npm run test:todo
-
-Run AI Todo tests:
-
-    npx jest tests/aiTodo.test.js --runInBand
-
-Run Admin tests:
-
-    npm run test:admin
-
-Run Authentication tests:
-
-    npm run test:auth
-
-Run LFU cache tests:
-
-    npm run test:lfu-cache
-
-Run everything:
-
-    npm run test:all
-
----
-
-# AI Todo Testing Checklist
-
-- [ ] Create Todo from a simple sentence
+- [ ] Create Todo from simple sentence
 - [ ] Extract title
 - [ ] Extract description
 - [ ] Extract high priority
 - [ ] Extract low priority
-- [ ] Use medium as default priority
+- [ ] Default to medium priority
 - [ ] Extract due date
 - [ ] Extract due time
-- [ ] Handle relative dates
+- [ ] Handle tomorrow
+- [ ] Handle today
+- [ ] Handle Friday
 - [ ] Handle ambiguous dates
-- [ ] Extract assigned user
-- [ ] Assign Todo to logged-in user
-- [ ] Reject assignment to another user
+- [ ] Extract assignee
+- [ ] Allow logged-in user only
+- [ ] Reject another user
 - [ ] Reject unknown user
 - [ ] Extract tags
-- [ ] Handle missing information
-- [ ] Reject invalid priority
-- [ ] Reject invalid due date
-- [ ] Validate AI-generated fields
-- [ ] Require authentication
+- [ ] Detect duplicates
+- [ ] Update existing Todo
+- [ ] Count today's tasks
+- [ ] List today's tasks
+- [ ] Find today's call tasks
+- [ ] Recommend task order
+- [ ] Estimate duration for every task
+- [ ] Calculate total estimated time
+- [ ] Calculate estimated completion time
+- [ ] Handle Hindi requests
+- [ ] Handle Hinglish requests
 - [ ] Handle Gemini API failure
-- [ ] Ensure no Todo is created when validation fails
+- [ ] Validate AI output
+- [ ] Require authentication
+- [ ] Prevent cross-user data access
 - [ ] Ensure AI cannot bypass Todo permissions
-- [ ] Ensure AI-created Todo follows the same creation rules as manually created Todo
-
----
-
-# Custom In-Memory LFU Cache
-
-Cache implementation:
-
-    utils/lfuCache.js
-
-The cache does not use Redis or any external service.
-
-All cached data is stored inside the Node.js process memory.
-
-Each cache entry contains:
-
-    Cache Entry
-    ├── key
-    ├── data
-    ├── frequency
-    ├── createdAt
-    └── expiresAt
-
----
-
-# Cache Configuration
-
-## Maximum Cache Size
-
-    CACHE_MAX_SIZE=100
-
-This controls the maximum number of cache entries.
-
-For testing:
-
-    CACHE_MAX_SIZE=3
-
-## TTL
-
-TTL is specified in milliseconds:
-
-    CACHE_TTL=60000
-
-Examples:
-
-    60000    = 1 minute
-    300000   = 5 minutes
-    600000   = 10 minutes
-    3600000  = 1 hour
-
----
-
-# LFU Eviction
-
-The cache uses Least Frequently Used eviction.
-
-Example:
-
-    Cache Capacity = 3
-
-    A → accessed 10 times
-    B → accessed 5 times
-    C → accessed 1 time
-
-Add D:
-
-    A → Keep
-    B → Keep
-    C → Remove
-    D → Add
-
-The entry with the lowest frequency is removed first.
-
-If multiple entries have the same frequency, the oldest entry is removed first.
-
----
-
-# TTL Expiration
-
-When an entry expires:
-
-    GET cache
-       ↓
-    Entry exists?
-       ↓
-    Expired?
-     ┌─┴─┐
-    YES  NO
-     ↓    ↓
-    Delete Return data
-     ↓
-    Cache miss
-
-Expired entries are never returned.
-
-Expired entries are also cleaned periodically.
-
----
-
-# Todo Cache
-
-Caching is applied to:
-
-    GET /api/todos
-
-The cache key contains the authenticated user and the Todo query.
-
-Example:
-
-    todos:role:user:userId:123:search::status:pending:priority::dueDate::page:1:limit:10:sort:newest
-
-This prevents cached data from being mixed between users or queries.
-
----
-
-# Todo Cache Flow
-
-    GET /api/todos
-          ↓
-    Create cache key
-          ↓
-    Check cache
-          ↓
-       ┌──┴──┐
-       │     │
-      HIT   MISS
-       │     │
-    Frequency MongoDB
-       +1     │
-       │      ↓
-       │   Store cache
-       │      │
-       └──┬───┘
-          ↓
-     Return response
-
----
-
-# Cache Invalidation
-
-Todo cache is automatically invalidated when Todo data changes.
-
-The following operations invalidate the Todo cache:
-
-- Todo created
-- Todo updated
-- Todo deleted
-- Todo restored
-- Todo assigned
-- Todo reassigned
-- Todo status changed
-- Todo priority changed
-- Todo due date changed
-- Todo attachment changed
-
-After a modification:
-
-    Todo changed
-        ↓
-    Invalidate Todo cache
-        ↓
-    Next GET /api/todos
-        ↓
-    MongoDB
-        ↓
-    Fresh data
-        ↓
-    Store new cache
-
-This guarantees that the next Todo list request does not return stale cached data.
-
-AI-created Todos also use the existing Todo creation flow, so the normal Todo cache invalidation logic is preserved.
-
----
-
-# Cache Failure Safety
-
-The cache is isolated from the main API.
-
-If a cache operation fails:
-
-    Cache error
-        ↓
-    Ignore cache error
-        ↓
-    Continue database operation
-        ↓
-    Return API response
-
-Therefore a cache failure does not break the Todo API.
-
----
-
-# Server Restart
-
-The cache is stored only in Node.js application memory.
-
-Before restart:
-
-    Application memory
-    └── Cache entries
-
-After restart:
-
-    Application memory
-    └── Empty cache
-
-No cache data is stored permanently.
-
----
-
-# Cache Statistics
-
-For local testing, add:
-
-    CACHE_DEBUG=true
-
-Then use:
-
-    GET /api/cache/stats
-
-Example response:
-
-    {
-      "success": true,
-      "cache": {
-        "size": 2,
-        "maxSize": 100,
-        "ttl": 60000,
-        "entries": [
-          {
-            "key": "todos:userId:123:status:pending",
-            "frequency": 5,
-            "createdAt": "2026-08-19T00:00:00.000Z",
-            "expiresAt": "2026-08-19T00:01:00.000Z"
-          }
-        ]
-      }
-    }
-
-This endpoint should only be enabled for local testing or protected appropriately.
-
----
-
-# Admin API
-
-    GET    /api/admin/users
-
-    GET    /api/admin/todos
-    GET    /api/admin/todos/trash
-    GET    /api/admin/todos/:id
-
-    PUT    /api/admin/todos/:id
-    PATCH  /api/admin/todos/:id
-    DELETE /api/admin/todos/:id
-    PATCH  /api/admin/todos/:id/restore
-
-    POST   /api/admin/users/:id/make-admin
-    POST   /api/admin/users/:id/remove-admin
-    PATCH  /api/admin/users/:id/role
-    PATCH  /api/admin/users/:id/password
-    PATCH  /api/admin/users/:id/status
-    DELETE /api/admin/users/:id
-
----
-
-# Trash Cleanup
-
-Deleted Todos are soft deleted first.
-
-Example:
-
-    Todo deleted
-         ↓
-    isDeleted = true
-         ↓
-    deletedAt = current date
-         ↓
-    Trash
-
-Retention is controlled by:
-
-    TRASH_RETENTION_DAYS=30
-
-After the configured retention period, old Trash records are permanently deleted.
-
-When permanent Todo deletion occurs, the Todo cache is invalidated.
-
----
-
-# LFU Important Test
-
-Set:
-
-    CACHE_MAX_SIZE=3
-
-Use:
-
-    A → 10 accesses
-    B → 5 accesses
-    C → 1 access
-
-Then request:
-
-    D
-
-Expected:
-
-    A → Keep
-    B → Keep
-    C → Remove
-    D → Add
-
----
-
-# LFU Testing Checklist
-
-- [ ] Cache miss fetches data from MongoDB
-- [ ] Cache hit returns cached data
-- [ ] Cache hit increases frequency
-- [ ] Frequency is tracked correctly
-- [ ] Maximum cache size is respected
-- [ ] LFU item is removed when cache is full
-- [ ] Frequently accessed item remains in cache
-- [ ] TTL expiration works
-- [ ] Expired cache is not returned
-- [ ] New data replaces least frequently used data
-- [ ] Different users have separate cache entries
-- [ ] Different query parameters create separate cache keys
-- [ ] Todo creation invalidates relevant cache
-- [ ] Todo update invalidates relevant cache
-- [ ] Todo deletion invalidates relevant cache
-- [ ] Todo restore invalidates relevant cache
-- [ ] Todo assignment invalidates relevant cache
-- [ ] Todo status change invalidates relevant cache
-- [ ] Todo priority change invalidates relevant cache
-- [ ] Todo attachment change invalidates relevant cache
-- [ ] Cache failure does not break the API
-- [ ] Server restart clears in-memory cache
-- [ ] User cached data cannot be exposed to another user
+- [ ] Ensure AI uses existing Todo creation/update logic
 
 ---
 
@@ -1225,19 +1279,19 @@ Sensitive values include:
     CONFIG_ENCRYPTION_KEY
     Cloudinary credentials
 
-Make sure `.env` is included in `.gitignore`.
+The `.env` file should be included in `.gitignore`.
 
-The Gemini API key must only be used by the backend.
+The Gemini API key must only be used on the backend.
 
-Do not expose the Gemini API key to the frontend.
+Never expose the Gemini API key in frontend code.
 
 ---
 
-# Multi-Process Note
+# Multi-Process Cache Note
 
-The cache is process-local.
+The custom cache is process-local.
 
-If multiple Node.js processes are running:
+If multiple Node.js processes run:
 
     Process 1
     └── Cache 1
@@ -1245,70 +1299,61 @@ If multiple Node.js processes are running:
     Process 2
     └── Cache 2
 
-They do not share cache entries.
+The caches are not shared.
 
-This is expected because the requirement is a custom in-memory cache with no Redis or external cache service.
+This is expected because the cache is intentionally implemented using application memory instead of Redis or another external cache.
 
 ---
 
-# Cache Design Summary
+# Project Structure
 
-The implemented cache follows this behavior:
-
-    Request /api/todos
-            ↓
-    Build user/query-specific cache key
-            ↓
-    Search in-memory cache
-            ↓
-       ┌────┴────┐
-       │         │
-      HIT       MISS
-       │         │
-    frequency   MongoDB
-       +1         │
-       │          ↓
-       │       Store result
-       │          │
-       └────┬─────┘
-            ↓
-       Return response
-
-When the cache reaches its capacity:
-
-    New cache entry
-          ↓
-    Cache full?
-          ↓
-       Find LFU
-          ↓
-    Remove least used
-          ↓
-       Add new entry
-
-When TTL expires:
-
-    Cached entry
-          ↓
-    TTL expired?
-          ↓
-        Delete
-          ↓
-      Cache miss
-          ↓
-       MongoDB
-
-When Todo data changes:
-
-    Create / Update / Delete / Restore /
-    Assign / Status / Priority / Attachment
-                  ↓
-          Invalidate Todo cache
-                  ↓
-          Next request is fresh
+    todo-api/
+    │
+    ├── config/
+    │
+    ├── controllers/
+    │   ├── adminController.js
+    │   ├── authController.js
+    │   ├── todoController.js
+    │   └── aiTodoController.js
+    │
+    ├── middleware/
+    │
+    ├── models/
+    │   ├── Todo.js
+    │   ├── User.js
+    │   ├── Comment.js
+    │   ├── Activity.js
+    │   └── Notification.js
+    │
+    ├── routes/
+    │   ├── adminRoutes.js
+    │   ├── authRoutes.js
+    │   ├── notificationRoutes.js
+    │   └── todoRoutes.js
+    │
+    ├── utils/
+    │   ├── aiTodoService.js
+    │   ├── lfuCache.js
+    │   ├── activityService.js
+    │   ├── notificationService.js
+    │   └── ...
+    │
+    ├── tests/
+    │   ├── aiTodo.test.js
+    │   ├── auth.test.js
+    │   ├── todo.test.js
+    │   └── ...
+    │
+    ├── .env
+    ├── .gitignore
+    ├── package.json
+    ├── package-lock.json
+    ├── server.js
+    └── README.md
 
 ---
 
 # License
 
-This project is for development and API implementation purposes.
+This project is intended for application development, testing, and API implementation purposes.

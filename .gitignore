@@ -8,3 +8,6 @@ npm-debug.log*
 # Uploaded local document files
 public/uploads/*
 !public/uploads/.gitkeep
+
+# Local MongoDB test database files
+tests/.mongodb-test-data/

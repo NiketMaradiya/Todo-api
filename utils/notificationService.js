@@ -18,8 +18,9 @@ const createNotification =
     todoId = null,
     type,
     message,
+    session = null,
   }) => {
-    return await Notification.create({
+    const notificationData = {
       userId,
 
       todoId,
@@ -27,7 +28,21 @@ const createNotification =
       type,
 
       message,
-    });
+    };
+
+    if (session) {
+      const created =
+        await Notification.create(
+          [notificationData],
+          { session }
+        );
+
+      return created[0];
+    }
+
+    return await Notification.create(
+      notificationData
+    );
   };
 
 // ==========================================

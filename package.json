@@ -15,7 +15,8 @@
     "test:attachment": "jest tests/todoAttachmentActivity.test.js --runInBand --forceExit",
     "test:cloudinary": "jest tests/cloudinaryConfig.test.js --runInBand --forceExit",
     "test:lfu-cache": "jest tests/lfuCache.test.js --runInBand --forceExit",
-    "test:all": "jest --runInBand --forceExit"
+    "test:all": "jest --runInBand --forceExit",
+    "test:transactions": "jest tests/transaction.test.js --runInBand --forceExit"
   },
   "dependencies": {
     "@google/genai": "^2.18.0",

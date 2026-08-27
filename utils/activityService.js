@@ -5,6 +5,20 @@ const TodoActivity =
 
 // ==========================================
 // Create Todo Activity
+//
+// Transaction support:
+// - session is optional
+// - when session is provided, the activity
+//   is created inside the same transaction
+//
+// Important:
+// If a transaction session is provided and
+// activity creation fails, the error is thrown
+// so the parent transaction can rollback.
+//
+// For old non-transaction APIs, activity
+// creation failure is swallowed to preserve
+// existing behavior.
 // ==========================================
 
 const createActivity =
@@ -14,6 +28,7 @@ const createActivity =
     action,
     oldValue = null,
     newValue = null,
+    session = null,
   }) => {
     try {
       if (!todoId) {
@@ -34,23 +49,58 @@ const createActivity =
         );
       }
 
-      const activity =
-        await TodoActivity.create({
-          todoId,
-          userId,
-          action,
-          oldValue,
-          newValue,
-        });
+      const activityData = {
+        todoId,
+        userId,
+        action,
+        oldValue,
+        newValue,
+      };
 
-      return activity;
+      // ==========================================
+      // Transactional insert
+      // ==========================================
+
+      if (session) {
+        const created =
+          await TodoActivity.create(
+            [activityData],
+            {
+              session,
+            }
+          );
+
+        return created[0];
+      }
+
+      // ==========================================
+      // Normal insert
+      // ==========================================
+
+      return await TodoActivity.create(
+        activityData
+      );
     } catch (error) {
       console.error(
         "Activity creation error:",
         error.message
       );
 
-      // Do not break the main Todo operation
+      // ==========================================
+      // IMPORTANT
+      //
+      // Transaction caller MUST receive the error.
+      // This causes withTransaction() to rollback.
+      // ==========================================
+
+      if (session) {
+        throw error;
+      }
+
+      // ==========================================
+      // Preserve old non-transaction behavior
+      // ==========================================
+
       return null;
     }
   };
